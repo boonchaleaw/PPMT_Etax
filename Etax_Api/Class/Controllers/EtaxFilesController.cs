@@ -2911,10 +2911,10 @@ namespace Etax_Api.Controllers
                     orderAscendingDirection = bodyDtParameters.Order[0].Dir.ToString().ToLower() == "asc";
                 }
 
-                List<int> listDocumentTypeID = _context.document_type
-                 .Where(x => x.type == "etax")
-                 .Select(x => x.id)
-                 .ToList();
+                List<int> listDocumentTypeID = await (from td in _context.document_type
+                                                      where td.type == "etax"
+                                                      select td.id
+                                                      ).ToListAsync();
 
                 var result = _context.view_etax_files.Where(x => listDocumentTypeID.Contains(x.document_type_id) && x.delete_status == 0).AsQueryable();
 

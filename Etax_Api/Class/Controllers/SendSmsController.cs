@@ -566,5 +566,427 @@ namespace Etax_Api.Controllers
             }
         }
 
+        //////////////////////////Admin//////////////////////////
+      
+        
+        [HttpPost]
+        [Route("admin/get_sms_tabel")]
+        public async Task<IActionResult> GetSendSmsDataTabelAdmin([FromBody] BodyDtParameters bodyDtParameters)
+        {
+            try
+            {
+                string token = Request.Headers[HeaderNames.Authorization].ToString();
+                JwtStatus jwtStatus = Jwt.ValidateJwtToken(token);
+
+                if (!jwtStatus.status)
+                    return StatusCode(401, new { message = "token ไม่ถูกต้องหรือหมดอายุ", });
+
+                var searchBy = bodyDtParameters.searchText;
+                var orderCriteria = "id";
+                var orderAscendingDirection = true;
+
+                if (bodyDtParameters.Order != null)
+                {
+                    orderCriteria = bodyDtParameters.Columns[bodyDtParameters.Order[0].Column].Data;
+                    orderAscendingDirection = bodyDtParameters.Order[0].Dir.ToString().ToLower() == "asc";
+                }
+
+                List<int> listDocumentTypeID = await (from td in _context.document_type
+                                                      where td.type == "etax"
+                                                      select td.id).ToListAsync();
+
+                var result = _context.view_send_sms.Where(x => listDocumentTypeID.Contains(x.document_type_id)).AsQueryable();
+
+                if (bodyDtParameters.id != 0)
+                {
+                    result = result.Where(x => x.member_id == bodyDtParameters.id);
+                }
+                else
+                {
+                    var membereId = await (from um in _context.user_members
+                                           where um.user_id == jwtStatus.user_id
+                                           select um.member_id).ToListAsync();
+
+                    result = result.Where(x => membereId.Contains(x.member_id));
+                }
+
+                bodyDtParameters.dateStart = DateTime.Parse(bodyDtParameters.dateStart.ToString()).Date;
+                bodyDtParameters.dateEnd = bodyDtParameters.dateEnd.AddDays(+1).AddMilliseconds(-1);
+
+                int document_id = System.Convert.ToInt32(bodyDtParameters.docType);
+
+                if (!string.IsNullOrEmpty(searchBy))
+                {
+                    if (document_id == 0)
+                    {
+                        if (bodyDtParameters.dateType == "issue_date")
+                        {
+                            result = result.Where(r =>
+                                (r.etax_id.Contains(searchBy) && r.issue_date >= bodyDtParameters.dateStart && r.issue_date <= bodyDtParameters.dateEnd) ||
+                                (r.raw_name.Contains(searchBy) && r.issue_date >= bodyDtParameters.dateStart && r.issue_date <= bodyDtParameters.dateEnd) ||
+                                (r.name.Contains(searchBy) && r.issue_date >= bodyDtParameters.dateStart && r.issue_date <= bodyDtParameters.dateEnd)
+                            );
+                        }
+                        else
+                        {
+                            result = result.Where(r =>
+                                (r.etax_id.Contains(searchBy) && r.send_sms_finish >= bodyDtParameters.dateStart && r.send_sms_finish <= bodyDtParameters.dateEnd) ||
+                                (r.raw_name.Contains(searchBy) && r.send_sms_finish >= bodyDtParameters.dateStart && r.send_sms_finish <= bodyDtParameters.dateEnd) ||
+                                (r.name.Contains(searchBy) && r.send_sms_finish >= bodyDtParameters.dateStart && r.send_sms_finish <= bodyDtParameters.dateEnd)
+                            );
+                        }
+                    }
+                    else
+                    {
+                        if (bodyDtParameters.dateType == "issue_date")
+                        {
+                            result = result.Where(r =>
+                                (r.document_type_id == document_id && r.etax_id.Contains(searchBy) && r.issue_date >= bodyDtParameters.dateStart && r.issue_date <= bodyDtParameters.dateEnd) ||
+                                (r.document_type_id == document_id && r.raw_name.Contains(searchBy) && r.issue_date >= bodyDtParameters.dateStart && r.issue_date <= bodyDtParameters.dateEnd) ||
+                                (r.document_type_id == document_id && r.name.Contains(searchBy) && r.issue_date >= bodyDtParameters.dateStart && r.issue_date <= bodyDtParameters.dateEnd)
+                            );
+                        }
+                        else
+                        {
+                            result = result.Where(r =>
+                                (r.document_type_id == document_id && r.etax_id.Contains(searchBy) && r.send_sms_finish >= bodyDtParameters.dateStart && r.send_sms_finish <= bodyDtParameters.dateEnd) ||
+                                (r.document_type_id == document_id && r.raw_name.Contains(searchBy) && r.send_sms_finish >= bodyDtParameters.dateStart && r.send_sms_finish <= bodyDtParameters.dateEnd) ||
+                                (r.document_type_id == document_id && r.name.Contains(searchBy) && r.send_sms_finish >= bodyDtParameters.dateStart && r.send_sms_finish <= bodyDtParameters.dateEnd)
+                            );
+                        }
+                    }
+                }
+                else
+                {
+                    if (document_id == 0)
+                    {
+                        if (bodyDtParameters.dateType == "issue_date")
+                        {
+                            result = result.Where(r =>
+                                (r.issue_date >= bodyDtParameters.dateStart && r.issue_date <= bodyDtParameters.dateEnd)
+                            );
+                        }
+                        else
+                        {
+                            result = result.Where(r =>
+                                (r.send_sms_finish >= bodyDtParameters.dateStart && r.send_sms_finish <= bodyDtParameters.dateEnd)
+                            );
+                        }
+                    }
+                    else
+                    {
+                        if (bodyDtParameters.dateType == "issue_date")
+                        {
+                            result = result.Where(r =>
+                                (r.document_type_id == document_id && r.issue_date >= bodyDtParameters.dateStart && r.issue_date <= bodyDtParameters.dateEnd)
+                            );
+                        }
+                        else
+                        {
+                            result = result.Where(r =>
+                                (r.document_type_id == document_id && r.send_sms_finish >= bodyDtParameters.dateStart && r.send_sms_finish <= bodyDtParameters.dateEnd)
+                            );
+                        }
+                    }
+                }
+
+                if (bodyDtParameters.statusType1 != "")
+                {
+                    result = result.Where(r => r.send_sms_status == bodyDtParameters.statusType1);
+                }
+
+                result = orderAscendingDirection ? result.OrderByProperty(orderCriteria) : result.OrderByPropertyDescending(orderCriteria);
+
+                var filteredResultsCount = await result.CountAsync();
+                var totalResultsCount = 0;
+
+                if (bodyDtParameters.Length == -1)
+                {
+
+                    var data = await result
+                    .Select(x => new
+                    {
+                        x.id,
+                        x.etax_file_id,
+                        x.etax_id,
+                        x.member_id,
+                        x.document_type_name,
+                        x.create_type,
+                        x.raw_name,
+                        x.name,
+                        x.buyer_tel,
+                        x.send_sms_status,
+                        x.send_sms_finish,
+                        x.error,
+                        x.url_path,
+                        x.issue_date,
+
+                    })
+                    .ToListAsync();
+
+                    return StatusCode(200, new
+                    {
+                        draw = bodyDtParameters.Draw,
+                        recordsTotal = totalResultsCount,
+                        recordsFiltered = filteredResultsCount,
+                        data = data
+                    });
+                }
+                else
+                {
+                    var data = await result
+                    .Select(x => new
+                    {
+                        x.id,
+                        x.etax_file_id,
+                        x.etax_id,
+                        x.member_id,
+                        x.document_type_name,
+                        x.create_type,
+                        x.raw_name,
+                        x.name,
+                        x.buyer_tel,
+                        x.send_sms_status,
+                        x.send_sms_finish,
+                        x.error,
+                        x.url_path,
+                        x.issue_date,
+
+                    })
+                    .Skip(bodyDtParameters.Start)
+                    .Take(bodyDtParameters.Length)
+                    .ToListAsync();
+
+                    return StatusCode(200, new
+                    {
+                        draw = bodyDtParameters.Draw,
+                        recordsTotal = totalResultsCount,
+                        recordsFiltered = filteredResultsCount,
+                        data = data
+                    });
+                }
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(400, new { message = ex.Message });
+            }
+        }
+
+        [HttpPost]
+        [Route("admin/get_sms_detail/{id}")]
+        public async Task<IActionResult> GetSmsDetailAdmin(int id)
+        {
+            try
+            {
+                string token = Request.Headers[HeaderNames.Authorization].ToString();
+                JwtStatus jwtStatus = Jwt.ValidateJwtToken(token);
+
+                if (!jwtStatus.status)
+                    return StatusCode(401, new { message = "token ไม่ถูกต้องหรือหมดอายุ", });
+
+
+                var sendEmail = await _context.view_send_sms
+                .Where(x => x.id == id)
+                .Select(x => new
+                {
+                    x.id,
+                    x.etax_file_id,
+                    x.etax_id,
+                    x.member_id,
+                    x.branch_id,
+                    x.document_type_id,
+                    x.create_type,
+                    x.name,
+                    x.raw_name,
+                    x.send_sms_status,
+                    x.send_sms_finish,
+                    x.error,
+                    x.url_path,
+                })
+                .FirstOrDefaultAsync();
+
+                var member = await _context.members
+                .Where(x => x.id == sendEmail.member_id)
+                .Select(x => new
+                {
+                    x.id,
+                    x.name,
+                    x.tax_id,
+                })
+                .FirstOrDefaultAsync();
+
+                var branch = await _context.branchs
+                .Where(x => x.id == sendEmail.branch_id)
+                .Select(x => new
+                {
+                    x.id,
+                    x.name,
+                    x.building_number,
+                    x.building_name,
+                    x.street_name,
+                    x.district_code,
+                    x.district_name,
+                    x.amphoe_code,
+                    x.amphoe_name,
+                    x.province_code,
+                    x.province_name,
+                    x.zipcode,
+                })
+                .FirstOrDefaultAsync();
+
+                var etax = await _context.view_etax_files
+                .Where(x => x.id == sendEmail.etax_file_id)
+                .Select(x => new
+                {
+                    x.etax_id,
+                    x.issue_date,
+                    x.ref_etax_id,
+                    x.ref_issue_date,
+                    x.buyer_branch_code,
+                    x.buyer_id,
+                    x.buyer_name,
+                    x.buyer_tax_id,
+                    x.buyer_address,
+                    x.buyer_tel,
+                    x.buyer_fax,
+                    x.buyer_email,
+                    x.original_price,
+                    x.price,
+                    x.discount,
+                    x.tax,
+                    x.total,
+                })
+                .FirstOrDefaultAsync();
+
+                if (sendEmail != null && member != null && branch != null)
+                {
+                    return StatusCode(200, new
+                    {
+                        message = "เรียกดูข้อมูลสำเร็จ",
+                        data = new
+                        {
+                            member = new
+                            {
+                                id = member.id,
+                                name = member.name,
+                                tax_id = member.tax_id,
+                            },
+                            branch = new
+                            {
+                                id = branch.id,
+                                name = branch.name,
+                                building_number = branch.building_number,
+                                building_name = branch.building_name,
+                                street_name = branch.street_name,
+                                district_code = branch.district_code,
+                                district_name = branch.district_name,
+                                amphoe_code = branch.amphoe_code,
+                                amphoe_name = branch.amphoe_name,
+                                province_code = branch.province_code,
+                                province_name = branch.province_name,
+                                zipcode = branch.zipcode,
+                            },
+                            document_type_id = sendEmail.document_type_id,
+                            create_type = sendEmail.create_type,
+                            name = sendEmail.name,
+                            raw_name = sendEmail.raw_name,
+                            send_sms_status = sendEmail.send_sms_status,
+                            send_sms_finish = sendEmail.send_sms_finish,
+                            error = sendEmail.error,
+                            url_path = sendEmail.url_path,
+                            etax_id = etax.etax_id,
+                            issue_date = etax.issue_date,
+                            ref_etax_id = etax.ref_etax_id,
+                            ref_issue_date = etax.ref_issue_date,
+                            buyer_branch_code = etax.buyer_branch_code,
+                            buyer_id = etax.buyer_id,
+                            buyer_name = etax.buyer_name,
+                            buyer_tax_id = etax.buyer_tax_id,
+                            buyer_address = etax.buyer_address,
+                            buyer_tel = etax.buyer_tel,
+                            buyer_fax = etax.buyer_fax,
+                            buyer_email = etax.buyer_email,
+                            original_price = etax.original_price,
+                            price = etax.price,
+                            discount = etax.discount,
+                            tax = etax.tax,
+                            total = etax.total,
+                        },
+                    });
+                }
+                else
+                {
+                    return StatusCode(404, new
+                    {
+                        message = "ไม่พบข้อมูลที่ต้องการ",
+                    });
+                }
+
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(400, new { message = ex.Message });
+            }
+        }
+
+        [HttpPost]
+        [Route("admin/update_sms")]
+        public async Task<IActionResult> UpdateSmsAdmin([FromBody] BodySms bodySms)
+        {
+            try
+            {
+                string token = Request.Headers[HeaderNames.Authorization].ToString();
+                JwtStatus jwtStatus = Jwt.ValidateJwtToken(token);
+
+                if (!jwtStatus.status)
+                    return StatusCode(401, new { message = "token ไม่ถูกต้องหรือหมดอายุ", });
+
+                if (String.IsNullOrEmpty(bodySms.buyer_tel))
+                    return StatusCode(400, new { message = "กรุณากำหนดเบอร์โทรศัพท์", });
+
+                using (var transaction = _context.Database.BeginTransaction())
+                {
+                    try
+                    {
+                        var etaxfile = _context.etax_files
+                        .Where(x => x.id == bodySms.etax_file_id)
+                        .FirstOrDefault();
+
+                        if (etaxfile != null)
+                        {
+                            etaxfile.buyer_tel = bodySms.buyer_tel;
+
+                            var sendSms = _context.send_sms
+                            .Where(x => x.etax_file_id == bodySms.etax_file_id)
+                            .FirstOrDefault();
+
+                            if (sendSms != null)
+                            {
+                                sendSms.send_sms_status = "pending";
+                                sendSms.error = null;
+                            }
+                            await _context.SaveChangesAsync();
+                            transaction.Commit();
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        transaction.Rollback();
+                        return StatusCode(400, new { message = ex.Message });
+                    }
+                }
+
+
+                return StatusCode(200, new
+                {
+                    message = "แก้ไขข้อมูลสำเร็จ",
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(400, new { message = ex.Message });
+            }
+        }
+
     }
 }

@@ -525,7 +525,7 @@ namespace Etax_Api.Controllers
                 DateTime dateEnd = DateTime.ParseExact(bodyDtParameters.dateEnd.ToString("yyyy-MM-dd", new CultureInfo("en-US")), "yyyy-MM-dd", new CultureInfo("en-US"));
                 DateTime dateStart = DateTime.ParseExact(bodyDtParameters.dateStart.ToString("yyyy-MM-dd", new CultureInfo("en-US")), "yyyy-MM-dd", new CultureInfo("en-US"));
 
-                 dateEnd = dateEnd.AddDays(1);
+                dateEnd = dateEnd.AddDays(1);
 
                 //List<ViewTotalReport> listTotal = _context.view_total_report
                 //    .Where(x => x.Date >= dateStart && x.Date <= dateEnd)
@@ -543,26 +543,31 @@ namespace Etax_Api.Controllers
                 //    .ToList();
 
 
+
+                List<int> membereId = await (from um in _context.user_members
+                                          where um.user_id == jwtStatus.user_id
+                                          select um.member_id).ToListAsync();
+
                 //แก้ไขการดึงข้อมูลให้ดึงข้อมูลตามวันที่ที่เลือก
                 List<ViewTotalReport> listTotal = await (from ef in _context.etax_files
-                                                   join sem in _context.send_email on ef.id equals sem.etax_file_id into semGroup
-                                                   from sem in semGroup.DefaultIfEmpty()
-                                                   join se in _context.send_sms on ef.id equals se.etax_file_id into seGroup
-                                                   from se in seGroup.DefaultIfEmpty()
-                                                   join seb in _context.send_ebxml on ef.id equals seb.etax_file_id into sebGroup
-                                                   from seb in sebGroup.DefaultIfEmpty()
-                                                   where ef.create_date >= dateStart && ef.create_date <= dateEnd
-                                                   group new { ef, sem, se, seb } by ef.member_id into g
-                                                   select new ViewTotalReport
-                                                   {
-                                                       id = g.Key,
-                                                       xml_count = g.Sum(x => x.ef.gen_xml_status == "success" ? 1 : 0),
-                                                       pdf_count = g.Sum(x => x.ef.gen_pdf_status == "success" ? 1 : 0),
-                                                       email_count = g.Sum(x => x.sem != null && x.sem.send_email_status == "success" ? x.sem.send_count : 0),
-                                                       sms_count = g.Sum(x => x.se != null && x.se.send_sms_status == "success" ? x.se.send_count : 0),
-                                                       sms_message_count = g.Sum(x => x.se != null && x.se.send_sms_status == "success" ? x.se.message_count : 0),
-                                                       ebxml_count = g.Sum(x => x.seb != null && x.seb.send_ebxml_status == "success" ? 1 : 0)
-                                                   }).ToListAsync();
+                                                         join sem in _context.send_email on ef.id equals sem.etax_file_id into semGroup
+                                                         from sem in semGroup.DefaultIfEmpty()
+                                                         join se in _context.send_sms on ef.id equals se.etax_file_id into seGroup
+                                                         from se in seGroup.DefaultIfEmpty()
+                                                         join seb in _context.send_ebxml on ef.id equals seb.etax_file_id into sebGroup
+                                                         from seb in sebGroup.DefaultIfEmpty()
+                                                         where ef.create_date >= dateStart && ef.create_date <= dateEnd && membereId.Contains(ef.member_id)
+                                                         group new { ef, sem, se, seb } by ef.member_id into g
+                                                         select new ViewTotalReport
+                                                         {
+                                                             id = g.Key,
+                                                             xml_count = g.Sum(x => x.ef.gen_xml_status == "success" ? 1 : 0),
+                                                             pdf_count = g.Sum(x => x.ef.gen_pdf_status == "success" ? 1 : 0),
+                                                             email_count = g.Sum(x => x.sem != null && x.sem.send_email_status == "success" ? x.sem.send_count : 0),
+                                                             sms_count = g.Sum(x => x.se != null && x.se.send_sms_status == "success" ? x.se.send_count : 0),
+                                                             sms_message_count = g.Sum(x => x.se != null && x.se.send_sms_status == "success" ? x.se.message_count : 0),
+                                                             ebxml_count = g.Sum(x => x.seb != null && x.seb.send_ebxml_status == "success" ? 1 : 0)
+                                                         }).ToListAsync();
 
                 foreach (ViewTotalReport total in listTotal)
                 {

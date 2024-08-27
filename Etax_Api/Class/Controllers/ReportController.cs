@@ -372,7 +372,7 @@ namespace Etax_Api.Controllers
                 result = orderAscendingDirection ? result.OrderByProperty(orderCriteria) : result.OrderByPropertyDescending(orderCriteria);
 
                 var filteredResultsCount = await result.CountAsync();
-                var totalResultsCount = await _context.view_tex_report.Where(x => x.member_id == jwtStatus.member_id && x.gen_xml_status == "success" && x.document_type_id == document_id).CountAsync();
+                var totalResultsCount = 0;
 
 
                 if (bodyDtParameters.Length == -1)
@@ -382,7 +382,7 @@ namespace Etax_Api.Controllers
                     {
                         x.id,
                         x.etax_id,
-                        x.document_type_name,
+                        x.document_type_id,
                         x.buyer_tax_id,
                         x.buyer_name,
                         x.original_price,
@@ -417,7 +417,7 @@ namespace Etax_Api.Controllers
                     {
                         x.id,
                         x.etax_id,
-                        x.document_type_name,
+                        x.document_type_id,
                         x.buyer_tax_id,
                         x.buyer_name,
                         x.original_price,
@@ -2299,7 +2299,7 @@ namespace Etax_Api.Controllers
                 if (!jwtStatus.status)
                     return StatusCode(401, new { message = "token ไม่ถูกต้องหรือหมดอายุ", });
 
-                var searchBy = bodyDtParameters.Search?.Value;
+                var searchBy = bodyDtParameters.searchText;
                 var orderCriteria = "id";
                 var orderAscendingDirection = true;
 
@@ -2427,7 +2427,7 @@ namespace Etax_Api.Controllers
                 result = orderAscendingDirection ? result.OrderByProperty(orderCriteria) : result.OrderByPropertyDescending(orderCriteria);
 
                 var filteredResultsCount = await result.CountAsync();
-                var totalResultsCount = await _context.view_tex_report.Where(x => x.member_id == bodyDtParameters.id && x.gen_xml_status == "success" && x.document_type_id == document_id).CountAsync();
+                var totalResultsCount = 0;
 
 
                 if (bodyDtParameters.Length == -1)
@@ -2491,7 +2491,7 @@ namespace Etax_Api.Controllers
                 if (!jwtStatus.status)
                     return StatusCode(401, new { message = "token ไม่ถูกต้องหรือหมดอายุ", });
 
-                var searchBy = bodyDtParameters.Search?.Value;
+                var searchBy = bodyDtParameters.searchText;
                 var orderCriteria = "id";
                 var orderAscendingDirection = true;
 
@@ -2501,7 +2501,25 @@ namespace Etax_Api.Controllers
                     orderAscendingDirection = bodyDtParameters.Order[0].Dir.ToString().ToLower() == "asc";
                 }
 
-                var result = _context.view_send_email.Where(x => x.member_id == bodyDtParameters.id && x.send_email_status == "success").AsQueryable();
+                List<int> listDocumentTypeID = await (from td in _context.document_type
+                                                      where td.type == "etax"
+                                                      select td.id).ToListAsync();
+
+                var result = _context.view_send_email.Where(x => listDocumentTypeID.Contains(x.document_type_id)).AsQueryable();
+
+
+                if (bodyDtParameters.id != 0)
+                {
+                    result = result.Where(x => x.member_id == bodyDtParameters.id);
+                }
+                else
+                {
+                    var membereId = await (from um in _context.user_members
+                                           where um.user_id == jwtStatus.user_id
+                                           select um.member_id).ToListAsync();
+
+                    result = result.Where(x => membereId.Contains(x.member_id));
+                }
 
                 bodyDtParameters.dateStart = DateTime.Parse(bodyDtParameters.dateStart.ToString()).Date;
                 bodyDtParameters.dateEnd = bodyDtParameters.dateEnd.AddDays(+1).AddMilliseconds(-1);
@@ -2583,37 +2601,20 @@ namespace Etax_Api.Controllers
                     }
                 }
 
-
-                List<string> listType = new List<string>();
-                foreach (TaxType tax in bodyDtParameters.taxType)
+                if (bodyDtParameters.statusType1 != "")
                 {
-                    if (tax.id == "7")
-                    {
-                        listType.Add("VAT7");
-                    }
-                    else if (tax.id == "0")
-                    {
-                        listType.Add("VAT0");
-                    }
-                    else if (tax.id == "free")
-                    {
-                        listType.Add("FRE");
-                    }
-                    else if (tax.id == "no")
-                    {
-                        listType.Add("NO");
-                    }
+                    result = result.Where(r => r.send_email_status == bodyDtParameters.statusType1);
                 }
 
-                if (listType.Count > 0)
+                if (bodyDtParameters.statusType2 != "")
                 {
-                    result = result.Where(r => listType.Contains(r.tax_type_filter));
+                    result = result.Where(r => r.email_status == bodyDtParameters.statusType2);
                 }
 
                 result = orderAscendingDirection ? result.OrderByProperty(orderCriteria) : result.OrderByPropertyDescending(orderCriteria);
 
                 var filteredResultsCount = await result.CountAsync();
-                var totalResultsCount = await _context.view_send_email.Where(x => x.member_id == bodyDtParameters.id && x.send_email_status == "success" && x.document_type_id == document_id).CountAsync();
+                var totalResultsCount = 0;
 
 
                 if (bodyDtParameters.Length == -1)
@@ -2675,7 +2676,24 @@ namespace Etax_Api.Controllers
                     orderAscendingDirection = bodyDtParameters.Order[0].Dir.ToString().ToLower() == "asc";
                 }
 
-                var result = _context.view_send_ebxml.Where(x => x.member_id == bodyDtParameters.id && x.send_ebxml_status == "success").AsQueryable();
+                List<int> listDocumentTypeID = await (from td in _context.document_type
+                                                      where td.type == "etax"
+                                                      select td.id).ToListAsync();
+
+                var result = _context.view_send_ebxml.Where(x => listDocumentTypeID.Contains(x.document_type_id)).AsQueryable();
+
+                if (bodyDtParameters.id != 0)
+                {
+                    result = result.Where(x => x.member_id == bodyDtParameters.id);
+                }
+                else
+                {
+                    var membereId = await (from um in _context.user_members
+                                           where um.user_id == jwtStatus.user_id
+                                           select um.member_id).ToListAsync();
+
+                    result = result.Where(x => membereId.Contains(x.member_id));
+                }
 
                 bodyDtParameters.dateStart = DateTime.Parse(bodyDtParameters.dateStart.ToString()).Date;
                 bodyDtParameters.dateEnd = bodyDtParameters.dateEnd.AddDays(+1).AddMilliseconds(-1);
@@ -2757,38 +2775,20 @@ namespace Etax_Api.Controllers
                     }
                 }
 
-
-
-                List<string> listType = new List<string>();
-                foreach (TaxType tax in bodyDtParameters.taxType)
+                if (bodyDtParameters.statusType1 != "")
                 {
-                    if (tax.id == "7")
-                    {
-                        listType.Add("VAT7");
-                    }
-                    else if (tax.id == "0")
-                    {
-                        listType.Add("VAT0");
-                    }
-                    else if (tax.id == "free")
-                    {
-                        listType.Add("FRE");
-                    }
-                    else if (tax.id == "no")
-                    {
-                        listType.Add("NO");
-                    }
+                    result = result.Where(r => r.send_ebxml_status == bodyDtParameters.statusType1);
                 }
 
-                if (listType.Count > 0)
+                if (bodyDtParameters.statusType2 != "")
                 {
-                    result = result.Where(r => listType.Contains(r.tax_type_filter));
+                    result = result.Where(r => r.etax_status == bodyDtParameters.statusType2);
                 }
 
                 result = orderAscendingDirection ? result.OrderByProperty(orderCriteria) : result.OrderByPropertyDescending(orderCriteria);
 
                 var filteredResultsCount = await result.CountAsync();
-                var totalResultsCount = await _context.view_etax_files.Where(x => x.member_id == bodyDtParameters.id && x.gen_xml_status == "success" && x.document_type_id == document_id).CountAsync();
+                var totalResultsCount = 0;
 
                 if (bodyDtParameters.Length == -1)
                 {

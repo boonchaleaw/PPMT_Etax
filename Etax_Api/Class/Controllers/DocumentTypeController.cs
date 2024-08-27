@@ -98,8 +98,8 @@ namespace Etax_Api.Controllers
                     x.document_type_name,
                     x.service_type_id,
                 })
-                .Where(x => 
-                (x.member_id == jwtStatus.member_id && x.service_type_id == 2)||
+                .Where(x =>
+                (x.member_id == jwtStatus.member_id && x.service_type_id == 2) ||
                 (x.member_id == jwtStatus.member_id && x.service_type_id == 3))
                 .ToListAsync();
 
@@ -135,7 +135,7 @@ namespace Etax_Api.Controllers
 
         [HttpPost]
         [Route("admin/get_document_type")]
-        public async Task<IActionResult> GetDocumentTypeAdmin()
+        public async Task<IActionResult> GetDocumentTypeAdmin([FromBody] BodyDocumentType bodyDocumentType)
         {
             try
             {
@@ -145,24 +145,54 @@ namespace Etax_Api.Controllers
                 if (!jwtStatus.status)
                     return StatusCode(401, new { message = "token ไม่ถูกต้องหรือหมดอายุ", });
 
-
-                var document_type = await _context.document_type
-                .ToListAsync();
-
-                if (document_type != null)
+                if (bodyDocumentType.listMemberId == null)
                 {
-                    return StatusCode(200, new
+                    var document_type = await (from dt in _context.document_type
+                                               select dt).ToListAsync();
+
+                    if (document_type != null)
                     {
-                        message = "เรียกดูข้อมูลสำเร็จ",
-                        data = document_type,
-                    });
+                        return StatusCode(200, new
+                        {
+                            message = "เรียกดูข้อมูลสำเร็จ",
+                            data = document_type,
+                        });
+                    }
+                    else
+                    {
+                        return StatusCode(404, new
+                        {
+                            message = "ไม่พบข้อมูลที่ต้องการ",
+                        });
+                    }
                 }
                 else
                 {
-                    return StatusCode(404, new
+
+                    List<int> listDocumentId = await (from mdt in _context.member_document_type
+                                                      where bodyDocumentType.listMemberId.Contains(mdt.member_id)
+                                                      group new { mdt } by mdt.document_type_id into mdt_g
+                                                      select mdt_g.Key).ToListAsync();
+
+                    var document_type = await (from dt in _context.document_type
+                                               where listDocumentId.Contains(dt.id)
+                                               select dt).ToListAsync();
+
+                    if (document_type != null)
                     {
-                        message = "ไม่พบข้อมูลที่ต้องการ",
-                    });
+                        return StatusCode(200, new
+                        {
+                            message = "เรียกดูข้อมูลสำเร็จ",
+                            data = document_type,
+                        });
+                    }
+                    else
+                    {
+                        return StatusCode(404, new
+                        {
+                            message = "ไม่พบข้อมูลที่ต้องการ",
+                        });
+                    }
                 }
             }
             catch (Exception ex)
