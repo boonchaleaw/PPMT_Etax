@@ -11,5 +11,7 @@ namespace Etax_Api
         public DateTime? send_sms_finish { get; set; }
         public string error { get; set; }
         public string payment_status { get; set; }
+        public int send_count { get; set;}
+        public int message_count { get; set; }
     }
 }
