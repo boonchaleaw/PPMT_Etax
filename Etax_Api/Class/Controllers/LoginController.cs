@@ -136,35 +136,35 @@ namespace Etax_Api.Controllers
                 if (memberDocumentType != null)
                     outsource = true;
 
-                    return StatusCode(200, new
+                return StatusCode(200, new
+                {
+                    message = "เรียกดูข้อมูลสำเร็จ",
+                    data = new
                     {
-                        message = "เรียกดูข้อมูลสำเร็จ",
-                        data = new
+                        permission = new
                         {
-                            permission = new
-                            {
-                                per_branch_view = (memberUserPermission.per_branch_view == "Y") ? true : false,
-                                per_branch_manage = (memberUserPermission.per_branch_manage == "Y") ? true : false,
-                                per_user_view = (memberUserPermission.per_user_view == "Y") ? true : false,
-                                per_user_manage = (memberUserPermission.per_user_manage == "Y") ? true : false,
-                                per_raw_view = (memberUserPermission.per_raw_view == "Y") ? true : false,
-                                per_raw_manage = (memberUserPermission.per_raw_manage == "Y") ? true : false,
-                                per_xml_view = (memberUserPermission.per_xml_view == "Y") ? true : false,
-                                per_xml_manage = (memberUserPermission.per_xml_manage == "Y") ? true : false,
-                                per_pdf_view = (memberUserPermission.per_pdf_view == "Y") ? true : false,
-                                per_email_view = (memberUserPermission.per_email_view == "Y") ? true : false,
-                                per_email_manage = (memberUserPermission.per_email_manage == "Y") ? true : false,
-                                per_sms_view = (memberUserPermission.per_sms_view == "Y") ? true : false,
-                                per_sms_manage = (memberUserPermission.per_sms_manage == "Y") ? true : false,
-                                per_ebxml_view = (memberUserPermission.per_ebxml_view == "Y") ? true : false,
-                                per_report_view = (memberUserPermission.per_report_view == "Y") ? true : false,
-                                view_self_only = (memberUserPermission.view_self_only == "Y") ? true : false,
-                                view_branch_only = (memberUserPermission.view_branch_only == "Y") ? true : false,
-                                branchs = memberUserBranch,
-                                per_outsource_view = outsource,
-                            }
-                        },
-                    });
+                            per_branch_view = (memberUserPermission.per_branch_view == "Y") ? true : false,
+                            per_branch_manage = (memberUserPermission.per_branch_manage == "Y") ? true : false,
+                            per_user_view = (memberUserPermission.per_user_view == "Y") ? true : false,
+                            per_user_manage = (memberUserPermission.per_user_manage == "Y") ? true : false,
+                            per_raw_view = (memberUserPermission.per_raw_view == "Y") ? true : false,
+                            per_raw_manage = (memberUserPermission.per_raw_manage == "Y") ? true : false,
+                            per_xml_view = (memberUserPermission.per_xml_view == "Y") ? true : false,
+                            per_xml_manage = (memberUserPermission.per_xml_manage == "Y") ? true : false,
+                            per_pdf_view = (memberUserPermission.per_pdf_view == "Y") ? true : false,
+                            per_email_view = (memberUserPermission.per_email_view == "Y") ? true : false,
+                            per_email_manage = (memberUserPermission.per_email_manage == "Y") ? true : false,
+                            per_sms_view = (memberUserPermission.per_sms_view == "Y") ? true : false,
+                            per_sms_manage = (memberUserPermission.per_sms_manage == "Y") ? true : false,
+                            per_ebxml_view = (memberUserPermission.per_ebxml_view == "Y") ? true : false,
+                            per_report_view = (memberUserPermission.per_report_view == "Y") ? true : false,
+                            view_self_only = (memberUserPermission.view_self_only == "Y") ? true : false,
+                            view_branch_only = (memberUserPermission.view_branch_only == "Y") ? true : false,
+                            branchs = memberUserBranch,
+                            per_outsource_view = outsource,
+                        }
+                    },
+                });
             }
             catch (Exception ex)
             {
@@ -186,12 +186,6 @@ namespace Etax_Api.Controllers
                 if (bodyLogin.password == null || bodyLogin.password == "")
                     return StatusCode(400, new { message = "กรุณากรอกรหัสผ่านให้ถูกต้อง", });
 
-                PrincipalContext principalContext = new PrincipalContext(ContextType.Domain, _config["AD:host"]);
-                bool userValid = principalContext.ValidateCredentials(bodyLogin.username, bodyLogin.password);
-
-                if (!userValid)
-                    return StatusCode(404, new { message = "ไม่พบข้อมูลผู้ใช้งานหรือรหัสผ่านไม่ถูกต้อง", });
-
                 var user = _context.users
                 .Where(x => x.username == bodyLogin.username)
                 .FirstOrDefault();
@@ -199,17 +193,47 @@ namespace Etax_Api.Controllers
                 if (user == null)
                     return StatusCode(404, new { message = "ไม่พบข้อมูลผู้ใช้งานหรือรหัสผ่านไม่ถูกต้อง", });
 
-
-                return StatusCode(200, new
+                if (user.type == "AD")
                 {
-                    message = "เข้าสู่ระบบสำเร็จ",
-                    data = new
+                    PrincipalContext principalContext = new PrincipalContext(ContextType.Domain, _config["AD:host"]);
+                    bool userValid = principalContext.ValidateCredentials(bodyLogin.username, bodyLogin.password);
+
+                    if (!userValid)
+                        return StatusCode(404, new { message = "ไม่พบข้อมูลผู้ใช้งานหรือรหัสผ่านไม่ถูกต้อง", });
+
+
+                    return StatusCode(200, new
                     {
-                        id = user.id,
-                        username = user.username,
-                    },
-                    token = Jwt.GenerateJwtToken(user.id, user.id),
-                });
+                        message = "เข้าสู่ระบบสำเร็จ",
+                        data = new
+                        {
+                            id = user.id,
+                            username = user.username,
+                        },
+                        token = Jwt.GenerateJwtToken(user.id, user.id),
+                    });
+                }
+                else
+                {
+                    var checkUser = _context.users
+                    .Where(x => x.username == bodyLogin.username && x.password == Encryption.SHA256(bodyLogin.password))
+                    .FirstOrDefault();
+
+
+                    if (checkUser == null)
+                        return StatusCode(404, new { message = "ไม่พบข้อมูลผู้ใช้งานหรือรหัสผ่านไม่ถูกต้อง", });
+
+                    return StatusCode(200, new
+                    {
+                        message = "เข้าสู่ระบบสำเร็จ",
+                        data = new
+                        {
+                            id = user.id,
+                            username = user.username,
+                        },
+                        token = Jwt.GenerateJwtToken(user.id, user.id),
+                    });
+                }
             }
             catch (Exception ex)
             {

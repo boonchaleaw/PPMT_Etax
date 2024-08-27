@@ -54,6 +54,7 @@ namespace Etax_Api
         public DbSet<EtaxOutsourceFile> etax_outsource_files { get; set; }
         public DbSet<OtherReports> other_reports { get; set; }
         public DbSet<MemberUserBranch> member_user_branch { get; set; }
+        public DbSet<UserMember> user_members { get; set; }
 
 
         public DbSet<ViewMemberUser> view_member_users { get; set; }

@@ -73,6 +73,9 @@ namespace Etax_Api.Controllers
                 //if (String.IsNullOrEmpty(bodyApiCreateEtax.buyer.tax_id))
                 //    return StatusCode(400, new { error_code = "2007", message = "กรุณากำหนดเลขประจําตัวผู้เสียภาษี", });
 
+                if (String.IsNullOrEmpty(bodyApiCreateEtax.buyer.tax_id))
+                    bodyApiCreateEtax.buyer.tax_id = "";
+
                 if (String.IsNullOrEmpty(bodyApiCreateEtax.buyer.address))
                     return StatusCode(400, new { error_code = "2008", message = "กรุณากำหนดที่อยู่", });
 
@@ -91,6 +94,8 @@ namespace Etax_Api.Controllers
                 if (String.IsNullOrEmpty(bodyApiCreateEtax.buyer.zipcode))
                     return StatusCode(400, new { error_code = "2010", message = "กรุณากำหนดรหัสไปรษณีย์", });
 
+                if (bodyApiCreateEtax.items.Count() <= 0)
+                    return StatusCode(400, new { error_code = "2026", message = "กรุณากำหนดรายการสินค้า", });
 
                 int itemLine = 1;
                 foreach (ItemEtax item in bodyApiCreateEtax.items)
