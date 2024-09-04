@@ -785,7 +785,7 @@ namespace Etax_Api.Controllers
                     return StatusCode(401, new { message = "token ไม่ถูกต้องหรือหมดอายุ", });
 
 
-                var sendEmail = await _context.view_send_sms
+                var sendSms = await _context.view_send_sms
                 .Where(x => x.id == id)
                 .Select(x => new
                 {
@@ -806,7 +806,7 @@ namespace Etax_Api.Controllers
                 .FirstOrDefaultAsync();
 
                 var member = await _context.members
-                .Where(x => x.id == sendEmail.member_id)
+                .Where(x => x.id == sendSms.member_id)
                 .Select(x => new
                 {
                     x.id,
@@ -816,7 +816,7 @@ namespace Etax_Api.Controllers
                 .FirstOrDefaultAsync();
 
                 var branch = await _context.branchs
-                .Where(x => x.id == sendEmail.branch_id)
+                .Where(x => x.id == sendSms.branch_id)
                 .Select(x => new
                 {
                     x.id,
@@ -835,7 +835,7 @@ namespace Etax_Api.Controllers
                 .FirstOrDefaultAsync();
 
                 var etax = await _context.view_etax_files
-                .Where(x => x.id == sendEmail.etax_file_id)
+                .Where(x => x.id == sendSms.etax_file_id)
                 .Select(x => new
                 {
                     x.etax_id,
@@ -858,13 +858,40 @@ namespace Etax_Api.Controllers
                 })
                 .FirstOrDefaultAsync();
 
-                if (sendEmail != null && member != null && branch != null)
+                if (sendSms != null && member != null && branch != null)
                 {
                     return StatusCode(200, new
                     {
                         message = "เรียกดูข้อมูลสำเร็จ",
                         data = new
                         {
+                            id = sendSms.id,
+                            etax_file_id = sendSms.etax_file_id,
+                            document_type_id = sendSms.document_type_id,
+                            create_type = sendSms.create_type,
+                            name = sendSms.name,
+                            raw_name = sendSms.raw_name,
+                            send_sms_status = sendSms.send_sms_status,
+                            send_sms_finish = sendSms.send_sms_finish,
+                            error = sendSms.error,
+                            url_path = sendSms.url_path,
+                            etax_id = etax.etax_id,
+                            issue_date = etax.issue_date,
+                            ref_etax_id = etax.ref_etax_id,
+                            ref_issue_date = etax.ref_issue_date,
+                            buyer_branch_code = etax.buyer_branch_code,
+                            buyer_id = etax.buyer_id,
+                            buyer_name = etax.buyer_name,
+                            buyer_tax_id = etax.buyer_tax_id,
+                            buyer_address = etax.buyer_address,
+                            buyer_tel = etax.buyer_tel,
+                            buyer_fax = etax.buyer_fax,
+                            buyer_email = etax.buyer_email,
+                            original_price = etax.original_price,
+                            price = etax.price,
+                            discount = etax.discount,
+                            tax = etax.tax,
+                            total = etax.total,
                             member = new
                             {
                                 id = member.id,
@@ -886,31 +913,6 @@ namespace Etax_Api.Controllers
                                 province_name = branch.province_name,
                                 zipcode = branch.zipcode,
                             },
-                            document_type_id = sendEmail.document_type_id,
-                            create_type = sendEmail.create_type,
-                            name = sendEmail.name,
-                            raw_name = sendEmail.raw_name,
-                            send_sms_status = sendEmail.send_sms_status,
-                            send_sms_finish = sendEmail.send_sms_finish,
-                            error = sendEmail.error,
-                            url_path = sendEmail.url_path,
-                            etax_id = etax.etax_id,
-                            issue_date = etax.issue_date,
-                            ref_etax_id = etax.ref_etax_id,
-                            ref_issue_date = etax.ref_issue_date,
-                            buyer_branch_code = etax.buyer_branch_code,
-                            buyer_id = etax.buyer_id,
-                            buyer_name = etax.buyer_name,
-                            buyer_tax_id = etax.buyer_tax_id,
-                            buyer_address = etax.buyer_address,
-                            buyer_tel = etax.buyer_tel,
-                            buyer_fax = etax.buyer_fax,
-                            buyer_email = etax.buyer_email,
-                            original_price = etax.original_price,
-                            price = etax.price,
-                            discount = etax.discount,
-                            tax = etax.tax,
-                            total = etax.total,
                         },
                     });
                 }

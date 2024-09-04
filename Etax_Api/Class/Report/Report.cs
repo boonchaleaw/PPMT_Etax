@@ -33,18 +33,18 @@ namespace Etax_Api
                 outputFile.WriteLine(date + ",,,,");
                 outputFile.WriteLine(",,,,");
 
-                outputFile.WriteLine("การนำเข้า,สร้างไฟ XML,สร้างไฟ PDF,ส่งอีเมล,ส่งสรรพากร,ส่ง SMS");
+                outputFile.WriteLine("การนำเข้า,สร้างไฟ XML,สร้างไฟ PDF,ส่งอีเมล,ส่ง SMS,ส่งสรรพากร");
 
                 int xml_count_total = 0;
                 int pdf_count_total = 0;
                 int email_count_total = 0;
-                int ebxml_count_total = 0;
                 int sms_count_total = 0;
+                int ebxml_count_total = 0;
                 double xml_price_total = 0;
                 double pdf_price_total = 0;
                 double email_price_total = 0;
-                double ebxml_price_total = 0;
                 double sms_price_total = 0;
+                double ebxml_price_total = 0;
 
                 foreach (ReturnCostReportData data in returnCostReport.listReturnCostReportData)
                 {
@@ -53,22 +53,24 @@ namespace Etax_Api
                       data.xml_count.ToString() + "," +
                       data.pdf_count.ToString() + "," +
                       data.email_count.ToString() + "," +
-                      data.ebxml_count.ToString() + "," +
-                      data.sms_count.ToString()
+                      data.sms_count.ToString() + "," +
+                      data.ebxml_count.ToString()
                     );
                 }
 
                 xml_count_total = returnCostReport.total_xml_count;
                 pdf_count_total = returnCostReport.total_pdf_count;
                 email_count_total = returnCostReport.total_email_count;
-                ebxml_count_total = returnCostReport.total_ebxml_count;
                 sms_count_total = returnCostReport.total_sms_count;
+                ebxml_count_total = returnCostReport.total_ebxml_count;
+                
 
                 xml_price_total = returnCostReport.total_xml_price;
                 pdf_price_total = returnCostReport.total_pdf_price;
                 email_price_total = returnCostReport.total_email_price;
-                ebxml_price_total = returnCostReport.total_ebxml_price;
                 sms_price_total = returnCostReport.total_sms_price;
+                ebxml_price_total = returnCostReport.total_ebxml_price;
+                
 
                 outputFile.WriteLine("");
                 outputFile.WriteLine("จำนวนรวม," + xml_count_total.ToString() + "," + pdf_count_total.ToString() + "," + email_count_total.ToString() + "," + ebxml_count_total.ToString() + "," + sms_count_total.ToString());

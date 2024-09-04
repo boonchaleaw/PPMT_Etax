@@ -51,10 +51,9 @@ namespace Etax_Api.Controllers
                     orderAscendingDirection = bodyDtParameters.Order[0].Dir.ToString().ToLower() == "asc";
                 }
 
-                List<int> listDocumentTypeID = _context.document_type
-                    .Where(x => x.type == "etax")
-                    .Select(x => x.id)
-                    .ToList();
+                List<int> listDocumentTypeID = await (from td in _context.document_type
+                                                      where td.type == "etax"
+                                                      select td.id).ToListAsync();
 
                 var result = _context.view_etax_files_new.Where(x => x.member_id == jwtStatus.member_id && listDocumentTypeID.Contains(x.document_type_id) && x.delete_status == 0).AsQueryable();
 
@@ -2430,10 +2429,9 @@ namespace Etax_Api.Controllers
                     orderAscendingDirection = bodyDtParameters.Order[0].Dir.ToString().ToLower() == "asc";
                 }
 
-                List<int> listDocumentTypeID = _context.document_type
-                 .Where(x => x.type == "etax")
-                 .Select(x => x.id)
-                 .ToList();
+                List<int> listDocumentTypeID = await (from td in _context.document_type
+                                                      where td.type == "etax"
+                                                      select td.id).ToListAsync();
 
                 var result = _context.view_etax_files.Where(x => listDocumentTypeID.Contains(x.document_type_id) && x.delete_status == 0).AsQueryable();
 
@@ -2443,13 +2441,9 @@ namespace Etax_Api.Controllers
                 }
                 else
                 {
-                    var user_members = await _context.user_members
-                    .Where(x => x.user_id == jwtStatus.user_id)
-                    .ToListAsync();
-
-                    List<int> membereId = new List<int>();
-                    foreach (var member in user_members)
-                        membereId.Add(member.member_id);
+                    var membereId = await (from um in _context.user_members
+                                           where um.user_id == jwtStatus.user_id
+                                           select um.member_id).ToListAsync();
 
                     result = result.Where(x => membereId.Contains(x.member_id));
                 }
@@ -2780,6 +2774,7 @@ namespace Etax_Api.Controllers
                     x.buyer_fax,
                     x.buyer_email,
                     x.original_price,
+                    x.new_price,
                     x.price,
                     x.discount,
                     x.tax,
@@ -2823,27 +2818,7 @@ namespace Etax_Api.Controllers
                         message = "เรียกดูข้อมูลสำเร็จ",
                         data = new
                         {
-                            member = new
-                            {
-                                id = member.id,
-                                name = member.name,
-                                tax_id = member.tax_id,
-                            },
-                            branch = new
-                            {
-                                id = branch.id,
-                                name = branch.name,
-                                building_number = branch.building_number,
-                                building_name = branch.building_name,
-                                street_name = branch.street_name,
-                                district_code = branch.district_code,
-                                district_name = branch.district_name,
-                                amphoe_code = branch.amphoe_code,
-                                amphoe_name = branch.amphoe_name,
-                                province_code = branch.province_code,
-                                province_name = branch.province_name,
-                                zipcode = branch.zipcode,
-                            },
+                            id = xmlFile.id,
                             create_type = xmlFile.create_type,
                             document_type_id = xmlFile.document_type_id,
                             name = xmlFile.name,
@@ -2867,10 +2842,32 @@ namespace Etax_Api.Controllers
                             buyer_fax = xmlFile.buyer_fax,
                             buyer_email = xmlFile.buyer_email,
                             original_price = xmlFile.original_price,
+                            new_price = xmlFile.new_price,
                             price = xmlFile.price,
                             discount = xmlFile.discount,
                             tax = xmlFile.tax,
                             total = xmlFile.total,
+                            member = new
+                            {
+                                id = member.id,
+                                name = member.name,
+                                tax_id = member.tax_id,
+                            },
+                            branch = new
+                            {
+                                id = branch.id,
+                                name = branch.name,
+                                building_number = branch.building_number,
+                                building_name = branch.building_name,
+                                street_name = branch.street_name,
+                                district_code = branch.district_code,
+                                district_name = branch.district_name,
+                                amphoe_code = branch.amphoe_code,
+                                amphoe_name = branch.amphoe_name,
+                                province_code = branch.province_code,
+                                province_name = branch.province_name,
+                                zipcode = branch.zipcode,
+                            },
                         },
                     });
                 }
@@ -2924,13 +2921,9 @@ namespace Etax_Api.Controllers
                 }
                 else
                 {
-                    var user_members = await _context.user_members
-                    .Where(x => x.user_id == jwtStatus.user_id)
-                    .ToListAsync();
-
-                    List<int> membereId = new List<int>();
-                    foreach (var member in user_members)
-                        membereId.Add(member.member_id);
+                    var membereId = await (from um in _context.user_members
+                                           where um.user_id == jwtStatus.user_id
+                                           select um.member_id).ToListAsync();
 
                     result = result.Where(x => membereId.Contains(x.member_id));
                 }
@@ -3307,27 +3300,7 @@ namespace Etax_Api.Controllers
                         message = "เรียกดูข้อมูลสำเร็จ",
                         data = new
                         {
-                            member = new
-                            {
-                                id = member.id,
-                                name = member.name,
-                                tax_id = member.tax_id,
-                            },
-                            branch = new
-                            {
-                                id = branch.id,
-                                name = branch.name,
-                                building_number = branch.building_number,
-                                building_name = branch.building_name,
-                                street_name = branch.street_name,
-                                district_code = branch.district_code,
-                                district_name = branch.district_name,
-                                amphoe_code = branch.amphoe_code,
-                                amphoe_name = branch.amphoe_name,
-                                province_code = branch.province_code,
-                                province_name = branch.province_name,
-                                zipcode = branch.zipcode,
-                            },
+                            id = pdfFile.id,
                             create_type = pdfFile.create_type,
                             document_type_id = pdfFile.document_type_id,
                             name = pdfFile.name,
@@ -3355,6 +3328,27 @@ namespace Etax_Api.Controllers
                             discount = pdfFile.discount,
                             tax = pdfFile.tax,
                             total = pdfFile.total,
+                            member = new
+                            {
+                                id = member.id,
+                                name = member.name,
+                                tax_id = member.tax_id,
+                            },
+                            branch = new
+                            {
+                                id = branch.id,
+                                name = branch.name,
+                                building_number = branch.building_number,
+                                building_name = branch.building_name,
+                                street_name = branch.street_name,
+                                district_code = branch.district_code,
+                                district_name = branch.district_name,
+                                amphoe_code = branch.amphoe_code,
+                                amphoe_name = branch.amphoe_name,
+                                province_code = branch.province_code,
+                                province_name = branch.province_name,
+                                zipcode = branch.zipcode,
+                            },
                         },
                     });
                 }
@@ -3615,6 +3609,125 @@ namespace Etax_Api.Controllers
                 return StatusCode(200, new
                 {
                     message = "แก้ไขข้อมูลสำเร็จ",
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(400, new { message = ex.Message });
+            }
+        }
+
+        [HttpPost]
+        [Route("admin/download_file_xml/{id}")]
+        public async Task<IActionResult> DownloadFileXmlAdmin(int id)
+        {
+            try
+            {
+                string token = Request.Headers[HeaderNames.Authorization].ToString();
+                JwtStatus jwtStatus = Jwt.ValidateJwtToken(token);
+
+                if (!jwtStatus.status)
+                    return StatusCode(401, new { message = "token ไม่ถูกต้องหรือหมดอายุ", });
+
+                EtaxFile etaxFile = await _context.etax_files
+                .Where(x => x.id == id)
+                .FirstOrDefaultAsync();
+
+                if (etaxFile == null)
+                    return StatusCode(400, new { message = "ไม่พบข้อมูลที่ต้องการ", });
+
+                DateTime now = DateTime.Now;
+                string sharePath = "/" + etaxFile.member_id + "/" + Encryption.SHA256("path_" + now.ToString("dd-MM-yyyy")) + "/xml/" + etaxFile.name + ".xml";
+
+                Function.DeleteFile(_config["Path:Share"]);
+                Function.DeleteDirectory(_config["Path:Share"]);
+
+
+                string fileBase64 = ApiFileTransfer.DownloadFile(_config["Path:FileTransfer"], etaxFile.url_path + "/xml/" + etaxFile.name + ".xml", _config["Path:Mode"]);
+                if (fileBase64 != "")
+                {
+                    Directory.CreateDirectory(Path.GetDirectoryName(_config["Path:Share"] + sharePath));
+                    System.IO.File.WriteAllBytes(_config["Path:Share"] + sharePath, Convert.FromBase64String(fileBase64));
+                }
+                else
+                    return StatusCode(400, new { message = "ไม่พบไฟล์ที่ต้องการ", });
+
+                return StatusCode(200, new
+                {
+                    message = "โหลดข้อมูลสำเร็จ",
+                    data = new
+                    {
+                        url = _config["Path:Url"] + sharePath,
+                    },
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(400, new { message = ex.Message });
+            }
+        }
+
+        [HttpPost]
+        [Route("admin/download_file_pdf/{id}")]
+        public async Task<IActionResult> DownloadFilePdfAdmin(int id)
+        {
+            try
+            {
+                string token = Request.Headers[HeaderNames.Authorization].ToString();
+                JwtStatus jwtStatus = Jwt.ValidateJwtToken(token);
+
+                if (!jwtStatus.status)
+                    return StatusCode(401, new { message = "token ไม่ถูกต้องหรือหมดอายุ", });
+
+                EtaxFile etaxFile = await _context.etax_files
+                .Where(x => x.id == id)
+                .FirstOrDefaultAsync();
+
+                if (etaxFile == null)
+                    return StatusCode(400, new { message = "ไม่พบข้อมูลที่ต้องการ", });
+
+                DateTime now = DateTime.Now;
+                string sharePath = "/" + etaxFile.member_id + "/" + Encryption.SHA256("path_" + now.ToString("dd-MM-yyyy")) + "/pdf/" + etaxFile.name + ".pdf";
+
+                Function.DeleteFile(_config["Path:Share"]);
+                Function.DeleteDirectory(_config["Path:Share"]);
+
+                string fileBase64 = ApiFileTransfer.DownloadFile(_config["Path:FileTransfer"], etaxFile.url_path + "/pdf/" + etaxFile.name + ".pdf", _config["Path:Mode"]);
+                if (fileBase64 != "")
+                {
+                    Directory.CreateDirectory(Path.GetDirectoryName(_config["Path:Share"] + sharePath));
+                    System.IO.File.WriteAllBytes(_config["Path:Share"] + sharePath, Convert.FromBase64String(fileBase64));
+                }
+                else
+                    return StatusCode(400, new { message = "ไม่พบไฟล์ที่ต้องการ", });
+
+                //DateTime now = DateTime.Now;
+                //string filePath = etaxFile.output_path + etaxFile.url_path + "/pdf/" + etaxFile.name + ".pdf";
+                //string sharePath = "/" + etaxFile.member_id + "/" + Encryption.MD5("path_" + now.ToString("dd-MM-yyyy")) + "/pdf/" + etaxFile.name + ".pdf";
+
+                //string[] files = Directory.GetFiles(_config["Path:Share"], "*", SearchOption.AllDirectories);
+                //foreach (string file in files)
+                //{
+                //    FileInfo fi = new FileInfo(file);
+                //    if (fi.CreationTime.AddDays(1) < now)
+                //        System.IO.File.Delete(file);
+                //}
+
+                //if (System.IO.File.Exists(filePath))
+                //{
+                //    Directory.CreateDirectory(Path.GetDirectoryName(_config["Path:Share"] + sharePath));
+                //    System.IO.File.Copy(filePath, _config["Path:Share"] + sharePath, true);
+                //}
+                //else
+                //    return StatusCode(400, new { message = "ไม่พบไฟล์ที่ต้องการ", });
+
+                return StatusCode(200, new
+                {
+                    message = "โหลดข้อมูลสำเร็จ",
+                    data = new
+                    {
+                        url = _config["Path:Url"] + sharePath,
+                    },
                 });
             }
             catch (Exception ex)

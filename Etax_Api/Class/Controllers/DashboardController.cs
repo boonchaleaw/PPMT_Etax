@@ -456,18 +456,33 @@ namespace Etax_Api.Controllers
                 DateTime dateMax = DateTime.ParseExact(DateTime.Today.AddMonths(1).ToString("yyyy-MM-", new CultureInfo("en-US")) + "01", "yyyy-MM-dd", new CultureInfo("en-US")).AddDays(-1);
                 DateTime dateMin = DateTime.ParseExact(DateTime.Today.AddMonths(-monthCount).ToString("yyyy-MM-", new CultureInfo("en-US")) + "01", "yyyy-MM-dd", new CultureInfo("en-US"));
 
+                List<int> membereId = await (from um in _context.user_members
+                                             where um.user_id == jwtStatus.user_id
+                                             select um.member_id).ToListAsync();
+
                 List<ViewEtaxCountMonth> listEtaxCountMonth = await _context.view_etax_count_month
-                .Where(x => x.create_date_min >= dateMin && x.create_date_max < dateMax)
+                .Where(x => membereId.Contains(x.member_id) && x.create_date_min >= dateMin && x.create_date_max < dateMax)
                 .ToListAsync();
 
                 List<ViewEtaxCountMonth> listEtaxCountMonthNew = new List<ViewEtaxCountMonth>();
                 for (int i = 0; i < monthCount; i++)
                 {
                     DateTime dateCheck = dateMax.AddMonths(-i);
-                    ViewEtaxCountMonth etaxCountMonthyNew = listEtaxCountMonth.Find(x => x.date_month == dateCheck.Month && x.date_year == dateCheck.Year);
-                    if (etaxCountMonthyNew != null)
+                    List<ViewEtaxCountMonth> etaxCountMonthyNew = listEtaxCountMonth.Where(x => x.date_month == dateCheck.Month && x.date_year == dateCheck.Year).ToList();
+                    if (etaxCountMonthyNew.Count() > 0)
                     {
-                        listEtaxCountMonthNew.Add(etaxCountMonthyNew);
+                        int file_total = 0;
+                        foreach(ViewEtaxCountMonth e in etaxCountMonthyNew)
+                        {
+                            file_total += e.file_total;
+                        }
+
+                        listEtaxCountMonthNew.Add(new ViewEtaxCountMonth()
+                        {
+                            date_month = dateCheck.Month,
+                            date_year = dateCheck.Year,
+                            file_total = file_total,
+                        });
                     }
                     else
                     {
@@ -524,7 +539,6 @@ namespace Etax_Api.Controllers
 
                 DateTime dateEnd = DateTime.ParseExact(bodyDtParameters.dateEnd.ToString("yyyy-MM-dd", new CultureInfo("en-US")), "yyyy-MM-dd", new CultureInfo("en-US"));
                 DateTime dateStart = DateTime.ParseExact(bodyDtParameters.dateStart.ToString("yyyy-MM-dd", new CultureInfo("en-US")), "yyyy-MM-dd", new CultureInfo("en-US"));
-
                 dateEnd = dateEnd.AddDays(1);
 
                 //List<ViewTotalReport> listTotal = _context.view_total_report
@@ -556,7 +570,7 @@ namespace Etax_Api.Controllers
                                                          from se in seGroup.DefaultIfEmpty()
                                                          join seb in _context.send_ebxml on ef.id equals seb.etax_file_id into sebGroup
                                                          from seb in sebGroup.DefaultIfEmpty()
-                                                         where ef.create_date >= dateStart && ef.create_date <= dateEnd && membereId.Contains(ef.member_id)
+                                                         where ef.create_date >= dateStart && ef.create_date < dateEnd && membereId.Contains(ef.member_id)
                                                          group new { ef, sem, se, seb } by ef.member_id into g
                                                          select new ViewTotalReport
                                                          {

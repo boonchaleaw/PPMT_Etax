@@ -31,6 +31,7 @@ namespace Etax_Api
         public string id { get; set; }
         public string name { get; set; }
         public string tax_id { get; set; }
+        public string customer_tax_type { get; set; }
         public string address { get; set; }
         public string zipcode { get; set; }
         public string tel { get; set; }
@@ -74,6 +75,7 @@ namespace Etax_Api
         public string ref_etax_id { get; set; }
         public string ref_issue_date { get; set; }
         public double original_price { get; set; }
+        public double new_price { get; set; }
         public double price { get; set; }
         public double discount { get; set; }
         public double tax { get; set; }

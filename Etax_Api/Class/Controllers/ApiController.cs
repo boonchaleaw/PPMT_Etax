@@ -507,11 +507,19 @@ namespace Etax_Api.Controllers
                         etaxFile.pdf_payment_status = "pending";
                         etaxFile.create_date = now;
 
-                        if (bodyApiCreateEtax.document_type_code == "2" || bodyApiCreateEtax.document_type_code == "3")
+                        if (bodyApiCreateEtax.document_type_code == "2")
                         {
                             etaxFile.ref_etax_id = bodyApiCreateEtax.ref_etax_id;
                             etaxFile.ref_issue_date = DateTime.ParseExact(bodyApiCreateEtax.ref_issue_date, "dd-MM-yyyy", CultureInfo.InvariantCulture);
                             etaxFile.original_price = bodyApiCreateEtax.original_price;
+                            etaxFile.new_price = bodyApiCreateEtax.new_price - bodyApiCreateEtax.original_price;
+                        }
+                        else if (bodyApiCreateEtax.document_type_code == "3")
+                        {
+                            etaxFile.ref_etax_id = bodyApiCreateEtax.ref_etax_id;
+                            etaxFile.ref_issue_date = DateTime.ParseExact(bodyApiCreateEtax.ref_issue_date, "dd-MM-yyyy", CultureInfo.InvariantCulture);
+                            etaxFile.original_price = bodyApiCreateEtax.original_price;
+                            etaxFile.new_price = bodyApiCreateEtax.original_price - bodyApiCreateEtax.new_price;
                         }
 
                         _context.Add(etaxFile);

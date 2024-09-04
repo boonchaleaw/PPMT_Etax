@@ -200,22 +200,18 @@ namespace Etax_Api.Controllers
                 if (!jwtStatus.status)
                     return StatusCode(401, new { message = "token ไม่ถูกต้องหรือหมดอายุ", });
 
-                var user_members = await _context.user_members
-                .Where(x => x.user_id == jwtStatus.user_id)
-                .ToListAsync();
+                List<int> membereId = await (from um in _context.user_members
+                                             where um.user_id == jwtStatus.user_id
+                                             select um.member_id).ToListAsync();
 
-                List<int> membereId = new List<int>();
-                foreach (var member in user_members)
-                    membereId.Add(member.member_id);
 
-                var members = await _context.members
-                .Where(x => membereId.Contains(x.id))
-                .Select(x => new
-                {
-                    x.id,
-                    x.name,
-                })
-                .ToListAsync();
+                var members = await (from m in _context.members
+                                     where membereId.Contains(m.id)
+                                     select new
+                                     {
+                                         m.id,
+                                         m.name,
+                                     }).ToListAsync();
 
 
                 if (members != null)
@@ -263,7 +259,11 @@ namespace Etax_Api.Controllers
                     orderAscendingDirection = bodyDtParameters.Order[0].Dir.ToString().ToLower() == "asc";
                 }
 
-                var result = _context.members.Where(x => x.delete_status == 0).AsQueryable();
+                List<int> membereId = await (from um in _context.user_members
+                                             where um.user_id == jwtStatus.user_id
+                                             select um.member_id).ToListAsync();
+
+                var result = _context.members.Where(x => membereId.Contains(x.id) && x.delete_status == 0).AsQueryable();
 
                 if (!string.IsNullOrEmpty(searchBy))
                 {

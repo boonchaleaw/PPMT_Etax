@@ -31,15 +31,19 @@ namespace Etax_Api
         public DateTime issue_date { get; set; }
         public string? ref_etax_id { get; set; }
         public DateTime? ref_issue_date { get; set; }
+        public int ref_document_type_id { get; set; }
         public string buyer_id { get; set; }
         public string buyer_name { get; set; }
         public string buyer_tax_id { get; set; }
+        public string buyer_tax_type { get; set; }
         public string buyer_address { get; set; }
+        public string buyer_zipcode { get; set; }
         public string buyer_tel { get; set; }
         public string buyer_fax { get; set; }
         public string buyer_country_code { get; set; }
         public string buyer_email { get; set; }
         public double original_price { get; set; }
+        public double new_price { get; set; }
         public double price { get; set; }
         public double discount { get; set; }
         public int tax_rate { get; set; }

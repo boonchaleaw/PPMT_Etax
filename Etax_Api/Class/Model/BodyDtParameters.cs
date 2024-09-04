@@ -34,6 +34,7 @@ namespace Etax_Api
         public DtSearch Search { get; set; }
         public int id { get; set; }
         public string docType { get; set; }
+        public string docRdType { get; set; }
         public string statusType1 { get; set; }
         public string statusType2 { get; set; }
         public List<TaxType> taxType { get; set; }

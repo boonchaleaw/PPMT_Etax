@@ -506,6 +506,7 @@ namespace Etax_Api.Controllers
                 List<MemberPriceXml> listMemberPriceXml = await _context.member_price_xml.Where(x => x.member_id == id).OrderByProperty("count").ToListAsync();
                 List<MemberPricePdf> listMemberPricePdf = await _context.member_price_pdf.Where(x => x.member_id == id).OrderByProperty("count").ToListAsync();
                 List<MemberPriceEmail> listMemberPriceEmail = await _context.member_price_email.Where(x => x.member_id == id).OrderByProperty("count").ToListAsync();
+                List<MemberPriceSms> listMemberPriceSms = await _context.member_price_sms.Where(x => x.member_id == id).OrderByProperty("count").ToListAsync(); 
                 List<MemberPriceEbxml> listMemberPriceEbxml = await _context.member_price_ebxml.Where(x => x.member_id == id).OrderByProperty("count").ToListAsync();
 
                 return StatusCode(200, new
@@ -516,6 +517,7 @@ namespace Etax_Api.Controllers
                         listMemberPriceXml = listMemberPriceXml,
                         listMemberPricePdf = listMemberPricePdf,
                         listMemberPriceEmail = listMemberPriceEmail,
+                        listMemberPriceSms = listMemberPriceSms,
                         listMemberPriceEbxml = listMemberPriceEbxml,
                     },
                 });
@@ -538,9 +540,6 @@ namespace Etax_Api.Controllers
 
                 if (!jwtStatus.status)
                     return StatusCode(401, new { message = "token ไม่ถูกต้องหรือหมดอายุ", });
-
-                if (bodyPrice.count == 0)
-                    return StatusCode(400, new { message = "กรุณากำหนดจำนวน", });
 
                 if (bodyPrice.price == 0)
                     return StatusCode(400, new { message = "กรุณากำหนดราคา", });
@@ -593,9 +592,6 @@ namespace Etax_Api.Controllers
 
                 if (!jwtStatus.status)
                     return StatusCode(401, new { message = "token ไม่ถูกต้องหรือหมดอายุ", });
-
-                if (bodyPrice.count == 0)
-                    return StatusCode(400, new { message = "กรุณากำหนดจำนวน", });
 
                 if (bodyPrice.price == 0)
                     return StatusCode(400, new { message = "กรุณากำหนดราคา", });
@@ -650,9 +646,6 @@ namespace Etax_Api.Controllers
                 if (!jwtStatus.status)
                     return StatusCode(401, new { message = "token ไม่ถูกต้องหรือหมดอายุ", });
 
-                if (bodyPrice.count == 0)
-                    return StatusCode(400, new { message = "กรุณากำหนดจำนวน", });
-
                 if (bodyPrice.price == 0)
                     return StatusCode(400, new { message = "กรุณากำหนดราคา", });
 
@@ -693,6 +686,59 @@ namespace Etax_Api.Controllers
                 return StatusCode(400, new { message = ex.Message });
             }
         }
+    
+        [HttpPost]
+        [Route("admin/add_price_sms")]
+        public async Task<IActionResult> AddPriceSms([FromBody] BodyPrice bodyPrice)
+        {
+            try
+            {
+                string token = Request.Headers[HeaderNames.Authorization].ToString();
+                JwtStatus jwtStatus = Jwt.ValidateJwtToken(token);
+
+                if (!jwtStatus.status)
+                    return StatusCode(401, new { message = "token ไม่ถูกต้องหรือหมดอายุ", });
+
+                if (bodyPrice.price == 0)
+                    return StatusCode(400, new { message = "กรุณากำหนดราคา", });
+
+                var checkPrice = _context.member_price_sms.Where(x => x.member_id == bodyPrice.member_id && x.count == bodyPrice.count).FirstOrDefault();
+
+                if (checkPrice != null)
+                    return StatusCode(400, new { message = "จำนวนนี้มีแล้วในระบบ", });
+
+
+                using (var transaction = _context.Database.BeginTransaction())
+                {
+                    try
+                    {
+                        MemberPriceSms member_price_sms = new MemberPriceSms()
+                        {
+                            member_id = bodyPrice.member_id,
+                            count = bodyPrice.count,
+                            price = bodyPrice.price,
+                        };
+                        _context.Add(member_price_sms);
+                        await _context.SaveChangesAsync();
+                        transaction.Commit();
+
+                        return StatusCode(200, new
+                        {
+                            message = "เพิ่มข้อมูลสำเร็จ",
+                        });
+                    }
+                    catch (Exception ex)
+                    {
+                        transaction.Rollback();
+                        return StatusCode(400, new { message = ex.Message });
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(400, new { message = ex.Message });
+            }
+        }
 
         [HttpPost]
         [Route("admin/add_price_ebxml")]
@@ -705,9 +751,6 @@ namespace Etax_Api.Controllers
 
                 if (!jwtStatus.status)
                     return StatusCode(401, new { message = "token ไม่ถูกต้องหรือหมดอายุ", });
-
-                if (bodyPrice.count == 0)
-                    return StatusCode(400, new { message = "กรุณากำหนดจำนวน", });
 
                 if (bodyPrice.price == 0)
                     return StatusCode(400, new { message = "กรุณากำหนดราคา", });
@@ -864,6 +907,51 @@ namespace Etax_Api.Controllers
                             return StatusCode(400, new { message = "ไม่พบข้อมูลที่ต้องการ", });
 
                         _context.Remove(member_price_email);
+                        await _context.SaveChangesAsync();
+                        transaction.Commit();
+
+                        return StatusCode(200, new
+                        {
+                            message = "ลบข้อมูลสำเร็จ",
+                        });
+                    }
+                    catch (Exception ex)
+                    {
+                        transaction.Rollback();
+                        return StatusCode(400, new { message = ex.Message });
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(400, new { message = ex.Message });
+            }
+        }
+ 
+        [HttpPost]
+        [Route("admin/delete_price_sms/{id}")]
+        public async Task<IActionResult> DeletePriceSms(int id)
+        {
+            try
+            {
+                string token = Request.Headers[HeaderNames.Authorization].ToString();
+                JwtStatus jwtStatus = Jwt.ValidateJwtToken(token);
+
+                if (!jwtStatus.status)
+                    return StatusCode(401, new { message = "token ไม่ถูกต้องหรือหมดอายุ", });
+
+                using (var transaction = _context.Database.BeginTransaction())
+                {
+                    try
+                    {
+                        var member_price_sms = await _context.member_price_sms
+                        .Where(x => x.id == id)
+                        .FirstOrDefaultAsync();
+
+                        if (member_price_sms == null)
+                            return StatusCode(400, new { message = "ไม่พบข้อมูลที่ต้องการ", });
+
+                        _context.Remove(member_price_sms);
                         await _context.SaveChangesAsync();
                         transaction.Commit();
 

@@ -540,7 +540,7 @@ namespace Etax_Api.Controllers
                         x.etax_file_id,
                         x.etax_id,
                         x.member_id,
-                        x.document_type_name,
+                        x.document_type_id,
                         x.create_type,
                         x.raw_name,
                         x.name,
@@ -570,7 +570,7 @@ namespace Etax_Api.Controllers
                         x.etax_file_id,
                         x.etax_id,
                         x.member_id,
-                        x.document_type_name,
+                        x.document_type_id,
                         x.create_type,
                         x.raw_name,
                         x.name,
@@ -696,27 +696,8 @@ namespace Etax_Api.Controllers
                         message = "เรียกดูข้อมูลสำเร็จ",
                         data = new
                         {
-                            member = new
-                            {
-                                id = member.id,
-                                name = member.name,
-                                tax_id = member.tax_id,
-                            },
-                            branch = new
-                            {
-                                id = branch.id,
-                                name = branch.name,
-                                building_number = branch.building_number,
-                                building_name = branch.building_name,
-                                street_name = branch.street_name,
-                                district_code = branch.district_code,
-                                district_name = branch.district_name,
-                                amphoe_code = branch.amphoe_code,
-                                amphoe_name = branch.amphoe_name,
-                                province_code = branch.province_code,
-                                province_name = branch.province_name,
-                                zipcode = branch.zipcode,
-                            },
+                            id = sendEbxml.id,
+                            etax_file_id = sendEbxml.etax_file_id,
                             document_type_id = sendEbxml.document_type_id,
                             document_type_name = sendEbxml.document_type_name,
                             create_type = sendEbxml.create_type,
@@ -745,6 +726,27 @@ namespace Etax_Api.Controllers
                             discount = etax.discount,
                             tax = etax.tax,
                             total = etax.total,
+                            member = new
+                            {
+                                id = member.id,
+                                name = member.name,
+                                tax_id = member.tax_id,
+                            },
+                            branch = new
+                            {
+                                id = branch.id,
+                                name = branch.name,
+                                building_number = branch.building_number,
+                                building_name = branch.building_name,
+                                street_name = branch.street_name,
+                                district_code = branch.district_code,
+                                district_name = branch.district_name,
+                                amphoe_code = branch.amphoe_code,
+                                amphoe_name = branch.amphoe_name,
+                                province_code = branch.province_code,
+                                province_name = branch.province_name,
+                                zipcode = branch.zipcode,
+                            },
                         },
                     });
                 }

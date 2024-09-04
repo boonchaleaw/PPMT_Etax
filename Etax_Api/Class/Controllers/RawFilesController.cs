@@ -762,7 +762,7 @@ namespace Etax_Api.Controllers
                 if (!jwtStatus.status)
                     return StatusCode(401, new { message = "token ไม่ถูกต้องหรือหมดอายุ", });
 
-                var searchBy = bodyDtParameters.Search?.Value;
+                var searchBy = bodyDtParameters.searchText;
                 var orderCriteria = "id";
                 var orderAscendingDirection = true;
 
@@ -772,7 +772,28 @@ namespace Etax_Api.Controllers
                     orderAscendingDirection = bodyDtParameters.Order[0].Dir.ToString().ToLower() == "asc";
                 }
 
-                var result = _context.view_rawdata_files.Where(x => x.member_id == bodyDtParameters.id).AsQueryable();
+                List<int> listDocumentTypeID = await (from td in _context.document_type
+                                                      where td.type == "etax"
+                                                      select td.id).ToListAsync();
+
+                var result = _context.view_rawdata_files.Where(x => listDocumentTypeID.Contains(x.document_type_id)).AsQueryable();
+
+                if (bodyDtParameters.id != 0)
+                {
+                    result = result.Where(x => x.member_id == bodyDtParameters.id);
+                }
+                else
+                {
+                    var user_members = await _context.user_members
+                    .Where(x => x.user_id == jwtStatus.user_id)
+                    .ToListAsync();
+
+                    List<int> membereId = new List<int>();
+                    foreach (var member in user_members)
+                        membereId.Add(member.member_id);
+
+                    result = result.Where(x => membereId.Contains(x.member_id));
+                }
 
                 if (!string.IsNullOrEmpty(searchBy))
                 {
@@ -788,7 +809,7 @@ namespace Etax_Api.Controllers
                 result = orderAscendingDirection ? result.OrderByProperty(orderCriteria) : result.OrderByPropertyDescending(orderCriteria);
 
                 var filteredResultsCount = await result.CountAsync();
-                var totalResultsCount = await _context.view_rawdata_files.Where(x=>x.member_id == bodyDtParameters.id).CountAsync();
+                var totalResultsCount = 0;
 
                 if (bodyDtParameters.Length == -1)
                 {

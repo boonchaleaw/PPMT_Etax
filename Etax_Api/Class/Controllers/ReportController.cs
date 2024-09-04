@@ -197,41 +197,6 @@ namespace Etax_Api.Controllers
 
 
 
-
-        [HttpPost]
-        [Route("get_tax_summary_filter")]
-        public async Task<IActionResult> GetTaxSummaryFilter([FromBody] BodyDtParameters bodyDtParameters)
-        {
-            try
-            {
-                string token = Request.Headers[HeaderNames.Authorization].ToString();
-                JwtStatus jwtStatus = Jwt.ValidateJwtToken(token);
-
-                if (!jwtStatus.status)
-                    return StatusCode(401, new { message = "token ไม่ถูกต้องหรือหมดอายุ", });
-
-                var query = _context.view_etax_files
-                   .GroupBy(p => p.raw_name)
-                   .Select(g => new { raw_name = g.Key, count = g.Count() });
-
-                var aaa = await query.ToListAsync();
-
-                return StatusCode(200, new
-                {
-                    message = "เรียกดูข้อมูลสำเร็จ",
-                    data = new
-                    {
-
-                    },
-                });
-
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(400, new { message = ex.Message });
-            }
-        }
-
         [HttpPost]
         [Route("get_tax_summary_report")]
         public async Task<IActionResult> GetTaxSummaryReport([FromBody] BodyDtParameters bodyDtParameters)
@@ -1963,15 +1928,15 @@ namespace Etax_Api.Controllers
                         xml_count = payment.xml_count,
                         pdf_count = payment.pdf_count,
                         email_count = payment.email_count,
-                        ebxml_count = payment.ebxml_count,
                         sms_count = payment.sms_message_count,
+                        ebxml_count = payment.ebxml_count,
                     });
 
                     returnCostReport.total_xml_count += payment.xml_count;
                     returnCostReport.total_pdf_count += payment.pdf_count;
                     returnCostReport.total_email_count += payment.email_count;
-                    returnCostReport.total_ebxml_count += payment.ebxml_count;
                     returnCostReport.total_sms_count += payment.sms_message_count;
+                    returnCostReport.total_ebxml_count += payment.ebxml_count;
                 }
 
                 var web_result = _context.view_payment.Where(x => x.member_id == bodyCostReportAdmin.member_id && x.create_type == "web" && x.create_date >= bodyCostReportAdmin.dateStart && x.create_date <= bodyCostReportAdmin.dateEnd).AsQueryable();
@@ -1981,8 +1946,8 @@ namespace Etax_Api.Controllers
                     int xml_count = await web_result.SumAsync(x => x.xml_count);
                     int pdf_count = await web_result.SumAsync(x => x.pdf_count);
                     int email_count = await web_result.SumAsync(x => x.email_count);
-                    int ebxml_count = await web_result.SumAsync(x => x.ebxml_count);
                     int sms_count = await web_result.SumAsync(x => x.sms_message_count);
+                    int ebxml_count = await web_result.SumAsync(x => x.ebxml_count);
 
                     returnCostReport.listReturnCostReportData.Add(new ReturnCostReportData()
                     {
@@ -1990,15 +1955,15 @@ namespace Etax_Api.Controllers
                         xml_count = xml_count,
                         pdf_count = pdf_count,
                         email_count = email_count,
-                        ebxml_count = ebxml_count,
                         sms_count = sms_count,
+                        ebxml_count = ebxml_count,
                     });
 
                     returnCostReport.total_xml_count += xml_count;
                     returnCostReport.total_pdf_count += pdf_count;
                     returnCostReport.total_email_count += email_count;
-                    returnCostReport.total_ebxml_count += ebxml_count;
                     returnCostReport.total_sms_count += sms_count;
+                    returnCostReport.total_ebxml_count += ebxml_count;
                 }
 
                 var api_result = _context.view_payment.Where(x => x.member_id == bodyCostReportAdmin.member_id && x.create_type == "api" && x.create_date >= bodyCostReportAdmin.dateStart && x.create_date <= bodyCostReportAdmin.dateEnd).AsQueryable();
@@ -2008,8 +1973,8 @@ namespace Etax_Api.Controllers
                     int xml_count = await api_result.SumAsync(x => x.xml_count);
                     int pdf_count = await api_result.SumAsync(x => x.pdf_count);
                     int email_count = await api_result.SumAsync(x => x.email_count);
+                    int sms_count = await api_result.SumAsync(x => x.sms_message_count);
                     int ebxml_count = await api_result.SumAsync(x => x.ebxml_count);
-                    int sms_count = await web_result.SumAsync(x => x.sms_message_count);
 
                     returnCostReport.listReturnCostReportData.Add(new ReturnCostReportData()
                     {
@@ -2017,29 +1982,29 @@ namespace Etax_Api.Controllers
                         xml_count = xml_count,
                         pdf_count = pdf_count,
                         email_count = email_count,
-                        ebxml_count = ebxml_count,
                         sms_count = sms_count,
+                        ebxml_count = ebxml_count,
                     });
 
                     returnCostReport.total_xml_count += xml_count;
                     returnCostReport.total_pdf_count += pdf_count;
                     returnCostReport.total_email_count += email_count;
-                    returnCostReport.total_ebxml_count += ebxml_count;
                     returnCostReport.total_sms_count += sms_count;
+                    returnCostReport.total_ebxml_count += ebxml_count;
                 }
 
                 List<MemberPriceXml> listMemberPriceXml = await _context.member_price_xml.Where(x => x.member_id == bodyCostReportAdmin.member_id).OrderByPropertyDescending("count").ToListAsync();
                 List<MemberPricePdf> listMemberPricePdf = await _context.member_price_pdf.Where(x => x.member_id == bodyCostReportAdmin.member_id).OrderByPropertyDescending("count").ToListAsync();
                 List<MemberPriceEmail> listMemberPriceEmail = await _context.member_price_email.Where(x => x.member_id == bodyCostReportAdmin.member_id).OrderByPropertyDescending("count").ToListAsync();
-                List<MemberPriceEbxml> listMemberPriceEbxml = await _context.member_price_ebxml.Where(x => x.member_id == bodyCostReportAdmin.member_id).OrderByPropertyDescending("count").ToListAsync();
                 List<MemberPriceSms> listMemberPriceSms = await _context.member_price_sms.Where(x => x.member_id == bodyCostReportAdmin.member_id).OrderByPropertyDescending("count").ToListAsync();
+                List<MemberPriceEbxml> listMemberPriceEbxml = await _context.member_price_ebxml.Where(x => x.member_id == bodyCostReportAdmin.member_id).OrderByPropertyDescending("count").ToListAsync();
 
 
                 int tmp_xml_count = returnCostReport.total_xml_count;
                 int tmp_pdf_count = returnCostReport.total_pdf_count;
                 int tmp_email_count = returnCostReport.total_email_count;
-                int tmp_ebxml_count = returnCostReport.total_ebxml_count;
                 int tmp_sms_count = returnCostReport.total_sms_count;
+                int tmp_ebxml_count = returnCostReport.total_ebxml_count;
 
                 foreach (MemberPriceXml memberPriceXml in listMemberPriceXml)
                 {
@@ -2068,21 +2033,21 @@ namespace Etax_Api.Controllers
                     }
                 }
 
-                foreach (MemberPriceEbxml memberPriceEbxml in listMemberPriceEbxml)
-                {
-                    if (tmp_ebxml_count > memberPriceEbxml.count)
-                    {
-                        returnCostReport.total_ebxml_price += (tmp_ebxml_count - memberPriceEbxml.count) * memberPriceEbxml.price;
-                        tmp_ebxml_count = memberPriceEbxml.count;
-                    }
-                }
-
                 foreach (MemberPriceSms memberPriceSms in listMemberPriceSms)
                 {
                     if (tmp_sms_count > memberPriceSms.count)
                     {
                         returnCostReport.total_sms_price += (tmp_sms_count - memberPriceSms.count) * memberPriceSms.price;
                         tmp_sms_count = memberPriceSms.count;
+                    }
+                }
+
+                foreach (MemberPriceEbxml memberPriceEbxml in listMemberPriceEbxml)
+                {
+                    if (tmp_ebxml_count > memberPriceEbxml.count)
+                    {
+                        returnCostReport.total_ebxml_price += (tmp_ebxml_count - memberPriceEbxml.count) * memberPriceEbxml.price;
+                        tmp_ebxml_count = memberPriceEbxml.count;
                     }
                 }
 
@@ -2134,15 +2099,15 @@ namespace Etax_Api.Controllers
                         xml_count = payment.xml_count,
                         pdf_count = payment.pdf_count,
                         email_count = payment.email_count,
-                        ebxml_count = payment.ebxml_count,
                         sms_count = payment.sms_message_count,
+                        ebxml_count = payment.ebxml_count,
                     });
 
                     returnCostReport.total_xml_count += payment.xml_count;
                     returnCostReport.total_pdf_count += payment.pdf_count;
                     returnCostReport.total_email_count += payment.email_count;
-                    returnCostReport.total_ebxml_count += payment.ebxml_count;
                     returnCostReport.total_sms_count += payment.sms_message_count;
+                    returnCostReport.total_ebxml_count += payment.ebxml_count;
                 }
 
                 var web_result = _context.view_payment.Where(x => x.member_id == bodyCostReportAdmin.member_id && x.create_type == "web" && x.create_date >= bodyCostReportAdmin.dateStart && x.create_date <= bodyCostReportAdmin.dateEnd).AsQueryable();
@@ -2152,8 +2117,8 @@ namespace Etax_Api.Controllers
                     int xml_count = await web_result.SumAsync(x => x.xml_count);
                     int pdf_count = await web_result.SumAsync(x => x.pdf_count);
                     int email_count = await web_result.SumAsync(x => x.email_count);
-                    int ebxml_count = await web_result.SumAsync(x => x.ebxml_count);
                     int sms_count = await web_result.SumAsync(x => x.sms_message_count);
+                    int ebxml_count = await web_result.SumAsync(x => x.ebxml_count);
 
                     returnCostReport.listReturnCostReportData.Add(new ReturnCostReportData()
                     {
@@ -2161,15 +2126,15 @@ namespace Etax_Api.Controllers
                         xml_count = xml_count,
                         pdf_count = pdf_count,
                         email_count = email_count,
-                        ebxml_count = ebxml_count,
                         sms_count = sms_count,
+                        ebxml_count = ebxml_count,
                     });
 
                     returnCostReport.total_xml_count += xml_count;
                     returnCostReport.total_pdf_count += pdf_count;
                     returnCostReport.total_email_count += email_count;
-                    returnCostReport.total_ebxml_count += ebxml_count;
                     returnCostReport.total_sms_count += sms_count;
+                    returnCostReport.total_ebxml_count += ebxml_count;
                 }
 
                 var api_result = _context.view_payment.Where(x => x.member_id == bodyCostReportAdmin.member_id && x.create_type == "api" && x.create_date >= bodyCostReportAdmin.dateStart && x.create_date <= bodyCostReportAdmin.dateEnd).AsQueryable();
@@ -2179,8 +2144,8 @@ namespace Etax_Api.Controllers
                     int xml_count = await api_result.SumAsync(x => x.xml_count);
                     int pdf_count = await api_result.SumAsync(x => x.pdf_count);
                     int email_count = await api_result.SumAsync(x => x.email_count);
+                    int sms_count = await api_result.SumAsync(x => x.sms_message_count);
                     int ebxml_count = await api_result.SumAsync(x => x.ebxml_count);
-                    int sms_count = await web_result.SumAsync(x => x.sms_message_count);
 
                     returnCostReport.listReturnCostReportData.Add(new ReturnCostReportData()
                     {
@@ -2188,29 +2153,29 @@ namespace Etax_Api.Controllers
                         xml_count = xml_count,
                         pdf_count = pdf_count,
                         email_count = email_count,
-                        ebxml_count = ebxml_count,
                         sms_count = sms_count,
+                        ebxml_count = ebxml_count,
                     });
 
                     returnCostReport.total_xml_count += xml_count;
                     returnCostReport.total_pdf_count += pdf_count;
                     returnCostReport.total_email_count += email_count;
-                    returnCostReport.total_ebxml_count += ebxml_count;
                     returnCostReport.total_sms_count += sms_count;
+                    returnCostReport.total_ebxml_count += ebxml_count;
                 }
 
                 List<MemberPriceXml> listMemberPriceXml = await _context.member_price_xml.Where(x => x.member_id == bodyCostReportAdmin.member_id).OrderByPropertyDescending("count").ToListAsync();
                 List<MemberPricePdf> listMemberPricePdf = await _context.member_price_pdf.Where(x => x.member_id == bodyCostReportAdmin.member_id).OrderByPropertyDescending("count").ToListAsync();
                 List<MemberPriceEmail> listMemberPriceEmail = await _context.member_price_email.Where(x => x.member_id == bodyCostReportAdmin.member_id).OrderByPropertyDescending("count").ToListAsync();
-                List<MemberPriceEbxml> listMemberPriceEbxml = await _context.member_price_ebxml.Where(x => x.member_id == bodyCostReportAdmin.member_id).OrderByPropertyDescending("count").ToListAsync();
                 List<MemberPriceSms> listMemberPriceSms = await _context.member_price_sms.Where(x => x.member_id == bodyCostReportAdmin.member_id).OrderByPropertyDescending("count").ToListAsync();
+                List<MemberPriceEbxml> listMemberPriceEbxml = await _context.member_price_ebxml.Where(x => x.member_id == bodyCostReportAdmin.member_id).OrderByPropertyDescending("count").ToListAsync();
 
 
                 int tmp_xml_count = returnCostReport.total_xml_count;
                 int tmp_pdf_count = returnCostReport.total_pdf_count;
                 int tmp_email_count = returnCostReport.total_email_count;
-                int tmp_ebxml_count = returnCostReport.total_ebxml_count;
                 int tmp_sms_count = returnCostReport.total_sms_count;
+                int tmp_ebxml_count = returnCostReport.total_ebxml_count;
 
                 foreach (MemberPriceXml memberPriceXml in listMemberPriceXml)
                 {
@@ -2239,6 +2204,15 @@ namespace Etax_Api.Controllers
                     }
                 }
 
+                foreach (MemberPriceSms memberPriceSms in listMemberPriceSms)
+                {
+                    if (tmp_sms_count > memberPriceSms.count)
+                    {
+                        returnCostReport.total_sms_price += (tmp_sms_count - memberPriceSms.count) * memberPriceSms.price;
+                        tmp_sms_count = memberPriceSms.count;
+                    }
+                }
+
                 foreach (MemberPriceEbxml memberPriceEbxml in listMemberPriceEbxml)
                 {
                     if (tmp_ebxml_count > memberPriceEbxml.count)
@@ -2248,14 +2222,6 @@ namespace Etax_Api.Controllers
                     }
                 }
 
-                foreach (MemberPriceSms memberPriceSms in listMemberPriceSms)
-                {
-                    if (tmp_sms_count > memberPriceSms.count)
-                    {
-                        returnCostReport.total_sms_price += (tmp_sms_count - memberPriceSms.count) * memberPriceSms.price;
-                        tmp_sms_count = memberPriceSms.count;
-                    }
-                }
 
                 string output = _config["Path:Share"];
                 string pathExcel = "/Admin/excel/";
@@ -2418,7 +2384,6 @@ namespace Etax_Api.Controllers
                     result = result.Where(r => listType.Contains(r.tax_type_filter));
                 }
 
-                double sumOriginalPrice = result.Sum(s => s.original_price);
                 double sumPrice = result.Sum(s => s.price);
                 double sumDiscount = result.Sum(s => s.discount);
                 double sumTax = result.Sum(s => s.tax);
@@ -2435,14 +2400,12 @@ namespace Etax_Api.Controllers
                     var data = await result
                     .ToListAsync();
 
-
                     return StatusCode(200, new
                     {
                         draw = bodyDtParameters.Draw,
                         recordsTotal = totalResultsCount,
                         recordsFiltered = filteredResultsCount,
                         countTotal = filteredResultsCount,
-                        sumOriginalPrice = sumOriginalPrice,
                         sumPrice = sumPrice,
                         sumDiscount = sumDiscount,
                         sumTax = sumTax,
@@ -2457,14 +2420,12 @@ namespace Etax_Api.Controllers
                     .Take(bodyDtParameters.Length)
                     .ToListAsync();
 
-
                     return StatusCode(200, new
                     {
                         draw = bodyDtParameters.Draw,
                         recordsTotal = totalResultsCount,
                         recordsFiltered = filteredResultsCount,
                         countTotal = filteredResultsCount,
-                        sumOriginalPrice = sumOriginalPrice,
                         sumPrice = sumPrice,
                         sumDiscount = sumDiscount,
                         sumTax = sumTax,

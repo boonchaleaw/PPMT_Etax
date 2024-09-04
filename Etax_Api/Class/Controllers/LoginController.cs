@@ -82,7 +82,7 @@ namespace Etax_Api.Controllers
 
         [HttpPost]
         [Route("get_user_permission")]
-        public async Task<IActionResult> GetAddRawDetail()
+        public async Task<IActionResult> GetMemberUserPermission()
         {
             try
             {
@@ -234,6 +234,63 @@ namespace Etax_Api.Controllers
                         token = Jwt.GenerateJwtToken(user.id, user.id),
                     });
                 }
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(400, new { message = ex.Message });
+            }
+        }
+
+        [HttpPost]
+        [Route("admin/get_user_permission")]
+        public async Task<IActionResult> GetUserPermission()
+        {
+            try
+            {
+                string token = Request.Headers[HeaderNames.Authorization].ToString();
+                JwtStatus jwtStatus = Jwt.ValidateJwtToken(token);
+
+                if (!jwtStatus.status)
+                    return StatusCode(401, new { message = "token ไม่ถูกต้องหรือหมดอายุ", });
+
+                var userPermission = await (from up in _context.user_permission
+                                            where up.user_id == jwtStatus.user_id
+                                            select new
+                                            {
+                                                per_user_menu = (up.per_user_menu == "Y") ? true : false,
+                                                per_user_detail = (up.per_user_detail == "Y") ? true : false,
+                                                per_member_menu = (up.per_member_menu == "Y") ? true : false,
+                                                per_member_detail = (up.per_member_detail == "Y") ? true : false,
+                                                per_raw_menu = (up.per_raw_menu == "Y") ? true : false,
+                                                per_raw_detail = (up.per_raw_detail == "Y") ? true : false,
+                                                per_xml_menu = (up.per_xml_menu == "Y") ? true : false,
+                                                per_xml_detail = (up.per_xml_detail == "Y") ? true : false,
+                                                per_pdf_menu = (up.per_pdf_menu == "Y") ? true : false,
+                                                per_pdf_detail = (up.per_pdf_detail == "Y") ? true : false,
+                                                per_email_menu = (up.per_email_menu == "Y") ? true : false,
+                                                per_email_detail = (up.per_email_detail == "Y") ? true : false,
+                                                per_sms_menu = (up.per_sms_menu == "Y") ? true : false,
+                                                per_sms_detail = (up.per_sms_detail == "Y") ? true : false,
+                                                per_ebxml_menu = (up.per_ebxml_menu == "Y") ? true : false,
+                                                per_ebxml_detail = (up.per_ebxml_detail == "Y") ? true : false,
+                                                per_report_menu = (up.per_report_menu == "Y") ? true : false,
+                                                per_report_detail = (up.per_report_detail == "Y") ? true : false,
+                                                per_xml_file = (up.per_xml_file == "Y") ? true : false,
+                                                per_pdf_file = (up.per_pdf_file == "Y") ? true : false,
+                                            }).ToListAsync();
+
+
+                if (userPermission.Count() == 0)
+                    return StatusCode(404, new { message = "ไม่พบข้อมูลที่ต้องการ", });
+
+                return StatusCode(200, new
+                {
+                    message = "เรียกดูข้อมูลสำเร็จ",
+                    data = new
+                    {
+                        permission = userPermission.First(),
+                    },
+                });
             }
             catch (Exception ex)
             {

@@ -39,7 +39,7 @@ namespace Etax_Api.Controllers
         {
             try
             {
-                int user_id = 1013;
+                int user_id = 0;
                 DateTime now = DateTime.Now;
                 string token = Request.Headers[HeaderNames.Authorization].ToString();
 
@@ -79,20 +79,15 @@ namespace Etax_Api.Controllers
                 if (String.IsNullOrEmpty(bodyApiCreateEtax.buyer.address))
                     return StatusCode(400, new { error_code = "2008", message = "กรุณากำหนดที่อยู่", });
 
-                if (bodyApiCreateEtax.buyer.branch_code.Length < 5)
+                if (bodyApiCreateEtax.buyer.branch_code.Length != 5)
                     bodyApiCreateEtax.buyer.branch_code = "00000";
 
                 ////if (bodyApiCreateEtax.buyer.branch_code.Length != 5)
                 ////    return StatusCode(400, new { error_code = "2009", message = "กรุณากำหนดรหัสสาขา 5 หลัก", });
 
-                MatchCollection match = rxZipCode.Matches(bodyApiCreateEtax.buyer.address);
-                if (match.Count > 0)
-                {
-                    bodyApiCreateEtax.buyer.zipcode = match[0].Value;
-                }
-
-                if (String.IsNullOrEmpty(bodyApiCreateEtax.buyer.zipcode))
+                if (String.IsNullOrEmpty(bodyApiCreateEtax.buyer.zipcode) || bodyApiCreateEtax.buyer.zipcode.Length != 5)
                     return StatusCode(400, new { error_code = "2010", message = "กรุณากำหนดรหัสไปรษณีย์", });
+
 
                 if (bodyApiCreateEtax.items.Count() <= 0)
                     return StatusCode(400, new { error_code = "2026", message = "กรุณากำหนดรายการสินค้า", });
@@ -115,9 +110,10 @@ namespace Etax_Api.Controllers
                     itemLine++;
                 }
 
-                var member = _context.members
-                .Where(x => x.tax_id == bodyApiCreateEtax.seller.tax_id)
-                .FirstOrDefault();
+                var member = await (from m in _context.members
+                                    where m.tax_id == bodyApiCreateEtax.seller.tax_id
+                                    && m.group_name == "Isuzu"
+                                    select m).FirstOrDefaultAsync();
 
                 if (member == null)
                     return StatusCode(400, new { error_code = "1008", message = "ไม่พบผู้ขายที่ต้องการ" });
@@ -370,7 +366,9 @@ namespace Etax_Api.Controllers
                             etaxFile.buyer_id = bodyApiCreateEtax.buyer.id;
                             etaxFile.buyer_name = bodyApiCreateEtax.buyer.name;
                             etaxFile.buyer_tax_id = bodyApiCreateEtax.buyer.tax_id;
-                            etaxFile.buyer_address = (bodyApiCreateEtax.buyer.address.Contains(bodyApiCreateEtax.buyer.zipcode)) ? bodyApiCreateEtax.buyer.address : bodyApiCreateEtax.buyer.address + " " + bodyApiCreateEtax.buyer.zipcode;
+                            etaxFile.buyer_tax_type = bodyApiCreateEtax.buyer.customer_tax_type;
+                            etaxFile.buyer_address = bodyApiCreateEtax.buyer.address;
+                            etaxFile.buyer_zipcode = bodyApiCreateEtax.buyer.zipcode;
                             etaxFile.buyer_tel = bodyApiCreateEtax.buyer.tel;
                             etaxFile.buyer_fax = bodyApiCreateEtax.buyer.fax;
                             etaxFile.buyer_country_code = (bodyApiCreateEtax.buyer.country_code == null) ? "" : bodyApiCreateEtax.buyer.country_code;
@@ -382,8 +380,8 @@ namespace Etax_Api.Controllers
                             etaxFile.total = bodyApiCreateEtax.total;
                             etaxFile.remark = bodyApiCreateEtax.remark;
                             etaxFile.other = bodyApiCreateEtax.myisuzu_service + "|" + bodyApiCreateEtax.correct_tax_invoice_amount + "|" + bodyApiCreateEtax.other;
-                            etaxFile.template_pdf = (bodyApiCreateEtax.template_pdf == null) ? "" : bodyApiCreateEtax.template_pdf;
-                            etaxFile.template_email = (bodyApiCreateEtax.template_email == null) ? "" : bodyApiCreateEtax.template_email;
+                            etaxFile.template_pdf = (bodyApiCreateEtax.source_type == null) ? "" : bodyApiCreateEtax.source_type;
+                            etaxFile.template_email = (bodyApiCreateEtax.source_type == null) ? "" : bodyApiCreateEtax.source_type;
                             etaxFile.xml_payment_status = "pending";
                             etaxFile.pdf_payment_status = "pending";
                             etaxFile.password = "";
@@ -395,11 +393,21 @@ namespace Etax_Api.Controllers
                                 etaxFile.webhook = 1;
                             }
 
-                            if (bodyApiCreateEtax.document_type_code == "2" || bodyApiCreateEtax.document_type_code == "3")
+                            if (bodyApiCreateEtax.document_type_code == "2")
                             {
                                 etaxFile.ref_etax_id = bodyApiCreateEtax.ref_etax_id;
                                 etaxFile.ref_issue_date = DateTime.ParseExact(bodyApiCreateEtax.ref_issue_date, "dd-MM-yyyy", CultureInfo.InvariantCulture);
+                                etaxFile.ref_document_type_id = bodyApiCreateEtax.ref_document_type_code;
                                 etaxFile.original_price = bodyApiCreateEtax.original_price;
+                                etaxFile.new_price = bodyApiCreateEtax.new_price - bodyApiCreateEtax.original_price;
+                            }
+                            else if (bodyApiCreateEtax.document_type_code == "3")
+                            {
+                                etaxFile.ref_etax_id = bodyApiCreateEtax.ref_etax_id;
+                                etaxFile.ref_issue_date = DateTime.ParseExact(bodyApiCreateEtax.ref_issue_date, "dd-MM-yyyy", CultureInfo.InvariantCulture);
+                                etaxFile.ref_document_type_id = bodyApiCreateEtax.ref_document_type_code;
+                                etaxFile.original_price = bodyApiCreateEtax.original_price;
+                                etaxFile.new_price = bodyApiCreateEtax.original_price - bodyApiCreateEtax.new_price;
                             }
 
                             _context.Add(etaxFile);
@@ -471,17 +479,18 @@ namespace Etax_Api.Controllers
         {
             try
             {
-                int member_id = 9;
-                int user_id = 1013;
                 DateTime now = DateTime.Now;
                 string token = Request.Headers[HeaderNames.Authorization].ToString();
 
                 if (token != key)
                     return StatusCode(401, new { error_code = "1001", message = "token ไม่ถูกต้อง", });
 
+                var membersId = await (from m in _context.members
+                                       where m.group_name == "Isuzu"
+                                       select m.id).ToListAsync();
 
                 var etaxFile = _context.etax_files
-               .Where(x => x.etax_id == id && x.member_id == member_id && x.delete_status == 0)
+               .Where(x => x.etax_id == id && membersId.Contains(x.member_id) && x.delete_status == 0)
                .FirstOrDefault();
 
                 if (etaxFile == null)
@@ -501,36 +510,38 @@ namespace Etax_Api.Controllers
 
 
 
-                string file_name_xml = "/" + etaxFile.member_id + "/" + Encryption.SHA256("path_" + now.ToString("dd-MM-yyyy")) + "/xml/" + etaxFile.name + ".xml";
-                string file_name_pdf = "/" + etaxFile.member_id + "/" + Encryption.SHA256("path_" + now.ToString("dd-MM-yyyy")) + "/pdf/" + etaxFile.name + ".pdf";
+                //string file_name_xml = "/" + etaxFile.member_id + "/" + Encryption.SHA256("path_" + now.ToString("dd-MM-yyyy")) + "/xml/" + etaxFile.name + ".xml";
+                //string file_name_pdf = "/" + etaxFile.member_id + "/" + Encryption.SHA256("path_" + now.ToString("dd-MM-yyyy")) + "/pdf/" + etaxFile.name + ".pdf";
 
-                Function.DeleteFile(_config["Path:Share"]);
-                Function.DeleteDirectory(_config["Path:Share"]);
+                //Function.DeleteFile(_config["Path:Share"]);
+                //Function.DeleteDirectory(_config["Path:Share"]);
 
-                if (gen_xml_status == "success")
-                {
-                    string fileBase64 = ApiFileTransfer.DownloadFile(_config["Path:FileTransfer"], etaxFile.url_path + "/xml/" + etaxFile.name + ".xml", _config["Path:Mode"]);
-                    if (fileBase64 != "")
-                    {
-                        Directory.CreateDirectory(Path.GetDirectoryName(_config["Path:Share"] + file_name_xml));
-                        System.IO.File.WriteAllBytes(_config["Path:Share"] + file_name_xml, Convert.FromBase64String(fileBase64));
-                    }
-                }
-                else if (gen_xml_status == "fail")
+                //if (gen_xml_status == "success")
+                //{
+                //    string fileBase64 = ApiFileTransfer.DownloadFile(_config["Path:FileTransfer"], etaxFile.url_path + "/xml/" + etaxFile.name + ".xml", _config["Path:Mode"]);
+                //    if (fileBase64 != "")
+                //    {
+                //        Directory.CreateDirectory(Path.GetDirectoryName(_config["Path:Share"] + file_name_xml));
+                //        System.IO.File.WriteAllBytes(_config["Path:Share"] + file_name_xml, Convert.FromBase64String(fileBase64));
+                //    }
+                //}
+                //else
+                if (gen_xml_status == "fail")
                 {
                     gen_xml_error = etaxFile.error;
                 }
 
-                if (gen_pdf_status == "success")
-                {
-                    string fileBase64 = ApiFileTransfer.DownloadFile(_config["Path:FileTransfer"], etaxFile.url_path + "/pdf/" + etaxFile.name + ".pdf", _config["Path:Mode"]);
-                    if (fileBase64 != "")
-                    {
-                        Directory.CreateDirectory(Path.GetDirectoryName(_config["Path:Share"] + file_name_pdf));
-                        System.IO.File.WriteAllBytes(_config["Path:Share"] + file_name_pdf, Convert.FromBase64String(fileBase64));
-                    }
-                }
-                else if (gen_pdf_status == "fail")
+                //if (gen_pdf_status == "success")
+                //{
+                //    string fileBase64 = ApiFileTransfer.DownloadFile(_config["Path:FileTransfer"], etaxFile.url_path + "/pdf/" + etaxFile.name + ".pdf", _config["Path:Mode"]);
+                //    if (fileBase64 != "")
+                //    {
+                //        Directory.CreateDirectory(Path.GetDirectoryName(_config["Path:Share"] + file_name_pdf));
+                //        System.IO.File.WriteAllBytes(_config["Path:Share"] + file_name_pdf, Convert.FromBase64String(fileBase64));
+                //    }
+                //}
+                //else
+                if (gen_pdf_status == "fail")
                 {
                     gen_pdf_error = etaxFile.error;
                 }
@@ -605,17 +616,18 @@ namespace Etax_Api.Controllers
         {
             try
             {
-                int member_id = 9;
-                int user_id = 1013;
                 DateTime now = DateTime.Now;
                 string token = Request.Headers[HeaderNames.Authorization].ToString();
 
                 if (token != key)
                     return StatusCode(401, new { error_code = "1001", message = "token ไม่ถูกต้อง", });
 
+                var membersId = await (from m in _context.members
+                                       where m.group_name == "Isuzu"
+                                       select m.id).ToListAsync();
 
                 var etaxFile = _context.etax_files
-               .Where(x => x.etax_id == id && x.member_id == member_id && x.delete_status == 0)
+               .Where(x => x.etax_id == id && membersId.Contains(x.member_id) && x.delete_status == 0)
                .FirstOrDefault();
 
                 if (etaxFile == null)
@@ -704,17 +716,18 @@ namespace Etax_Api.Controllers
         {
             try
             {
-                int member_id = 9;
-                int user_id = 1013;
                 DateTime now = DateTime.Now;
                 string token = Request.Headers[HeaderNames.Authorization].ToString();
 
                 if (token != key)
                     return StatusCode(401, new { error_code = "1001", message = "token ไม่ถูกต้อง", });
 
+                var membersId = await (from m in _context.members
+                                       where m.group_name == "Isuzu"
+                                       select m.id).ToListAsync();
 
                 var etaxFile = _context.etax_files
-               .Where(x => x.etax_id == id && x.member_id == member_id && x.delete_status == 0)
+               .Where(x => x.etax_id == id && membersId.Contains(x.member_id) && x.delete_status == 0)
                .FirstOrDefault();
 
                 if (etaxFile == null)
@@ -808,8 +821,6 @@ namespace Etax_Api.Controllers
         {
             try
             {
-                int member_id = 9;
-                int user_id = 1013;
                 DateTime now = DateTime.Now;
                 string token = Request.Headers[HeaderNames.Authorization].ToString();
 
@@ -820,8 +831,12 @@ namespace Etax_Api.Controllers
                 {
                     try
                     {
+                        var membersId = await (from m in _context.members
+                                               where m.group_name == "Isuzu"
+                                               select m.id).ToListAsync();
+
                         List<EtaxFile> listEtaxFile = await _context.etax_files
-                        .Where(x => x.etax_id == id && x.member_id == member_id)
+                        .Where(x => x.etax_id == id && membersId.Contains(x.member_id))
                         .ToListAsync();
 
                         if (listEtaxFile.Count == 0)
@@ -861,17 +876,18 @@ namespace Etax_Api.Controllers
         {
             try
             {
-                int member_id = 9;
-                int user_id = 1013;
                 DateTime now = DateTime.Now;
                 string token = Request.Headers[HeaderNames.Authorization].ToString();
 
                 if (token != key)
                     return StatusCode(401, new { error_code = "1001", message = "token ไม่ถูกต้อง", });
 
+                var membersId = await (from m in _context.members
+                                       where m.group_name == "Isuzu"
+                                       select m.id).ToListAsync();
 
                 var etaxFile = _context.etax_files
-               .Where(x => x.etax_id == id && x.member_id == member_id && x.delete_status == 0)
+               .Where(x => x.etax_id == id && membersId.Contains(x.member_id) && x.delete_status == 0)
                .FirstOrDefault();
 
                 if (etaxFile == null)
@@ -928,17 +944,18 @@ namespace Etax_Api.Controllers
         {
             try
             {
-                int member_id = 9;
-                int user_id = 1013;
                 DateTime now = DateTime.Now;
                 string token = Request.Headers[HeaderNames.Authorization].ToString();
 
                 if (token != key)
                     return StatusCode(401, new { error_code = "1001", message = "token ไม่ถูกต้อง", });
 
+                var membersId = await (from m in _context.members
+                                       where m.group_name == "Isuzu"
+                                       select m.id).ToListAsync();
 
                 var etaxFile = _context.etax_files
-               .Where(x => x.etax_id == id && x.member_id == member_id && x.delete_status == 0)
+               .Where(x => x.etax_id == id && membersId.Contains(x.member_id) && x.delete_status == 0)
                .FirstOrDefault();
 
                 if (etaxFile == null)
@@ -982,17 +999,18 @@ namespace Etax_Api.Controllers
         {
             try
             {
-                int member_id = 9;
-                int user_id = 1013;
                 DateTime now = DateTime.Now;
                 string token = Request.Headers[HeaderNames.Authorization].ToString();
 
                 if (token != key)
                     return StatusCode(401, new { error_code = "1001", message = "token ไม่ถูกต้อง", });
 
+                var membersId = await (from m in _context.members
+                                       where m.group_name == "Isuzu"
+                                       select m.id).ToListAsync();
 
                 var etaxFile = _context.etax_files
-               .Where(x => x.etax_id == id && x.member_id == member_id && x.delete_status == 0)
+               .Where(x => x.etax_id == id && membersId.Contains(x.member_id) && x.delete_status == 0)
                .FirstOrDefault();
 
                 if (etaxFile == null)

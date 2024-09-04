@@ -40,6 +40,7 @@ namespace Etax_Api
         public string buyer_fax { get; set; }
         public string buyer_email { get; set; }
         public double original_price { get; set; }
+        public double new_price { get; set; }
         public double price { get; set; }
         public double discount { get; set; }
         public double tax { get; set; }

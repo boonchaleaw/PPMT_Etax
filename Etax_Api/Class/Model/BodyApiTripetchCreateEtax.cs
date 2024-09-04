@@ -14,10 +14,12 @@ namespace Etax_Api
         public string issue_date { get; set; }
         public string ref_etax_id { get; set; }
         public string ref_issue_date { get; set; }
+        public int ref_document_type_code { get; set; }
         public string document_type_code { get; set; }
         public Seller seller { get; set; }
         public Buyer buyer { get; set; }
         public double original_price { get; set; }
+        public double new_price { get; set; }
         public double price { get; set; }
         public double correct_tax_invoice_amount { get; set; }
         public double discount { get; set; }
@@ -27,6 +29,7 @@ namespace Etax_Api
         public string remark { get; set; }
         public string other { get; set; }
         public List<ItemEtax> items { get; set; }
+        public string source_type { get; set; }
         public string template_pdf { get; set; }
         public string template_email { get; set; }
         public string pdf_base64 { get; set; }
