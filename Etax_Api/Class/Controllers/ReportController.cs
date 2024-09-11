@@ -1098,7 +1098,6 @@ namespace Etax_Api.Controllers
                 }
 
 
-
                 List<string> listType = new List<string>();
                 foreach (TaxType tax in bodyDtParameters.taxType)
                 {
@@ -1132,9 +1131,6 @@ namespace Etax_Api.Controllers
                 double sumTotal = result.Sum(s => s.total);
 
                 result = orderAscendingDirection ? result.OrderByProperty(orderCriteria) : result.OrderByPropertyDescending(orderCriteria);
-
-                var filteredResultsCount = await result.CountAsync();
-                var totalResultsCount = await _context.view_tex_csv_report.Where(x => x.member_id == jwtStatus.member_id && x.gen_xml_status == "success" && x.document_type_id == document_id && x.delete_status == 0).CountAsync();
 
                 List<ViewTaxCsvReport> listData = await result
                     .ToListAsync();

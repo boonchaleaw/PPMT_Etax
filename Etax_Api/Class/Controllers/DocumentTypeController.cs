@@ -7,6 +7,7 @@ using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -184,6 +185,77 @@ namespace Etax_Api.Controllers
                         {
                             message = "เรียกดูข้อมูลสำเร็จ",
                             data = document_type,
+                        });
+                    }
+                    else
+                    {
+                        return StatusCode(404, new
+                        {
+                            message = "ไม่พบข้อมูลที่ต้องการ",
+                        });
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(400, new { message = ex.Message });
+            }
+        }
+
+        [HttpPost]
+        [Route("admin/get_group_name")]
+        public async Task<IActionResult> GetGroupNameAdmin([FromBody] BodyDocumentType bodyDocumentType)
+        {
+            try
+            {
+                string token = Request.Headers[HeaderNames.Authorization].ToString();
+                JwtStatus jwtStatus = Jwt.ValidateJwtToken(token);
+
+                if (!jwtStatus.status)
+                    return StatusCode(401, new { message = "token ไม่ถูกต้องหรือหมดอายุ", });
+
+                if (bodyDocumentType.listMemberId == null)
+                {
+                    var file_group = await (from vtp in _context.view_file_group
+                                            group new { vtp } by vtp.group_name into g
+                                            select new
+                                            {
+                                                group_name = g.Key,
+                                            }).ToListAsync();
+
+                    if (file_group != null)
+                    {
+                        return StatusCode(200, new
+                        {
+                            message = "เรียกดูข้อมูลสำเร็จ",
+                            data = file_group,
+                        });
+                    }
+                    else
+                    {
+                        return StatusCode(404, new
+                        {
+                            message = "ไม่พบข้อมูลที่ต้องการ",
+                        });
+                    }
+                }
+                else
+                {
+
+                    var file_group = await (from vtp in _context.view_file_group
+                                            where bodyDocumentType.listMemberId.Contains(vtp.member_id)
+                                            group new { vtp } by vtp.group_name into g
+                                            select new
+                                            {
+                                                group_name = g.Key,
+                                            }).ToListAsync();
+
+                    if (file_group != null)
+                    {
+                        return StatusCode(200, new
+                        {
+                            message = "เรียกดูข้อมูลสำเร็จ",
+                            data = file_group,
                         });
                     }
                     else

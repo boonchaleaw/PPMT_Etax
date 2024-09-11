@@ -25,8 +25,8 @@ namespace Etax_Api.Controllers
         }
 
         [HttpPost]
-        [Route("loadfile_like/{no}")]
-        public async Task<IActionResult> LoadfileLike(string no)
+        [Route("loadfile_link/{no}")]
+        public async Task<IActionResult> LoadfileLink(string no)
         {
             try
             {
@@ -53,6 +53,19 @@ namespace Etax_Api.Controllers
                 }
                 else
                     return StatusCode(400, new { message = "ไม่พบไฟล์ที่ต้องการ", });
+
+
+
+                var send_sms = await (from ss in _context.send_sms
+                                      where ss.etax_file_id == id
+                                      select ss).FirstOrDefaultAsync();
+
+                if (send_sms != null)
+                {
+                    send_sms.open_sms_status = "success";
+                    send_sms.open_sms_finish = now;
+                    _context.SaveChanges();
+                }
 
                 return StatusCode(200, new
                 {

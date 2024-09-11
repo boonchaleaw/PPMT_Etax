@@ -22,6 +22,8 @@ namespace Etax_Api
         public string raw_name { get; set; }
         public string send_sms_status { get; set; }
         public DateTime? send_sms_finish { get; set; }
+        public string open_sms_status { get; set; }
+        public DateTime? open_sms_finish { get; set; }
         public string error { get; set; }
         public string url_path { get; set; }
         public string payment_status { get; set; }
@@ -31,5 +33,6 @@ namespace Etax_Api
         public int send_count { get; set; }
         public int message_count { get; set; }
         public string tax_type_filter { get; set; }
+        public string group_name { get; set; }
     }
 }

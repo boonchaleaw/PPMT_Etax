@@ -689,6 +689,11 @@ namespace Etax_Api.Controllers
                     result = result.Where(x => membereId.Contains(x.member_id));
                 }
 
+                if (bodyDtParameters.fileGroup != null && bodyDtParameters.fileGroup != "")
+                {
+                    result = result.Where(x => x.group_name == bodyDtParameters.fileGroup);
+                }
+
                 bodyDtParameters.dateStart = DateTime.Parse(bodyDtParameters.dateStart.ToString()).Date;
                 bodyDtParameters.dateEnd = bodyDtParameters.dateEnd.AddDays(+1).AddMilliseconds(-1);
 

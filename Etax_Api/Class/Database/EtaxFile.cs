@@ -31,7 +31,7 @@ namespace Etax_Api
         public DateTime issue_date { get; set; }
         public string? ref_etax_id { get; set; }
         public DateTime? ref_issue_date { get; set; }
-        public int ref_document_type_id { get; set; }
+        public string ref_document_type { get; set; }
         public string buyer_id { get; set; }
         public string buyer_name { get; set; }
         public string buyer_tax_id { get; set; }
@@ -51,6 +51,7 @@ namespace Etax_Api
         public double total{ get; set; }
         public string remark { get; set; }
         public string other { get; set; }
+        public string group_name { get; set; }
         public string template_pdf { get; set; }
         public string template_email { get; set; }
         public string mode { get; set; }

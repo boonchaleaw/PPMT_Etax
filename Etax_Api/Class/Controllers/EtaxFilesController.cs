@@ -1715,7 +1715,7 @@ namespace Etax_Api.Controllers
                 if (!jwtStatus.status)
                     return StatusCode(401, new { message = "token ไม่ถูกต้องหรือหมดอายุ", });
 
-                EtaxFile etaxFile = await _context.etax_files
+                var etaxFile = await _context.etax_files
                 .Where(x => x.id == id && x.member_id == jwtStatus.member_id)
                 .FirstOrDefaultAsync();
 
@@ -2448,6 +2448,11 @@ namespace Etax_Api.Controllers
                     result = result.Where(x => membereId.Contains(x.member_id));
                 }
 
+                if (bodyDtParameters.fileGroup != null && bodyDtParameters.fileGroup != "")
+                {
+                    result = result.Where(x => x.group_name == bodyDtParameters.fileGroup);
+                }
+
                 bodyDtParameters.dateStart = DateTime.Parse(bodyDtParameters.dateStart.ToString()).Date;
                 bodyDtParameters.dateEnd = bodyDtParameters.dateEnd.AddDays(+1).AddMilliseconds(-1);
 
@@ -2926,6 +2931,11 @@ namespace Etax_Api.Controllers
                                            select um.member_id).ToListAsync();
 
                     result = result.Where(x => membereId.Contains(x.member_id));
+                }
+
+                if (bodyDtParameters.fileGroup != null && bodyDtParameters.fileGroup != "")
+                {
+                    result = result.Where(x => x.group_name == bodyDtParameters.fileGroup);
                 }
 
 

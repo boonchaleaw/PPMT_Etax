@@ -380,8 +380,7 @@ namespace Etax_Api.Controllers
                             etaxFile.total = bodyApiCreateEtax.total;
                             etaxFile.remark = bodyApiCreateEtax.remark;
                             etaxFile.other = bodyApiCreateEtax.myisuzu_service + "|" + bodyApiCreateEtax.correct_tax_invoice_amount + "|" + bodyApiCreateEtax.other;
-                            etaxFile.template_pdf = (bodyApiCreateEtax.source_type == null) ? "" : bodyApiCreateEtax.source_type;
-                            etaxFile.template_email = (bodyApiCreateEtax.source_type == null) ? "" : bodyApiCreateEtax.source_type;
+                            etaxFile.group_name = (bodyApiCreateEtax.source_type == null) ? "" : bodyApiCreateEtax.source_type;
                             etaxFile.xml_payment_status = "pending";
                             etaxFile.pdf_payment_status = "pending";
                             etaxFile.password = "";
@@ -395,19 +394,33 @@ namespace Etax_Api.Controllers
 
                             if (bodyApiCreateEtax.document_type_code == "2")
                             {
+                                var document_type = await (from dt in _context.document_type
+                                                 where dt.id == bodyApiCreateEtax.ref_document_type_code
+                                                 select dt).FirstOrDefaultAsync();
+
+                                if (document_type == null)
+                                    return StatusCode(400, new { error_code = "1009", message = "ไม่พบเลขที่อ้างอิงเอกสารที่ต้องการ", });
+
                                 etaxFile.ref_etax_id = bodyApiCreateEtax.ref_etax_id;
                                 etaxFile.ref_issue_date = DateTime.ParseExact(bodyApiCreateEtax.ref_issue_date, "dd-MM-yyyy", CultureInfo.InvariantCulture);
-                                etaxFile.ref_document_type_id = bodyApiCreateEtax.ref_document_type_code;
+                                etaxFile.ref_document_type = document_type.rd_type;
                                 etaxFile.original_price = bodyApiCreateEtax.original_price;
-                                etaxFile.new_price = bodyApiCreateEtax.new_price - bodyApiCreateEtax.original_price;
+                                etaxFile.new_price = bodyApiCreateEtax.original_price - bodyApiCreateEtax.price;
                             }
                             else if (bodyApiCreateEtax.document_type_code == "3")
                             {
+                                var document_type = await (from dt in _context.document_type
+                                                           where dt.id == bodyApiCreateEtax.ref_document_type_code
+                                                           select dt).FirstOrDefaultAsync();
+
+                                if (document_type == null)
+                                    return StatusCode(400, new { error_code = "1009", message = "ไม่พบเลขที่อ้างอิงเอกสารที่ต้องการ", });
+
                                 etaxFile.ref_etax_id = bodyApiCreateEtax.ref_etax_id;
                                 etaxFile.ref_issue_date = DateTime.ParseExact(bodyApiCreateEtax.ref_issue_date, "dd-MM-yyyy", CultureInfo.InvariantCulture);
-                                etaxFile.ref_document_type_id = bodyApiCreateEtax.ref_document_type_code;
+                                etaxFile.ref_document_type = document_type.rd_type;
                                 etaxFile.original_price = bodyApiCreateEtax.original_price;
-                                etaxFile.new_price = bodyApiCreateEtax.original_price - bodyApiCreateEtax.new_price;
+                                etaxFile.new_price = bodyApiCreateEtax.price - bodyApiCreateEtax.original_price;
                             }
 
                             _context.Add(etaxFile);

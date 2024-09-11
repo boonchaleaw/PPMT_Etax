@@ -610,6 +610,12 @@ namespace Etax_Api.Controllers
                     result = result.Where(x => membereId.Contains(x.member_id));
                 }
 
+
+                if (bodyDtParameters.fileGroup != null && bodyDtParameters.fileGroup != "")
+                {
+                    result = result.Where(x => x.group_name == bodyDtParameters.fileGroup);
+                }
+
                 bodyDtParameters.dateStart = DateTime.Parse(bodyDtParameters.dateStart.ToString()).Date;
                 bodyDtParameters.dateEnd = bodyDtParameters.dateEnd.AddDays(+1).AddMilliseconds(-1);
 
@@ -695,6 +701,11 @@ namespace Etax_Api.Controllers
                     result = result.Where(r => r.send_sms_status == bodyDtParameters.statusType1);
                 }
 
+                if (bodyDtParameters.statusType2 != "")
+                {
+                    result = result.Where(r => r.open_sms_status == bodyDtParameters.statusType2);
+                }
+
                 result = orderAscendingDirection ? result.OrderByProperty(orderCriteria) : result.OrderByPropertyDescending(orderCriteria);
 
                 var filteredResultsCount = await result.CountAsync();
@@ -717,6 +728,8 @@ namespace Etax_Api.Controllers
                         x.buyer_tel,
                         x.send_sms_status,
                         x.send_sms_finish,
+                        x.open_sms_status,
+                        x.open_sms_finish,
                         x.error,
                         x.url_path,
                         x.issue_date,
@@ -748,6 +761,8 @@ namespace Etax_Api.Controllers
                         x.buyer_tel,
                         x.send_sms_status,
                         x.send_sms_finish,
+                        x.open_sms_status,
+                        x.open_sms_finish,
                         x.error,
                         x.url_path,
                         x.issue_date,

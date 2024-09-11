@@ -32,5 +32,6 @@ namespace Etax_Api
         public DateTime? create_date { get; set; }
         public string ref_etax_id { get; set; }
         public string tax_type_filter { get; set; }
+        public string group_name { get; set; }
     }
 }

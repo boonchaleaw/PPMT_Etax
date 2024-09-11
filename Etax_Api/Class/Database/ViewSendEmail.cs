@@ -34,5 +34,6 @@ namespace Etax_Api
         public string ref_etax_id { get; set; }
         public int send_count { get; set; }
         public string tax_type_filter { get; set; }
+        public string group_name { get; set; }
     }
 }

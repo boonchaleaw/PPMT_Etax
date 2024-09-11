@@ -76,6 +76,7 @@ namespace Etax_Api
         public DbSet<ViewTotalReport> view_total_report { get; set; }
         public DbSet<ViewMemberProblem> view_member_problem { get; set; }
         public DbSet<ViewTaxReportOutsource> view_tax_report_outsource { get; set; }
+        public DbSet<viewFileGroup> view_file_group { get; set; }
 
 
         public DbSet<LogMemberUser> log_member_users { get; set; }
