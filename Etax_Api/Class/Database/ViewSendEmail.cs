@@ -9,7 +9,9 @@ namespace Etax_Api
         public int id { get; set; }
         public int etax_file_id { get; set; }
         public string etax_id { get; set; }
-        public int member_id { get; set; }
+        public int member_id { get; set; }        
+        public string member_name { get; set; }
+        public string member_group_name { get; set; }
         public int member_user_id { get; set; }
         public int branch_id { get; set; }
         public int rawdata_file_id { get; set; }
