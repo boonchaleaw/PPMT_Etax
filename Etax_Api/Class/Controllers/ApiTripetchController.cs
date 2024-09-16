@@ -395,8 +395,8 @@ namespace Etax_Api.Controllers
                             if (bodyApiCreateEtax.document_type_code == "2")
                             {
                                 var document_type = await (from dt in _context.document_type
-                                                 where dt.id == bodyApiCreateEtax.ref_document_type_code
-                                                 select dt).FirstOrDefaultAsync();
+                                                           where dt.id == bodyApiCreateEtax.ref_document_type_code
+                                                           select dt).FirstOrDefaultAsync();
 
                                 if (document_type == null)
                                     return StatusCode(400, new { error_code = "1009", message = "ไม่พบเลขที่อ้างอิงเอกสารที่ต้องการ", });
@@ -1040,6 +1040,267 @@ namespace Etax_Api.Controllers
                         etax_id = etaxFile.etax_id,
                     },
                     message = "ร้องขอ Webhook สำเร็จ",
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(400, new { message = ex.Message });
+            }
+        }
+
+
+        [HttpPost]
+        [Route("tripetch/get_report_by_email")]
+        public async Task<IActionResult> Tp_GetReportByEmail([FromForm] BodyApiGetReportEmailTis bodyApiGetReportEmailTis)
+        {
+            try
+            {
+                if (bodyApiGetReportEmailTis.APIKey != "eyJhbGciOiJIUzUxMiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoiMTAxMSIsIm1lbWJlcl9pZCI6IjEyIiwiZXhwIjoxNzQ5Nzg3ODMyLCJpc3MiOiJwYXBlcm1hdGVfZXRheCIsImF1ZCI6IjEwMTEifQ.Tj1mbOH4Cf_E3F_1AqndDEFtGtMIVQ-pvw8EqlKIyBEzGbZG1qQx9cfdxhn45AZFCOmrXtNT1HJjeWJQxe_d_A")
+                    return StatusCode(401, new { message = "token ไม่ถูกต้อง", });
+
+                DateTime strat = DateTime.ParseExact(bodyApiGetReportEmailTis.date + " " + bodyApiGetReportEmailTis.hour.ToString().PadLeft(2, '0'), "yyyy-MM-dd HH", CultureInfo.InvariantCulture);
+                DateTime end = strat.AddHours(1);
+
+                var membersId = await (from m in _context.members
+                                       where m.group_name == "Isuzu"
+                                       select m.id).ToListAsync();
+
+                List<ReturnReportByEmail> listReport = new List<ReturnReportByEmail>();
+
+                var report1 = await (from ef in _context.etax_files
+                                     join se in _context.send_email on ef.id equals se.etax_file_id into seGroup
+                                     from se in seGroup.DefaultIfEmpty()
+                                     join ss in _context.send_sms on ef.id equals ss.etax_file_id into ssGroup
+                                     from ss in ssGroup.DefaultIfEmpty()
+                                     where membersId.Contains(ef.member_id) && ef.delete_status == 0 && ef.create_date >= strat && ef.create_date < end
+                                     select new
+                                     {
+                                         ef.group_name,
+                                         ef.etax_id,
+                                         ef.gen_xml_status,
+                                         ef.gen_pdf_status,
+                                         ef.error,
+                                         se.email_status,
+                                         email_error = se.error,
+                                         ss.send_sms_status,
+                                         sms_error = ss.error,
+                                     }).ToListAsync();
+
+                var report2 = await (from ef in _context.etax_files
+                                     join se in _context.send_ebxml on ef.id equals se.etax_file_id into seGroup
+                                     from se in seGroup.DefaultIfEmpty()
+                                     where se.send_ebxml_finish >= strat && se.send_ebxml_finish < end
+                                     select new
+                                     {
+                                         ef.group_name,
+                                         ef.etax_id,
+                                         se.send_ebxml_status,
+                                         se.etax_status,
+                                         se.error,
+                                     }).ToListAsync();
+
+                foreach (var r in report1)
+                {
+                    var check = listReport.Where(x => x.group_name == r.group_name).FirstOrDefault();
+                    if (check != null)
+                    {
+                        if (r.gen_xml_status == "success" || r.gen_xml_status == "fail")
+                            check.total += 1;
+
+                        if (r.gen_xml_status == "success")
+                        {
+                            check.xml_count += 1;
+                        }
+                        else
+                        {
+                            check.listError.Add(new ReturnReportByEmailError()
+                            {
+                                type = "Gen XML",
+                                group_name = r.group_name,
+                                etax_id = r.etax_id,
+                                error = r.error,
+                            });
+                        }
+
+                        if (r.gen_pdf_status == "success")
+                        {
+                            check.pdf_count += 1;
+                        }
+                        else
+                        {
+                            check.listError.Add(new ReturnReportByEmailError()
+                            {
+                                type = "Gen PDF",
+                                group_name = r.group_name,
+                                etax_id = r.etax_id,
+                                error = r.error,
+                            });
+
+                        }
+
+                        if (r.email_status == "success" || r.email_status == "open" || r.send_sms_status == "success")
+                        {
+                            check.send_to_cus_count += 1;
+                        }
+                        else
+                        {
+                            check.not_send_to_cus_count += 1;
+                            string error = "";
+                            if (r.sms_error != null && r.sms_error != "")
+                                error = r.sms_error;
+                            if (r.email_error != null && r.email_error != "")
+                                error = r.email_error;
+
+                            if (error != "")
+                                check.listError.Add(new ReturnReportByEmailError()
+                                {
+                                    type = "To Cus",
+                                    group_name = r.group_name,
+                                    etax_id = r.etax_id,
+                                    error = error,
+                                });
+                        }
+
+                        var r2 = report2.Where(x => x.etax_id == r.etax_id).FirstOrDefault();
+                        if (r2 != null)
+                        {
+                            if (r2.send_ebxml_status == "success")
+                            {
+                                check.send_ebxml_status += 1;
+                            }
+                            else
+                            {
+                                check.listError.Add(new ReturnReportByEmailError()
+                                {
+                                    type = "To RD",
+                                    group_name = r.group_name,
+                                    etax_id = r.etax_id,
+                                    error = r2.error,
+                                });
+                            }
+
+                            if (r2.etax_status == "success")
+                            {
+                                check.etax_status += 1;
+                            }
+                            else
+                            {
+                                check.listError.Add(new ReturnReportByEmailError()
+                                {
+                                    type = "From RD",
+                                    group_name = r.group_name,
+                                    etax_id = r.etax_id,
+                                    error = r2.error,
+                                });
+                            }
+                        }
+                    }
+                    else
+                    {
+                        ReturnReportByEmail newReport = new ReturnReportByEmail();
+                        newReport.listError = new List<ReturnReportByEmailError>();
+
+                        newReport.group_name = r.group_name;
+
+                        if (r.gen_xml_status == "success" || r.gen_xml_status == "fail")
+                            newReport.total = 1;
+
+                        if (r.gen_xml_status == "success")
+                        {
+                            newReport.xml_count = 1;
+                        }
+                        else
+                        {
+                            newReport.listError.Add(new ReturnReportByEmailError()
+                            {
+                                type = "Gen XML",
+                                group_name = r.group_name,
+                                etax_id = r.etax_id,
+                                error = r.error,
+                            });
+                        }
+
+                        if (r.gen_pdf_status == "success")
+                        {
+                            newReport.pdf_count = 1;
+                        }
+                        else
+                        {
+                            newReport.listError.Add(new ReturnReportByEmailError()
+                            {
+                                type = "Gen PDF",
+                                group_name = r.group_name,
+                                etax_id = r.etax_id,
+                                error = r.error,
+                            });
+
+                        }
+
+                        if (r.email_status == "success" || r.email_status == "open" || r.send_sms_status == "success")
+                        {
+                            newReport.send_to_cus_count = 1;
+                        }
+                        else
+                        {
+                            newReport.not_send_to_cus_count = 1;
+                            string error = "";
+                            if (r.sms_error != null && r.sms_error != "")
+                                error = r.sms_error;
+                            if (r.email_error != null && r.email_error != "")
+                                error = r.email_error;
+
+                            if (error != "")
+                                newReport.listError.Add(new ReturnReportByEmailError()
+                                {
+                                    type = "To Cus",
+                                    group_name = r.group_name,
+                                    etax_id = r.etax_id,
+                                    error = error,
+                                });
+                        }
+
+                        var r2 = report2.Where(x => x.etax_id == r.etax_id).FirstOrDefault();
+                        if (r2 != null)
+                        {
+                            if (r2.send_ebxml_status == "success")
+                            {
+                                newReport.send_ebxml_status = 1;
+                            }
+                            else
+                            {
+                                newReport.listError.Add(new ReturnReportByEmailError()
+                                {
+                                    type = "To RD",
+                                    group_name = r.group_name,
+                                    etax_id = r.etax_id,
+                                    error = r2.error,
+                                });
+                            }
+
+                            if (r2.etax_status == "success")
+                            {
+                                newReport.etax_status = 1;
+                            }
+                            else
+                            {
+                                newReport.listError.Add(new ReturnReportByEmailError()
+                                {
+                                    type = "From RD",
+                                    group_name = r.group_name,
+                                    etax_id = r.etax_id,
+                                    error = r2.error,
+                                });
+                            }
+                        }
+
+                        listReport.Add(newReport);
+                    }
+                }
+
+                return StatusCode(200, new
+                {
+                    data = listReport,
+                    message = "เรียกดูข้อมูลสำเร็จ",
                 });
             }
             catch (Exception ex)
