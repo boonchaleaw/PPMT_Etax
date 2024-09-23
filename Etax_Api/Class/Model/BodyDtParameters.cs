@@ -38,6 +38,7 @@ namespace Etax_Api
         public string docRdType { get; set; }
         public string statusType1 { get; set; }
         public string statusType2 { get; set; }
+        public List<Member> member { get; set; }
         public List<TaxType> taxType { get; set; }
         public List<ProcessType> processType { get; set; }
         public string dateType { get; set; }

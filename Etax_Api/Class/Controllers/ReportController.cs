@@ -1910,8 +1910,16 @@ namespace Etax_Api.Controllers
                 bodyCostReportAdmin.dateStart = DateTime.Parse(bodyCostReportAdmin.dateStart.ToString()).Date;
                 bodyCostReportAdmin.dateEnd = bodyCostReportAdmin.dateEnd.AddDays(+1).AddMilliseconds(-1);
 
+                var query = _context.view_payment_rawdata
+                    .Where(x => x.create_date >= bodyCostReportAdmin.dateStart && x.create_date <= bodyCostReportAdmin.dateEnd);
 
-                List<ViewPaymentRawData> listPayment = await _context.view_payment_rawdata.Where(x => x.member_id == bodyCostReportAdmin.member_id && x.create_date >= bodyCostReportAdmin.dateStart && x.create_date <= bodyCostReportAdmin.dateEnd).ToListAsync();
+                if (bodyCostReportAdmin.member.Count() > 0)
+                {
+                    var memberIds = bodyCostReportAdmin.member.Select(m => m.id).ToList();
+                    query = query.Where(x => memberIds.Contains(x.member_id));
+                }
+
+                List<ViewPaymentRawData> listPayment = await query.ToListAsync();
 
                 ReturnCostReport returnCostReport = new ReturnCostReport();
                 returnCostReport.listReturnCostReportData = new List<ReturnCostReportData>();
@@ -2465,9 +2473,10 @@ namespace Etax_Api.Controllers
                 var result = _context.view_send_email.Where(x => listDocumentTypeID.Contains(x.document_type_id)).AsQueryable();
 
 
-                if (bodyDtParameters.id != 0)
+                if (bodyDtParameters.member.Count() > 0)
                 {
-                    result = result.Where(x => x.member_id == bodyDtParameters.id);
+                    var memberIds = bodyDtParameters.member.Select(m => m.id).ToList();
+                    result = result.Where(x => memberIds.Contains(x.member_id));
                 }
                 else
                 {
@@ -2639,9 +2648,10 @@ namespace Etax_Api.Controllers
 
                 var result = _context.view_send_ebxml.Where(x => listDocumentTypeID.Contains(x.document_type_id)).AsQueryable();
 
-                if (bodyDtParameters.id != 0)
+                if (bodyDtParameters.member.Count() > 0)
                 {
-                    result = result.Where(x => x.member_id == bodyDtParameters.id);
+                    var memberIds = bodyDtParameters.member.Select(m => m.id).ToList();
+                    result = result.Where(x => memberIds.Contains(x.member_id));
                 }
                 else
                 {

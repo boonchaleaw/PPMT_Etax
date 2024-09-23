@@ -676,9 +676,10 @@ namespace Etax_Api.Controllers
 
                 var result = _context.view_send_email.Where(x => listDocumentTypeID.Contains(x.document_type_id)).AsQueryable();
 
-                if (bodyDtParameters.id != 0)
+                if (bodyDtParameters.member.Count() > 0)
                 {
-                    result = result.Where(x => x.member_id == bodyDtParameters.id);
+                    var memberIds = bodyDtParameters.member.Select(m => m.id).ToList();
+                    result = result.Where(x => memberIds.Contains(x.member_id));
                 }
                 else
                 {
