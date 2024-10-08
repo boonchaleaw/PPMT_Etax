@@ -8,6 +8,7 @@ using Newtonsoft.Json.Linq;
 using System;
 using System.Buffers.Text;
 using System.Collections.Generic;
+using System.DirectoryServices;
 using System.Globalization;
 using System.IO;
 using System.Linq;
@@ -25,7 +26,8 @@ namespace Etax_Api.Controllers
         private IConfiguration _config;
         private ApplicationDbContext _context;
         private Regex rxZipCode = new Regex(@"[0-9]{5}");
-        private string key = "Bearer C8WP9qVA28y5RtUheAdyv7liBucYFFMHp3MMXbh82yabHbtDs9dd38mYGSgRKAOQOft9DtZGeKJP6u7MvbRmHeyLi2Xzh4RW0axdJW4JSclGuBXRPhedtZXpx30t7hpptfKMoVJ3iTcjZDKJuOYAiGtTm8MXyCKiSHKfoqxda0AQurUvzydertygJ8iECJw2B0KY8GW60GyQse2IE9zWa9tx5Zk03j4wdBowkcdH7uM1zQvK3ZkchskyP2gpsxak";
+        private string key_test = "Bearer C8WP9qVA28y5RtUheAdyv7liBucYFFMHp3MMXbh82yabHbtDs9dd38mYGSgRKAOQOft9DtZGeKJP6u7MvbRmHeyLi2Xzh4RW0axdJW4JSclGuBXRPhedtZXpx30t7hpptfKMoVJ3iTcjZDKJuOYAiGtTm8MXyCKiSHKfoqxda0AQurUvzydertygJ8iECJw2B0KY8GW60GyQse2IE9zWa9tx5Zk03j4wdBowkcdH7uM1zQvK3ZkchskyP2gpsxak";
+        private string key_pro = "Bearer RRYCwvL3s4KTWI4G2sVhaouD1ce4V2A2q42oIb5bjVRtluco6qZSTkFSPBZ34xYsRASW4aiDH0bB7298pf3MZMmZY8TFgwfLfdSpjEBvkH4JD0VKwimRg2xQDxyzmXWvLwVrmX9udHxWUcQyI1js0FBw286j0xQv4lvXeRyeG0e0GtT0iFR8bXSoqhBOMgezbiM9XdjpkE0LWrx7P1OuVY03Br6H7AmmCFkaT7hU16doI8dHpXBz26RioyLuehYW";
         public ApiTripetchController(IConfiguration config)
         {
             _config = config;
@@ -43,9 +45,25 @@ namespace Etax_Api.Controllers
                 DateTime now = DateTime.Now;
                 string token = Request.Headers[HeaderNames.Authorization].ToString();
 
-                if (token != key)
-                    return StatusCode(401, new { error_code = "1001", message = "token ไม่ถูกต้อง", });
+                if (_config["Path:Mode"] == "test")
+                {
+                    if (token != key_test)
+                        return StatusCode(401, new { error_code = "1001", message = "token ไม่ถูกต้อง", });
+                }
+                else
+                {
+                    if (token != key_pro)
+                        return StatusCode(401, new { error_code = "1001", message = "token ไม่ถูกต้อง", });
+                }
 
+                try
+                {
+                    if (!Log.CheckLogTis(bodyApiCreateEtax.etax_id, now))
+                    {
+                        return StatusCode(400, new { error_code = "1006", message = "มีข้อมูลซ้ำเข้ามาในเวลาเดียวกัน", });
+                    }
+                }
+                catch { }
 
                 if (String.IsNullOrEmpty(bodyApiCreateEtax.document_type_code))
                     return StatusCode(400, new { error_code = "2001", message = "กรุณากำหนดประเภทเอกสาร", });
@@ -277,7 +295,6 @@ namespace Etax_Api.Controllers
                         if (etax_file != null)
                             return StatusCode(400, new { error_code = "1003", message = "ข้อมูลซ้ำในระบบ", });
 
-
                         string gen_xml_status = "pending";
                         string gen_pdf_status = "no";
                         string send_email_status = "no";
@@ -495,8 +512,16 @@ namespace Etax_Api.Controllers
                 DateTime now = DateTime.Now;
                 string token = Request.Headers[HeaderNames.Authorization].ToString();
 
-                if (token != key)
-                    return StatusCode(401, new { error_code = "1001", message = "token ไม่ถูกต้อง", });
+                if (_config["Path:Mode"] == "test")
+                {
+                    if (token != key_test)
+                        return StatusCode(401, new { error_code = "1001", message = "token ไม่ถูกต้อง", });
+                }
+                else
+                {
+                    if (token != key_pro)
+                        return StatusCode(401, new { error_code = "1001", message = "token ไม่ถูกต้อง", });
+                }
 
                 var membersId = await (from m in _context.members
                                        where m.group_name == "Isuzu"
@@ -632,8 +657,16 @@ namespace Etax_Api.Controllers
                 DateTime now = DateTime.Now;
                 string token = Request.Headers[HeaderNames.Authorization].ToString();
 
-                if (token != key)
-                    return StatusCode(401, new { error_code = "1001", message = "token ไม่ถูกต้อง", });
+                if (_config["Path:Mode"] == "test")
+                {
+                    if (token != key_test)
+                        return StatusCode(401, new { error_code = "1001", message = "token ไม่ถูกต้อง", });
+                }
+                else
+                {
+                    if (token != key_pro)
+                        return StatusCode(401, new { error_code = "1001", message = "token ไม่ถูกต้อง", });
+                }
 
                 var membersId = await (from m in _context.members
                                        where m.group_name == "Isuzu"
@@ -732,8 +765,16 @@ namespace Etax_Api.Controllers
                 DateTime now = DateTime.Now;
                 string token = Request.Headers[HeaderNames.Authorization].ToString();
 
-                if (token != key)
-                    return StatusCode(401, new { error_code = "1001", message = "token ไม่ถูกต้อง", });
+                if (_config["Path:Mode"] == "test")
+                {
+                    if (token != key_test)
+                        return StatusCode(401, new { error_code = "1001", message = "token ไม่ถูกต้อง", });
+                }
+                else
+                {
+                    if (token != key_pro)
+                        return StatusCode(401, new { error_code = "1001", message = "token ไม่ถูกต้อง", });
+                }
 
                 var membersId = await (from m in _context.members
                                        where m.group_name == "Isuzu"
@@ -837,8 +878,16 @@ namespace Etax_Api.Controllers
                 DateTime now = DateTime.Now;
                 string token = Request.Headers[HeaderNames.Authorization].ToString();
 
-                if (token != key)
-                    return StatusCode(401, new { error_code = "1001", message = "token ไม่ถูกต้อง", });
+                if (_config["Path:Mode"] == "test")
+                {
+                    if (token != key_test)
+                        return StatusCode(401, new { error_code = "1001", message = "token ไม่ถูกต้อง", });
+                }
+                else
+                {
+                    if (token != key_pro)
+                        return StatusCode(401, new { error_code = "1001", message = "token ไม่ถูกต้อง", });
+                }
 
                 using (var transaction = _context.Database.BeginTransaction())
                 {
@@ -892,8 +941,16 @@ namespace Etax_Api.Controllers
                 DateTime now = DateTime.Now;
                 string token = Request.Headers[HeaderNames.Authorization].ToString();
 
-                if (token != key)
-                    return StatusCode(401, new { error_code = "1001", message = "token ไม่ถูกต้อง", });
+                if (_config["Path:Mode"] == "test")
+                {
+                    if (token != key_test)
+                        return StatusCode(401, new { error_code = "1001", message = "token ไม่ถูกต้อง", });
+                }
+                else
+                {
+                    if (token != key_pro)
+                        return StatusCode(401, new { error_code = "1001", message = "token ไม่ถูกต้อง", });
+                }
 
                 var membersId = await (from m in _context.members
                                        where m.group_name == "Isuzu"
@@ -960,8 +1017,16 @@ namespace Etax_Api.Controllers
                 DateTime now = DateTime.Now;
                 string token = Request.Headers[HeaderNames.Authorization].ToString();
 
-                if (token != key)
-                    return StatusCode(401, new { error_code = "1001", message = "token ไม่ถูกต้อง", });
+                if (_config["Path:Mode"] == "test")
+                {
+                    if (token != key_test)
+                        return StatusCode(401, new { error_code = "1001", message = "token ไม่ถูกต้อง", });
+                }
+                else
+                {
+                    if (token != key_pro)
+                        return StatusCode(401, new { error_code = "1001", message = "token ไม่ถูกต้อง", });
+                }
 
                 var membersId = await (from m in _context.members
                                        where m.group_name == "Isuzu"
@@ -1006,47 +1071,55 @@ namespace Etax_Api.Controllers
             }
         }
 
-        [HttpPost]
-        [Route("tripetch/test_webhook/{id}")]
-        public async Task<IActionResult> Tp_TestWebhook(string id)
-        {
-            try
-            {
-                DateTime now = DateTime.Now;
-                string token = Request.Headers[HeaderNames.Authorization].ToString();
+        //[HttpPost]
+        //[Route("tripetch/test_webhook/{id}")]
+        //public async Task<IActionResult> Tp_TestWebhook(string id)
+        //{
+        //    try
+        //    {
+        //        DateTime now = DateTime.Now;
+        //        string token = Request.Headers[HeaderNames.Authorization].ToString();
 
-                if (token != key)
-                    return StatusCode(401, new { error_code = "1001", message = "token ไม่ถูกต้อง", });
+        //        if (_config["Path:Mode"] == "test")
+        //        {
+        //            if (token != key_test)
+        //                return StatusCode(401, new { error_code = "1001", message = "token ไม่ถูกต้อง", });
+        //        }
+        //        else
+        //        {
+        //            if (token != key_pro)
+        //                return StatusCode(401, new { error_code = "1001", message = "token ไม่ถูกต้อง", });
+        //        }
 
-                var membersId = await (from m in _context.members
-                                       where m.group_name == "Isuzu"
-                                       select m.id).ToListAsync();
+        //        var membersId = await (from m in _context.members
+        //                               where m.group_name == "Isuzu"
+        //                               select m.id).ToListAsync();
 
-                var etaxFile = _context.etax_files
-               .Where(x => x.etax_id == id && membersId.Contains(x.member_id) && x.delete_status == 0)
-               .FirstOrDefault();
+        //        var etaxFile = _context.etax_files
+        //       .Where(x => x.etax_id == id && membersId.Contains(x.member_id) && x.delete_status == 0)
+        //       .FirstOrDefault();
 
-                if (etaxFile == null)
-                    return StatusCode(400, new { message = "ไม่พบข้อมูลในระบบ", });
+        //        if (etaxFile == null)
+        //            return StatusCode(400, new { message = "ไม่พบข้อมูลในระบบ", });
 
-                etaxFile.webhook = 1;
-                _context.SaveChanges();
+        //        etaxFile.webhook = 1;
+        //        _context.SaveChanges();
 
 
-                return StatusCode(200, new
-                {
-                    data = new
-                    {
-                        etax_id = etaxFile.etax_id,
-                    },
-                    message = "ร้องขอ Webhook สำเร็จ",
-                });
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(400, new { message = ex.Message });
-            }
-        }
+        //        return StatusCode(200, new
+        //        {
+        //            data = new
+        //            {
+        //                etax_id = etaxFile.etax_id,
+        //            },
+        //            message = "ร้องขอ Webhook สำเร็จ",
+        //        });
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        return StatusCode(400, new { message = ex.Message });
+        //    }
+        //}
 
 
         [HttpPost]
@@ -1079,6 +1152,8 @@ namespace Etax_Api.Controllers
                                          ef.etax_id,
                                          ef.gen_xml_status,
                                          ef.gen_pdf_status,
+                                         ef.add_email_status,
+                                         ef.add_sms_status,
                                          ef.error,
                                          se.email_status,
                                          email_error = se.error,
@@ -1142,24 +1217,28 @@ namespace Etax_Api.Controllers
                         {
                             check.send_to_cus_count += 1;
                         }
-                        else
+
+                        if (r.add_email_status == "no" && r.add_sms_status == "no")
                         {
                             check.not_send_to_cus_count += 1;
-                            string error = "";
-                            if (r.sms_error != null && r.sms_error != "")
-                                error = r.sms_error;
-                            if (r.email_error != null && r.email_error != "")
-                                error = r.email_error;
-
-                            if (error != "")
-                                check.listError.Add(new ReturnReportByEmailError()
-                                {
-                                    type = "To Cus",
-                                    group_name = r.group_name,
-                                    etax_id = r.etax_id,
-                                    error = error,
-                                });
                         }
+
+
+                        string error = "";
+                        if (r.sms_error != null && r.sms_error != "")
+                            error = r.sms_error;
+                        if (r.email_error != null && r.email_error != "")
+                            error = r.email_error;
+
+                        if (error != "")
+                            check.listError.Add(new ReturnReportByEmailError()
+                            {
+                                type = "Submit to Customer",
+                                group_name = r.group_name,
+                                etax_id = r.etax_id,
+                                error = error,
+                            });
+
 
                         var r2 = report2.Where(x => x.etax_id == r.etax_id).FirstOrDefault();
                         if (r2 != null)
@@ -1172,7 +1251,7 @@ namespace Etax_Api.Controllers
                             {
                                 check.listError.Add(new ReturnReportByEmailError()
                                 {
-                                    type = "To RD",
+                                    type = "Submit to RD",
                                     group_name = r.group_name,
                                     etax_id = r.etax_id,
                                     error = r2.error,
@@ -1240,24 +1319,26 @@ namespace Etax_Api.Controllers
                         {
                             newReport.send_to_cus_count = 1;
                         }
-                        else
-                        {
-                            newReport.not_send_to_cus_count = 1;
-                            string error = "";
-                            if (r.sms_error != null && r.sms_error != "")
-                                error = r.sms_error;
-                            if (r.email_error != null && r.email_error != "")
-                                error = r.email_error;
 
-                            if (error != "")
-                                newReport.listError.Add(new ReturnReportByEmailError()
-                                {
-                                    type = "To Cus",
-                                    group_name = r.group_name,
-                                    etax_id = r.etax_id,
-                                    error = error,
-                                });
+                        if (r.add_email_status == "no" && r.add_sms_status == "no")
+                        {
+                            newReport.not_send_to_cus_count += 1;
                         }
+
+                        string error = "";
+                        if (r.sms_error != null && r.sms_error != "")
+                            error = r.sms_error;
+                        if (r.email_error != null && r.email_error != "")
+                            error = r.email_error;
+
+                        if (error != "")
+                            newReport.listError.Add(new ReturnReportByEmailError()
+                            {
+                                type = "Submit to Customer",
+                                group_name = r.group_name,
+                                etax_id = r.etax_id,
+                                error = error,
+                            });
 
                         var r2 = report2.Where(x => x.etax_id == r.etax_id).FirstOrDefault();
                         if (r2 != null)
@@ -1270,7 +1351,7 @@ namespace Etax_Api.Controllers
                             {
                                 newReport.listError.Add(new ReturnReportByEmailError()
                                 {
-                                    type = "To RD",
+                                    type = "Submit to RD",
                                     group_name = r.group_name,
                                     etax_id = r.etax_id,
                                     error = r2.error,

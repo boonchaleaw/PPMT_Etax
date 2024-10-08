@@ -16,5 +16,6 @@ namespace Etax_Api
         public string tel { get; set; }
         public string type { get; set; }
         public string member_name { get; set; }
+        public int delete_status { get; set; }
     }
 }

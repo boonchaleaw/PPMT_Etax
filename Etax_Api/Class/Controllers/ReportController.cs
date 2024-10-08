@@ -32,17 +32,29 @@ namespace Etax_Api.Controllers
             try
             {
                 string token = Request.Headers[HeaderNames.Authorization].ToString();
-                JwtStatus jwtStatus = Jwt.ValidateJwtToken(token);
+                JwtStatus jwtStatus = Jwt.ValidateJwtTokenMember(token, _config);
 
                 if (!jwtStatus.status)
                     return StatusCode(401, new { message = "token ไม่ถูกต้องหรือหมดอายุ", });
 
+                var permission = await (from mup in _context.member_user_permission
+                                        where mup.member_user_id == jwtStatus.user_id
+                                        select mup.per_report_view).FirstOrDefaultAsync();
+                if (permission != "Y")
+                    return StatusCode(401, new { message = "ไม่มีสิทธิในการใช้งานส่วนนี้", });
+
+
                 bodyCostReport.dateStart = DateTime.Parse(bodyCostReport.dateStart.ToString()).Date;
                 bodyCostReport.dateEnd = bodyCostReport.dateEnd.AddDays(+1).AddMilliseconds(-1);
+
+                var price_type = await (from mpt in _context.member_price_type
+                                        where mpt.member_id == jwtStatus.member_id
+                                        select mpt).FirstOrDefaultAsync();
 
                 List<ViewPaymentRawData> listPayment = await _context.view_payment_rawdata
                 .Where(x => x.member_id == jwtStatus.member_id && x.create_date >= bodyCostReport.dateStart && x.create_date <= bodyCostReport.dateEnd)
                 .ToListAsync();
+
 
                 ReturnCostReport returnCostReport = new ReturnCostReport();
                 returnCostReport.listReturnCostReportData = new List<ReturnCostReportData>();
@@ -67,62 +79,31 @@ namespace Etax_Api.Controllers
                 }
 
 
-                var web_result = _context.view_payment.Where(x => x.member_id == jwtStatus.member_id && x.create_type == "web" && x.create_date >= bodyCostReport.dateStart && x.create_date <= bodyCostReport.dateEnd).AsQueryable();
 
-                int web_count = await web_result.CountAsync();
-                if (web_count > 0)
+                var successCount = new
                 {
-                    int xml_count = await web_result.SumAsync(x => x.xml_count);
-                    int pdf_count = await web_result.SumAsync(x => x.pdf_count);
-                    int email_count = await web_result.SumAsync(x => x.email_count);
-                    int ebxml_count = await web_result.SumAsync(x => x.ebxml_count);
-                    int sms_count = await web_result.SumAsync(x => x.sms_message_count);
+                    xml_count = await _context.etax_files.Where(x => x.member_id == jwtStatus.member_id && x.create_type == "api" && x.gen_xml_status == "success" && x.create_date >= bodyCostReport.dateStart && x.create_date <= bodyCostReport.dateEnd).CountAsync(),
+                    pdf_count = await _context.etax_files.Where(x => x.member_id == jwtStatus.member_id && x.create_type == "api" && x.gen_pdf_status == "success" && x.create_date >= bodyCostReport.dateStart && x.create_date <= bodyCostReport.dateEnd).CountAsync(),
+                    email_count = await _context.view_send_email.Where(x => x.member_id == jwtStatus.member_id && x.create_type == "api" && x.send_email_status == "success" && x.create_date >= bodyCostReport.dateStart && x.create_date <= bodyCostReport.dateEnd).SumAsync(x => x.send_count),
+                    sms_count = await _context.view_send_sms.Where(x => x.member_id == jwtStatus.member_id && x.create_type == "api" && x.send_sms_status == "success" && x.create_date >= bodyCostReport.dateStart && x.create_date <= bodyCostReport.dateEnd).SumAsync(x => x.message_count),
+                    ebxml_count = await _context.view_send_ebxml.Where(x => x.member_id == jwtStatus.member_id && x.create_type == "api" && x.send_ebxml_status == "success" && x.create_date >= bodyCostReport.dateStart && x.create_date <= bodyCostReport.dateEnd).CountAsync(),
+                };
 
-                    returnCostReport.listReturnCostReportData.Add(new ReturnCostReportData()
-                    {
-                        row_name = "สร้างในระบบ",
-                        xml_count = xml_count,
-                        pdf_count = pdf_count,
-                        email_count = email_count,
-                        ebxml_count = ebxml_count,
-                        sms_count = sms_count,
-                    });
-
-                    returnCostReport.total_xml_count += xml_count;
-                    returnCostReport.total_pdf_count += pdf_count;
-                    returnCostReport.total_email_count += email_count;
-                    returnCostReport.total_ebxml_count += ebxml_count;
-                    returnCostReport.total_sms_count += sms_count;
-                }
-
-
-                var api_result = _context.view_payment.Where(x => x.member_id == jwtStatus.member_id && x.create_type == "api" && x.create_date >= bodyCostReport.dateStart && x.create_date <= bodyCostReport.dateEnd).AsQueryable();
-
-                int api_count = await api_result.CountAsync();
-                if (api_count > 0)
+                returnCostReport.listReturnCostReportData.Add(new ReturnCostReportData()
                 {
-                    int xml_count = await api_result.SumAsync(x => x.xml_count);
-                    int pdf_count = await api_result.SumAsync(x => x.pdf_count);
-                    int email_count = await api_result.SumAsync(x => x.email_count);
-                    int ebxml_count = await api_result.SumAsync(x => x.ebxml_count);
-                    int sms_count = await web_result.SumAsync(x => x.sms_message_count);
+                    row_name = "Api",
+                    xml_count = successCount.xml_count,
+                    pdf_count = successCount.pdf_count,
+                    email_count = successCount.email_count,
+                    sms_count = successCount.sms_count,
+                    ebxml_count = successCount.ebxml_count,
+                });
 
-                    returnCostReport.listReturnCostReportData.Add(new ReturnCostReportData()
-                    {
-                        row_name = "Api",
-                        xml_count = xml_count,
-                        pdf_count = pdf_count,
-                        email_count = email_count,
-                        ebxml_count = ebxml_count,
-                        sms_count = sms_count,
-                    });
-
-                    returnCostReport.total_xml_count += xml_count;
-                    returnCostReport.total_pdf_count += pdf_count;
-                    returnCostReport.total_email_count += email_count;
-                    returnCostReport.total_ebxml_count += ebxml_count;
-                    returnCostReport.total_sms_count += sms_count;
-                }
+                returnCostReport.total_xml_count += successCount.xml_count;
+                returnCostReport.total_pdf_count += successCount.pdf_count;
+                returnCostReport.total_email_count += successCount.email_count;
+                returnCostReport.total_sms_count += successCount.sms_count;
+                returnCostReport.total_ebxml_count += successCount.ebxml_count;
 
                 List<MemberPriceXml> listMemberPriceXml = await _context.member_price_xml.Where(x => x.member_id == jwtStatus.member_id).OrderByPropertyDescending("count").ToListAsync();
                 List<MemberPricePdf> listMemberPricePdf = await _context.member_price_pdf.Where(x => x.member_id == jwtStatus.member_id).OrderByPropertyDescending("count").ToListAsync();
@@ -130,13 +111,7 @@ namespace Etax_Api.Controllers
                 List<MemberPriceEbxml> listMemberPriceEbxml = await _context.member_price_ebxml.Where(x => x.member_id == jwtStatus.member_id).OrderByPropertyDescending("count").ToListAsync();
                 List<MemberPriceSms> listMemberPriceSms = await _context.member_price_sms.Where(x => x.member_id == jwtStatus.member_id).OrderByPropertyDescending("count").ToListAsync();
 
-
                 int tmp_xml_count = returnCostReport.total_xml_count;
-                int tmp_pdf_count = returnCostReport.total_pdf_count;
-                int tmp_email_count = returnCostReport.total_email_count;
-                int tmp_ebxml_count = returnCostReport.total_ebxml_count;
-                int tmp_sms_count = returnCostReport.total_sms_count;
-
                 foreach (MemberPriceXml memberPriceXml in listMemberPriceXml)
                 {
                     if (tmp_xml_count > memberPriceXml.count)
@@ -146,6 +121,7 @@ namespace Etax_Api.Controllers
                     }
                 }
 
+                int tmp_pdf_count = returnCostReport.total_pdf_count;
                 foreach (MemberPricePdf memberPricePdf in listMemberPricePdf)
                 {
                     if (tmp_pdf_count > memberPricePdf.count)
@@ -155,15 +131,46 @@ namespace Etax_Api.Controllers
                     }
                 }
 
-                foreach (MemberPriceEmail memberPriceEmail in listMemberPriceEmail)
+                if (price_type != null && price_type.email_price_type == "tran")
                 {
-                    if (tmp_email_count > memberPriceEmail.count)
+                    var email_tran = await _context.view_send_email
+                    .Where(x => x.member_id == jwtStatus.member_id && x.send_email_status == "success" && x.create_date >= bodyCostReport.dateStart && x.create_date <= bodyCostReport.dateEnd)
+                    .GroupBy(x => x.etax_file_id)
+                    .Select(x => new
                     {
-                        returnCostReport.total_email_price += (tmp_email_count - memberPriceEmail.count) * memberPriceEmail.price;
-                        tmp_email_count = memberPriceEmail.count;
+                        etax_id = x.Key,
+                        count = x.Count()
+                    })
+                    .ToListAsync();
+
+                    foreach (var et in email_tran)
+                    {
+                        int tmp_email_count = et.count;
+                        foreach (MemberPriceEmail memberPriceEmail in listMemberPriceEmail)
+                        {
+                            if (tmp_email_count > memberPriceEmail.count)
+                            {
+                                returnCostReport.total_email_price += (tmp_email_count - memberPriceEmail.count) * memberPriceEmail.price;
+                                tmp_email_count = memberPriceEmail.count;
+                            }
+                        }
+                    }
+                }
+                else
+                {
+                    int tmp_email_count = returnCostReport.total_email_count;
+                    foreach (MemberPriceEmail memberPriceEmail in listMemberPriceEmail)
+                    {
+                        if (tmp_email_count > memberPriceEmail.count)
+                        {
+                            returnCostReport.total_email_price += (tmp_email_count - memberPriceEmail.count) * memberPriceEmail.price;
+                            tmp_email_count = memberPriceEmail.count;
+                        }
                     }
                 }
 
+
+                int tmp_ebxml_count = returnCostReport.total_ebxml_count;
                 foreach (MemberPriceEbxml memberPriceEbxml in listMemberPriceEbxml)
                 {
                     if (tmp_ebxml_count > memberPriceEbxml.count)
@@ -173,6 +180,7 @@ namespace Etax_Api.Controllers
                     }
                 }
 
+                int tmp_sms_count = returnCostReport.total_sms_count;
                 foreach (MemberPriceSms memberPriceSms in listMemberPriceSms)
                 {
                     if (tmp_sms_count > memberPriceSms.count)
@@ -204,10 +212,17 @@ namespace Etax_Api.Controllers
             try
             {
                 string token = Request.Headers[HeaderNames.Authorization].ToString();
-                JwtStatus jwtStatus = Jwt.ValidateJwtToken(token);
+                JwtStatus jwtStatus = Jwt.ValidateJwtTokenMember(token, _config);
 
                 if (!jwtStatus.status)
                     return StatusCode(401, new { message = "token ไม่ถูกต้องหรือหมดอายุ", });
+
+                var permission = await (from mup in _context.member_user_permission
+                                        where mup.member_user_id == jwtStatus.user_id
+                                        select mup.per_report_view).FirstOrDefaultAsync();
+                if (permission != "Y")
+                    return StatusCode(401, new { message = "ไม่มีสิทธิในการใช้งานส่วนนี้", });
+
 
                 var searchBy = bodyDtParameters.searchText;
                 var orderCriteria = "id";
@@ -351,6 +366,7 @@ namespace Etax_Api.Controllers
                         x.buyer_tax_id,
                         x.buyer_name,
                         x.original_price,
+                        x.new_price,
                         x.price,
                         x.discount,
                         x.tax,
@@ -386,6 +402,7 @@ namespace Etax_Api.Controllers
                         x.buyer_tax_id,
                         x.buyer_name,
                         x.original_price,
+                        x.new_price,
                         x.price,
                         x.discount,
                         x.tax,
@@ -426,10 +443,27 @@ namespace Etax_Api.Controllers
             try
             {
                 string token = Request.Headers[HeaderNames.Authorization].ToString();
-                JwtStatus jwtStatus = Jwt.ValidateJwtToken(token);
+                JwtStatus jwtStatus = Jwt.ValidateJwtTokenMember(token, _config);
 
                 if (!jwtStatus.status)
                     return StatusCode(401, new { message = "token ไม่ถูกต้องหรือหมดอายุ", });
+
+                var permission = await (from mup in _context.member_user_permission
+                                        where mup.member_user_id == jwtStatus.user_id
+                                        select mup.per_report_view).FirstOrDefaultAsync();
+                if (permission != "Y")
+                    return StatusCode(401, new { message = "ไม่มีสิทธิในการใช้งานส่วนนี้", });
+
+
+                var member = await _context.members
+                .Where(x => x.id == jwtStatus.member_id)
+                .Select(x => new
+                {
+                    x.id,
+                    x.name,
+                    x.tax_id,
+                })
+                .FirstOrDefaultAsync();
 
                 var searchBy = bodyDtParameters.searchText;
                 var orderCriteria = "id";
@@ -441,7 +475,7 @@ namespace Etax_Api.Controllers
                     orderAscendingDirection = bodyDtParameters.Order[0].Dir.ToString().ToLower() == "asc";
                 }
 
-                var result = _context.view_send_email.Where(x => x.member_id == jwtStatus.member_id && x.send_email_status == "success").AsQueryable();
+                var result = _context.view_send_email_list.Where(x => x.member_id == jwtStatus.member_id && x.send_email_status == "success").AsQueryable();
 
                 bodyDtParameters.dateStart = DateTime.Parse(bodyDtParameters.dateStart.ToString()).Date;
                 bodyDtParameters.dateEnd = bodyDtParameters.dateEnd.AddDays(+1).AddMilliseconds(-1);
@@ -536,7 +570,7 @@ namespace Etax_Api.Controllers
                 result = orderAscendingDirection ? result.OrderByProperty(orderCriteria) : result.OrderByPropertyDescending(orderCriteria);
 
                 var filteredResultsCount = await result.CountAsync();
-                var totalResultsCount = await _context.view_send_email.Where(x => x.member_id == jwtStatus.member_id && x.send_email_status == "success" && x.document_type_id == document_id).CountAsync();
+                var totalResultsCount = await _context.view_send_email_list.Where(x => x.member_id == jwtStatus.member_id && x.send_email_status == "success" && x.document_type_id == document_id).CountAsync();
 
                 if (bodyDtParameters.Length == -1)
                 {
@@ -549,7 +583,7 @@ namespace Etax_Api.Controllers
                         x.etax_id,
                         x.buyer_tax_id,
                         x.buyer_name,
-                        x.buyer_email,
+                        buyer_email = x.email,
                         x.send_email_status,
                         x.email_status,
                         x.issue_date,
@@ -577,7 +611,7 @@ namespace Etax_Api.Controllers
                         x.etax_id,
                         x.buyer_tax_id,
                         x.buyer_name,
-                        x.buyer_email,
+                        buyer_email = x.email,
                         x.send_email_status,
                         x.email_status,
                         x.issue_date,
@@ -610,10 +644,17 @@ namespace Etax_Api.Controllers
             try
             {
                 string token = Request.Headers[HeaderNames.Authorization].ToString();
-                JwtStatus jwtStatus = Jwt.ValidateJwtToken(token);
+                JwtStatus jwtStatus = Jwt.ValidateJwtTokenMember(token, _config);
 
                 if (!jwtStatus.status)
                     return StatusCode(401, new { message = "token ไม่ถูกต้องหรือหมดอายุ", });
+
+                var permission = await (from mup in _context.member_user_permission
+                                        where mup.member_user_id == jwtStatus.user_id
+                                        select mup.per_report_view).FirstOrDefaultAsync();
+                if (permission != "Y")
+                    return StatusCode(401, new { message = "ไม่มีสิทธิในการใช้งานส่วนนี้", });
+
 
                 var searchBy = bodyDtParameters.searchText;
                 var orderCriteria = "id";
@@ -794,13 +835,24 @@ namespace Etax_Api.Controllers
             try
             {
                 string token = Request.Headers[HeaderNames.Authorization].ToString();
-                JwtStatus jwtStatus = Jwt.ValidateJwtToken(token);
+                JwtStatus jwtStatus = Jwt.ValidateJwtTokenMember(token, _config);
 
                 if (!jwtStatus.status)
                     return StatusCode(401, new { message = "token ไม่ถูกต้องหรือหมดอายุ", });
 
+                var permission = await (from mup in _context.member_user_permission
+                                        where mup.member_user_id == jwtStatus.user_id
+                                        select mup.per_report_view).FirstOrDefaultAsync();
+                if (permission != "Y")
+                    return StatusCode(401, new { message = "ไม่มีสิทธิในการใช้งานส่วนนี้", });
+
+
                 bodyCostReport.dateStart = DateTime.Parse(bodyCostReport.dateStart.ToString()).Date;
                 bodyCostReport.dateEnd = bodyCostReport.dateEnd.AddDays(+1).AddMilliseconds(-1);
+
+                var price_type = await (from mpt in _context.member_price_type
+                                        where mpt.member_id == jwtStatus.member_id
+                                        select mpt).FirstOrDefaultAsync();
 
                 Member member = await _context.members
                 .Where(x => x.id == jwtStatus.member_id)
@@ -825,88 +877,53 @@ namespace Etax_Api.Controllers
                         xml_count = payment.xml_count,
                         pdf_count = payment.pdf_count,
                         email_count = payment.email_count,
-                        ebxml_count = payment.ebxml_count,
                         sms_count = payment.sms_message_count,
+                        ebxml_count = payment.ebxml_count,
                     });
 
                     returnCostReport.total_xml_count += payment.xml_count;
                     returnCostReport.total_pdf_count += payment.pdf_count;
                     returnCostReport.total_email_count += payment.email_count;
-                    returnCostReport.total_ebxml_count += payment.ebxml_count;
                     returnCostReport.total_sms_count += payment.sms_message_count;
+                    returnCostReport.total_ebxml_count += payment.ebxml_count;
                 }
 
 
-                var web_result = _context.view_payment.Where(x => x.member_id == jwtStatus.member_id && x.create_type == "web" && x.create_date >= bodyCostReport.dateStart && x.create_date <= bodyCostReport.dateEnd).AsQueryable();
 
-                int web_count = await web_result.CountAsync();
-                if (web_count > 0)
+                var successCount = new
                 {
-                    int xml_count = await web_result.SumAsync(x => x.xml_count);
-                    int pdf_count = await web_result.SumAsync(x => x.pdf_count);
-                    int email_count = await web_result.SumAsync(x => x.email_count);
-                    int ebxml_count = await web_result.SumAsync(x => x.ebxml_count);
-                    int sms_count = await web_result.SumAsync(x => x.sms_message_count);
+                    xml_count = await _context.etax_files.Where(x => x.member_id == jwtStatus.member_id && x.create_type == "api" && x.gen_xml_status == "success").CountAsync(),
+                    pdf_count = await _context.etax_files.Where(x => x.member_id == jwtStatus.member_id && x.create_type == "api" && x.gen_pdf_status == "success").CountAsync(),
+                    email_count = await _context.view_send_email.Where(x => x.member_id == jwtStatus.member_id && x.create_type == "api" && x.send_email_status == "success").SumAsync(x => x.send_count),
+                    sms_count = await _context.view_send_sms.Where(x => x.member_id == jwtStatus.member_id && x.create_type == "api" && x.send_sms_status == "success").SumAsync(x => x.message_count),
+                    ebxml_count = await _context.view_send_ebxml.Where(x => x.member_id == jwtStatus.member_id && x.create_type == "api" && x.send_ebxml_status == "success").CountAsync(),
+                };
 
-                    returnCostReport.listReturnCostReportData.Add(new ReturnCostReportData()
-                    {
-                        row_name = "สร้างในระบบ",
-                        xml_count = xml_count,
-                        pdf_count = pdf_count,
-                        email_count = email_count,
-                        ebxml_count = ebxml_count,
-                        sms_count = sms_count,
-                    });
-
-                    returnCostReport.total_xml_count += xml_count;
-                    returnCostReport.total_pdf_count += pdf_count;
-                    returnCostReport.total_email_count += email_count;
-                    returnCostReport.total_ebxml_count += ebxml_count;
-                    returnCostReport.total_sms_count += sms_count;
-                }
-
-
-                var api_result = _context.view_payment.Where(x => x.member_id == jwtStatus.member_id && x.create_type == "api" && x.create_date >= bodyCostReport.dateStart && x.create_date <= bodyCostReport.dateEnd).AsQueryable();
-
-                int api_count = await api_result.CountAsync();
-                if (api_count > 0)
+                returnCostReport.listReturnCostReportData.Add(new ReturnCostReportData()
                 {
-                    int xml_count = await api_result.SumAsync(x => x.xml_count);
-                    int pdf_count = await api_result.SumAsync(x => x.pdf_count);
-                    int email_count = await api_result.SumAsync(x => x.email_count);
-                    int ebxml_count = await api_result.SumAsync(x => x.ebxml_count);
-                    int sms_count = await web_result.SumAsync(x => x.sms_message_count);
+                    row_name = "Api",
+                    xml_count = successCount.xml_count,
+                    pdf_count = successCount.pdf_count,
+                    email_count = successCount.email_count,
+                    sms_count = successCount.sms_count,
+                    ebxml_count = successCount.ebxml_count,
+                });
 
-                    returnCostReport.listReturnCostReportData.Add(new ReturnCostReportData()
-                    {
-                        row_name = "Api",
-                        xml_count = xml_count,
-                        pdf_count = pdf_count,
-                        email_count = email_count,
-                        ebxml_count = ebxml_count,
-                        sms_count = sms_count,
-                    });
-
-                    returnCostReport.total_xml_count += xml_count;
-                    returnCostReport.total_pdf_count += pdf_count;
-                    returnCostReport.total_email_count += email_count;
-                    returnCostReport.total_ebxml_count += ebxml_count;
-                    returnCostReport.total_sms_count += sms_count;
-                }
+                returnCostReport.total_xml_count += successCount.xml_count;
+                returnCostReport.total_pdf_count += successCount.pdf_count;
+                returnCostReport.total_email_count += successCount.email_count;
+                returnCostReport.total_sms_count += successCount.sms_count;
+                returnCostReport.total_ebxml_count += successCount.ebxml_count;
 
                 List<MemberPriceXml> listMemberPriceXml = await _context.member_price_xml.Where(x => x.member_id == jwtStatus.member_id).OrderByPropertyDescending("count").ToListAsync();
                 List<MemberPricePdf> listMemberPricePdf = await _context.member_price_pdf.Where(x => x.member_id == jwtStatus.member_id).OrderByPropertyDescending("count").ToListAsync();
                 List<MemberPriceEmail> listMemberPriceEmail = await _context.member_price_email.Where(x => x.member_id == jwtStatus.member_id).OrderByPropertyDescending("count").ToListAsync();
-                List<MemberPriceEbxml> listMemberPriceEbxml = await _context.member_price_ebxml.Where(x => x.member_id == jwtStatus.member_id).OrderByPropertyDescending("count").ToListAsync();
                 List<MemberPriceSms> listMemberPriceSms = await _context.member_price_sms.Where(x => x.member_id == jwtStatus.member_id).OrderByPropertyDescending("count").ToListAsync();
+                List<MemberPriceEbxml> listMemberPriceEbxml = await _context.member_price_ebxml.Where(x => x.member_id == jwtStatus.member_id).OrderByPropertyDescending("count").ToListAsync();
+
 
 
                 int tmp_xml_count = returnCostReport.total_xml_count;
-                int tmp_pdf_count = returnCostReport.total_pdf_count;
-                int tmp_email_count = returnCostReport.total_email_count;
-                int tmp_ebxml_count = returnCostReport.total_ebxml_count;
-                int tmp_sms_count = returnCostReport.total_sms_count;
-
                 foreach (MemberPriceXml memberPriceXml in listMemberPriceXml)
                 {
                     if (tmp_xml_count > memberPriceXml.count)
@@ -916,6 +933,7 @@ namespace Etax_Api.Controllers
                     }
                 }
 
+                int tmp_pdf_count = returnCostReport.total_pdf_count;
                 foreach (MemberPricePdf memberPricePdf in listMemberPricePdf)
                 {
                     if (tmp_pdf_count > memberPricePdf.count)
@@ -925,30 +943,61 @@ namespace Etax_Api.Controllers
                     }
                 }
 
-                foreach (MemberPriceEmail memberPriceEmail in listMemberPriceEmail)
+                if (price_type != null && price_type.email_price_type == "tran")
                 {
-                    if (tmp_email_count > memberPriceEmail.count)
+                    var email_tran = await _context.view_send_email
+                    .Where(x => x.member_id == jwtStatus.member_id && x.send_email_status == "success" && x.create_date >= bodyCostReport.dateStart && x.create_date <= bodyCostReport.dateEnd)
+                    .GroupBy(x => x.etax_file_id)
+                    .Select(x => new
                     {
-                        returnCostReport.total_email_price += (tmp_email_count - memberPriceEmail.count) * memberPriceEmail.price;
-                        tmp_email_count = memberPriceEmail.count;
+                        etax_id = x.Key,
+                        count = x.Count()
+                    })
+                    .ToListAsync();
+
+                    foreach (var et in email_tran)
+                    {
+                        int tmp_email_count = et.count;
+                        foreach (MemberPriceEmail memberPriceEmail in listMemberPriceEmail)
+                        {
+                            if (tmp_email_count > memberPriceEmail.count)
+                            {
+                                returnCostReport.total_email_price += (tmp_email_count - memberPriceEmail.count) * memberPriceEmail.price;
+                                tmp_email_count = memberPriceEmail.count;
+                            }
+                        }
+                    }
+                }
+                else
+                {
+                    int tmp_email_count = returnCostReport.total_email_count;
+                    foreach (MemberPriceEmail memberPriceEmail in listMemberPriceEmail)
+                    {
+                        if (tmp_email_count > memberPriceEmail.count)
+                        {
+                            returnCostReport.total_email_price += (tmp_email_count - memberPriceEmail.count) * memberPriceEmail.price;
+                            tmp_email_count = memberPriceEmail.count;
+                        }
                     }
                 }
 
-                foreach (MemberPriceEbxml memberPriceEbxml in listMemberPriceEbxml)
-                {
-                    if (tmp_ebxml_count > memberPriceEbxml.count)
-                    {
-                        returnCostReport.total_ebxml_price += (tmp_ebxml_count - memberPriceEbxml.count) * memberPriceEbxml.price;
-                        tmp_ebxml_count = memberPriceEbxml.count;
-                    }
-                }
-
+                int tmp_sms_count = returnCostReport.total_sms_count;
                 foreach (MemberPriceSms memberPriceSms in listMemberPriceSms)
                 {
                     if (tmp_sms_count > memberPriceSms.count)
                     {
                         returnCostReport.total_sms_price += (tmp_sms_count - memberPriceSms.count) * memberPriceSms.price;
                         tmp_sms_count = memberPriceSms.count;
+                    }
+                }
+
+                int tmp_ebxml_count = returnCostReport.total_ebxml_count;
+                foreach (MemberPriceEbxml memberPriceEbxml in listMemberPriceEbxml)
+                {
+                    if (tmp_ebxml_count > memberPriceEbxml.count)
+                    {
+                        returnCostReport.total_ebxml_price += (tmp_ebxml_count - memberPriceEbxml.count) * memberPriceEbxml.price;
+                        tmp_ebxml_count = memberPriceEbxml.count;
                     }
                 }
 
@@ -989,10 +1038,17 @@ namespace Etax_Api.Controllers
             try
             {
                 string token = Request.Headers[HeaderNames.Authorization].ToString();
-                JwtStatus jwtStatus = Jwt.ValidateJwtToken(token);
+                JwtStatus jwtStatus = Jwt.ValidateJwtTokenMember(token, _config);
 
                 if (!jwtStatus.status)
                     return StatusCode(401, new { message = "token ไม่ถูกต้องหรือหมดอายุ", });
+
+                var permission = await (from mup in _context.member_user_permission
+                                        where mup.member_user_id == jwtStatus.user_id
+                                        select mup.per_report_view).FirstOrDefaultAsync();
+                if (permission != "Y")
+                    return StatusCode(401, new { message = "ไม่มีสิทธิในการใช้งานส่วนนี้", });
+
 
                 var member = await _context.members
                 .Where(x => x.id == jwtStatus.member_id)
@@ -1171,10 +1227,17 @@ namespace Etax_Api.Controllers
             try
             {
                 string token = Request.Headers[HeaderNames.Authorization].ToString();
-                JwtStatus jwtStatus = Jwt.ValidateJwtToken(token);
+                JwtStatus jwtStatus = Jwt.ValidateJwtTokenMember(token, _config);
 
                 if (!jwtStatus.status)
                     return StatusCode(401, new { message = "token ไม่ถูกต้องหรือหมดอายุ", });
+
+                var permission = await (from mup in _context.member_user_permission
+                                        where mup.member_user_id == jwtStatus.user_id
+                                        select mup.per_report_view).FirstOrDefaultAsync();
+                if (permission != "Y")
+                    return StatusCode(401, new { message = "ไม่มีสิทธิในการใช้งานส่วนนี้", });
+
 
                 var member = await _context.members
                 .Where(x => x.id == jwtStatus.member_id)
@@ -1332,10 +1395,17 @@ namespace Etax_Api.Controllers
             try
             {
                 string token = Request.Headers[HeaderNames.Authorization].ToString();
-                JwtStatus jwtStatus = Jwt.ValidateJwtToken(token);
+                JwtStatus jwtStatus = Jwt.ValidateJwtTokenMember(token, _config);
 
                 if (!jwtStatus.status)
                     return StatusCode(401, new { message = "token ไม่ถูกต้องหรือหมดอายุ", });
+
+                var permission = await (from mup in _context.member_user_permission
+                                        where mup.member_user_id == jwtStatus.user_id
+                                        select mup.per_report_view).FirstOrDefaultAsync();
+                if (permission != "Y")
+                    return StatusCode(401, new { message = "ไม่มีสิทธิในการใช้งานส่วนนี้", });
+
 
                 var member = await _context.members
                 .Where(x => x.id == jwtStatus.member_id)
@@ -1498,10 +1568,17 @@ namespace Etax_Api.Controllers
             try
             {
                 string token = Request.Headers[HeaderNames.Authorization].ToString();
-                JwtStatus jwtStatus = Jwt.ValidateJwtToken(token);
+                JwtStatus jwtStatus = Jwt.ValidateJwtTokenMember(token, _config);
 
                 if (!jwtStatus.status)
                     return StatusCode(401, new { message = "token ไม่ถูกต้องหรือหมดอายุ", });
+
+                var permission = await (from mup in _context.member_user_permission
+                                        where mup.member_user_id == jwtStatus.user_id
+                                        select mup.per_report_view).FirstOrDefaultAsync();
+                if (permission != "Y")
+                    return StatusCode(401, new { message = "ไม่มีสิทธิในการใช้งานส่วนนี้", });
+
 
                 var searchBy = bodyDtParameters.searchText;
                 var orderCriteria = "id";
@@ -1720,10 +1797,17 @@ namespace Etax_Api.Controllers
             try
             {
                 string token = Request.Headers[HeaderNames.Authorization].ToString();
-                JwtStatus jwtStatus = Jwt.ValidateJwtToken(token);
+                JwtStatus jwtStatus = Jwt.ValidateJwtTokenMember(token, _config);
 
                 if (!jwtStatus.status)
                     return StatusCode(401, new { message = "token ไม่ถูกต้องหรือหมดอายุ", });
+
+                var permission = await (from mup in _context.member_user_permission
+                                        where mup.member_user_id == jwtStatus.user_id
+                                        select mup.per_report_view).FirstOrDefaultAsync();
+                if (permission != "Y")
+                    return StatusCode(401, new { message = "ไม่มีสิทธิในการใช้งานส่วนนี้", });
+
 
                 var member = await _context.members
                 .Where(x => x.id == jwtStatus.member_id)
@@ -1902,7 +1986,7 @@ namespace Etax_Api.Controllers
             try
             {
                 string token = Request.Headers[HeaderNames.Authorization].ToString();
-                JwtStatus jwtStatus = Jwt.ValidateJwtToken(token);
+                JwtStatus jwtStatus = Jwt.ValidateJwtTokenUser(token, _config);
 
                 if (!jwtStatus.status)
                     return StatusCode(401, new { message = "token ไม่ถูกต้องหรือหมดอายุ", });
@@ -1910,16 +1994,11 @@ namespace Etax_Api.Controllers
                 bodyCostReportAdmin.dateStart = DateTime.Parse(bodyCostReportAdmin.dateStart.ToString()).Date;
                 bodyCostReportAdmin.dateEnd = bodyCostReportAdmin.dateEnd.AddDays(+1).AddMilliseconds(-1);
 
-                var query = _context.view_payment_rawdata
-                    .Where(x => x.create_date >= bodyCostReportAdmin.dateStart && x.create_date <= bodyCostReportAdmin.dateEnd);
+                var price_type = await (from mpt in _context.member_price_type
+                                        where mpt.member_id == bodyCostReportAdmin.member_id
+                                        select mpt).FirstOrDefaultAsync();
 
-                if (bodyCostReportAdmin.member.Count() > 0)
-                {
-                    var memberIds = bodyCostReportAdmin.member.Select(m => m.id).ToList();
-                    query = query.Where(x => memberIds.Contains(x.member_id));
-                }
-
-                List<ViewPaymentRawData> listPayment = await query.ToListAsync();
+                List<ViewPaymentRawData> listPayment = await _context.view_payment_rawdata.Where(x => x.member_id == bodyCostReportAdmin.member_id && x.create_date >= bodyCostReportAdmin.dateStart && x.create_date <= bodyCostReportAdmin.dateEnd).ToListAsync();
 
                 ReturnCostReport returnCostReport = new ReturnCostReport();
                 returnCostReport.listReturnCostReportData = new List<ReturnCostReportData>();
@@ -1943,59 +2022,31 @@ namespace Etax_Api.Controllers
                     returnCostReport.total_ebxml_count += payment.ebxml_count;
                 }
 
-                var web_result = _context.view_payment.Where(x => x.member_id == bodyCostReportAdmin.member_id && x.create_type == "web" && x.create_date >= bodyCostReportAdmin.dateStart && x.create_date <= bodyCostReportAdmin.dateEnd).AsQueryable();
-                int web_count = await web_result.CountAsync();
-                if (web_count > 0)
+
+                var successCount = new
                 {
-                    int xml_count = await web_result.SumAsync(x => x.xml_count);
-                    int pdf_count = await web_result.SumAsync(x => x.pdf_count);
-                    int email_count = await web_result.SumAsync(x => x.email_count);
-                    int sms_count = await web_result.SumAsync(x => x.sms_message_count);
-                    int ebxml_count = await web_result.SumAsync(x => x.ebxml_count);
+                    xml_count = await _context.etax_files.Where(x => x.member_id == bodyCostReportAdmin.member_id && x.create_type == "api" && x.gen_xml_status == "success" && x.create_date >= bodyCostReportAdmin.dateStart && x.create_date <= bodyCostReportAdmin.dateEnd).CountAsync(),
+                    pdf_count = await _context.etax_files.Where(x => x.member_id == bodyCostReportAdmin.member_id && x.create_type == "api" && x.gen_pdf_status == "success" && x.create_date >= bodyCostReportAdmin.dateStart && x.create_date <= bodyCostReportAdmin.dateEnd).CountAsync(),
+                    email_count = await _context.view_send_email.Where(x => x.member_id == bodyCostReportAdmin.member_id && x.create_type == "api" && x.send_email_status == "success" && x.create_date >= bodyCostReportAdmin.dateStart && x.create_date <= bodyCostReportAdmin.dateEnd).SumAsync(x => x.send_count),
+                    sms_count = await _context.view_send_sms.Where(x => x.member_id == bodyCostReportAdmin.member_id && x.create_type == "api" && x.send_sms_status == "success" && x.create_date >= bodyCostReportAdmin.dateStart && x.create_date <= bodyCostReportAdmin.dateEnd).SumAsync(x => x.message_count),
+                    ebxml_count = await _context.view_send_ebxml.Where(x => x.member_id == bodyCostReportAdmin.member_id && x.create_type == "api" && x.send_ebxml_status == "success" && x.create_date >= bodyCostReportAdmin.dateStart && x.create_date <= bodyCostReportAdmin.dateEnd).CountAsync(),
+                };
 
-                    returnCostReport.listReturnCostReportData.Add(new ReturnCostReportData()
-                    {
-                        row_name = "สร้างในระบบ",
-                        xml_count = xml_count,
-                        pdf_count = pdf_count,
-                        email_count = email_count,
-                        sms_count = sms_count,
-                        ebxml_count = ebxml_count,
-                    });
-
-                    returnCostReport.total_xml_count += xml_count;
-                    returnCostReport.total_pdf_count += pdf_count;
-                    returnCostReport.total_email_count += email_count;
-                    returnCostReport.total_sms_count += sms_count;
-                    returnCostReport.total_ebxml_count += ebxml_count;
-                }
-
-                var api_result = _context.view_payment.Where(x => x.member_id == bodyCostReportAdmin.member_id && x.create_type == "api" && x.create_date >= bodyCostReportAdmin.dateStart && x.create_date <= bodyCostReportAdmin.dateEnd).AsQueryable();
-                int api_count = await api_result.CountAsync();
-                if (api_count > 0)
+                returnCostReport.listReturnCostReportData.Add(new ReturnCostReportData()
                 {
-                    int xml_count = await api_result.SumAsync(x => x.xml_count);
-                    int pdf_count = await api_result.SumAsync(x => x.pdf_count);
-                    int email_count = await api_result.SumAsync(x => x.email_count);
-                    int sms_count = await api_result.SumAsync(x => x.sms_message_count);
-                    int ebxml_count = await api_result.SumAsync(x => x.ebxml_count);
+                    row_name = "Api",
+                    xml_count = successCount.xml_count,
+                    pdf_count = successCount.pdf_count,
+                    email_count = successCount.email_count,
+                    sms_count = successCount.sms_count,
+                    ebxml_count = successCount.ebxml_count,
+                });
 
-                    returnCostReport.listReturnCostReportData.Add(new ReturnCostReportData()
-                    {
-                        row_name = "Api",
-                        xml_count = xml_count,
-                        pdf_count = pdf_count,
-                        email_count = email_count,
-                        sms_count = sms_count,
-                        ebxml_count = ebxml_count,
-                    });
-
-                    returnCostReport.total_xml_count += xml_count;
-                    returnCostReport.total_pdf_count += pdf_count;
-                    returnCostReport.total_email_count += email_count;
-                    returnCostReport.total_sms_count += sms_count;
-                    returnCostReport.total_ebxml_count += ebxml_count;
-                }
+                returnCostReport.total_xml_count += successCount.xml_count;
+                returnCostReport.total_pdf_count += successCount.pdf_count;
+                returnCostReport.total_email_count += successCount.email_count;
+                returnCostReport.total_sms_count += successCount.sms_count;
+                returnCostReport.total_ebxml_count += successCount.ebxml_count;
 
                 List<MemberPriceXml> listMemberPriceXml = await _context.member_price_xml.Where(x => x.member_id == bodyCostReportAdmin.member_id).OrderByPropertyDescending("count").ToListAsync();
                 List<MemberPricePdf> listMemberPricePdf = await _context.member_price_pdf.Where(x => x.member_id == bodyCostReportAdmin.member_id).OrderByPropertyDescending("count").ToListAsync();
@@ -2005,11 +2056,6 @@ namespace Etax_Api.Controllers
 
 
                 int tmp_xml_count = returnCostReport.total_xml_count;
-                int tmp_pdf_count = returnCostReport.total_pdf_count;
-                int tmp_email_count = returnCostReport.total_email_count;
-                int tmp_sms_count = returnCostReport.total_sms_count;
-                int tmp_ebxml_count = returnCostReport.total_ebxml_count;
-
                 foreach (MemberPriceXml memberPriceXml in listMemberPriceXml)
                 {
                     if (tmp_xml_count > memberPriceXml.count)
@@ -2019,6 +2065,7 @@ namespace Etax_Api.Controllers
                     }
                 }
 
+                int tmp_pdf_count = returnCostReport.total_pdf_count;
                 foreach (MemberPricePdf memberPricePdf in listMemberPricePdf)
                 {
                     if (tmp_pdf_count > memberPricePdf.count)
@@ -2028,15 +2075,45 @@ namespace Etax_Api.Controllers
                     }
                 }
 
-                foreach (MemberPriceEmail memberPriceEmail in listMemberPriceEmail)
+                if (price_type != null && price_type.email_price_type == "tran")
                 {
-                    if (tmp_email_count > memberPriceEmail.count)
+                    var email_tran = await _context.view_send_email
+                    .Where(x => x.member_id == jwtStatus.member_id && x.send_email_status == "success" && x.create_date >= bodyCostReportAdmin.dateStart && x.create_date <= bodyCostReportAdmin.dateEnd)
+                    .GroupBy(x => x.etax_file_id)
+                    .Select(x => new
                     {
-                        returnCostReport.total_email_price += (tmp_email_count - memberPriceEmail.count) * memberPriceEmail.price;
-                        tmp_email_count = memberPriceEmail.count;
+                        etax_id = x.Key,
+                        count = x.Count()
+                    })
+                    .ToListAsync();
+
+                    foreach (var et in email_tran)
+                    {
+                        int tmp_email_count = et.count;
+                        foreach (MemberPriceEmail memberPriceEmail in listMemberPriceEmail)
+                        {
+                            if (tmp_email_count > memberPriceEmail.count)
+                            {
+                                returnCostReport.total_email_price += (tmp_email_count - memberPriceEmail.count) * memberPriceEmail.price;
+                                tmp_email_count = memberPriceEmail.count;
+                            }
+                        }
+                    }
+                }
+                else
+                {
+                    int tmp_email_count = returnCostReport.total_email_count;
+                    foreach (MemberPriceEmail memberPriceEmail in listMemberPriceEmail)
+                    {
+                        if (tmp_email_count > memberPriceEmail.count)
+                        {
+                            returnCostReport.total_email_price += (tmp_email_count - memberPriceEmail.count) * memberPriceEmail.price;
+                            tmp_email_count = memberPriceEmail.count;
+                        }
                     }
                 }
 
+                int tmp_sms_count = returnCostReport.total_sms_count;
                 foreach (MemberPriceSms memberPriceSms in listMemberPriceSms)
                 {
                     if (tmp_sms_count > memberPriceSms.count)
@@ -2046,6 +2123,7 @@ namespace Etax_Api.Controllers
                     }
                 }
 
+                int tmp_ebxml_count = returnCostReport.total_ebxml_count;
                 foreach (MemberPriceEbxml memberPriceEbxml in listMemberPriceEbxml)
                 {
                     if (tmp_ebxml_count > memberPriceEbxml.count)
@@ -2075,7 +2153,7 @@ namespace Etax_Api.Controllers
             try
             {
                 string token = Request.Headers[HeaderNames.Authorization].ToString();
-                JwtStatus jwtStatus = Jwt.ValidateJwtToken(token);
+                JwtStatus jwtStatus = Jwt.ValidateJwtTokenUser(token, _config);
 
                 if (!jwtStatus.status)
                     return StatusCode(401, new { message = "token ไม่ถูกต้องหรือหมดอายุ", });
@@ -2085,6 +2163,10 @@ namespace Etax_Api.Controllers
 
                 bodyCostReportAdmin.dateStart = DateTime.Parse(bodyCostReportAdmin.dateStart.ToString()).Date;
                 bodyCostReportAdmin.dateEnd = bodyCostReportAdmin.dateEnd.AddDays(+1).AddMilliseconds(-1);
+
+                var price_type = await (from mpt in _context.member_price_type
+                                        where mpt.member_id == bodyCostReportAdmin.member_id
+                                        select mpt).FirstOrDefaultAsync();
 
                 Member member = await _context.members
                 .Where(x => x.id == bodyCostReportAdmin.member_id)
@@ -2114,59 +2196,30 @@ namespace Etax_Api.Controllers
                     returnCostReport.total_ebxml_count += payment.ebxml_count;
                 }
 
-                var web_result = _context.view_payment.Where(x => x.member_id == bodyCostReportAdmin.member_id && x.create_type == "web" && x.create_date >= bodyCostReportAdmin.dateStart && x.create_date <= bodyCostReportAdmin.dateEnd).AsQueryable();
-                int web_count = await web_result.CountAsync();
-                if (web_count > 0)
+                var successCount = new
                 {
-                    int xml_count = await web_result.SumAsync(x => x.xml_count);
-                    int pdf_count = await web_result.SumAsync(x => x.pdf_count);
-                    int email_count = await web_result.SumAsync(x => x.email_count);
-                    int sms_count = await web_result.SumAsync(x => x.sms_message_count);
-                    int ebxml_count = await web_result.SumAsync(x => x.ebxml_count);
+                    xml_count = await _context.etax_files.Where(x => x.member_id == bodyCostReportAdmin.member_id && x.create_type == "api" && x.gen_xml_status == "success" && x.create_date >= bodyCostReportAdmin.dateStart && x.create_date <= bodyCostReportAdmin.dateEnd).CountAsync(),
+                    pdf_count = await _context.etax_files.Where(x => x.member_id == bodyCostReportAdmin.member_id && x.create_type == "api" && x.gen_pdf_status == "success" && x.create_date >= bodyCostReportAdmin.dateStart && x.create_date <= bodyCostReportAdmin.dateEnd).CountAsync(),
+                    email_count = await _context.view_send_email.Where(x => x.member_id == bodyCostReportAdmin.member_id && x.create_type == "api" && x.send_email_status == "success" && x.create_date >= bodyCostReportAdmin.dateStart && x.create_date <= bodyCostReportAdmin.dateEnd).SumAsync(x => x.send_count),
+                    sms_count = await _context.view_send_sms.Where(x => x.member_id == bodyCostReportAdmin.member_id && x.create_type == "api" && x.send_sms_status == "success" && x.create_date >= bodyCostReportAdmin.dateStart && x.create_date <= bodyCostReportAdmin.dateEnd).SumAsync(x => x.message_count),
+                    ebxml_count = await _context.view_send_ebxml.Where(x => x.member_id == bodyCostReportAdmin.member_id && x.create_type == "api" && x.send_ebxml_status == "success" && x.create_date >= bodyCostReportAdmin.dateStart && x.create_date <= bodyCostReportAdmin.dateEnd).CountAsync(),
+                };
 
-                    returnCostReport.listReturnCostReportData.Add(new ReturnCostReportData()
-                    {
-                        row_name = "สร้างในระบบ",
-                        xml_count = xml_count,
-                        pdf_count = pdf_count,
-                        email_count = email_count,
-                        sms_count = sms_count,
-                        ebxml_count = ebxml_count,
-                    });
-
-                    returnCostReport.total_xml_count += xml_count;
-                    returnCostReport.total_pdf_count += pdf_count;
-                    returnCostReport.total_email_count += email_count;
-                    returnCostReport.total_sms_count += sms_count;
-                    returnCostReport.total_ebxml_count += ebxml_count;
-                }
-
-                var api_result = _context.view_payment.Where(x => x.member_id == bodyCostReportAdmin.member_id && x.create_type == "api" && x.create_date >= bodyCostReportAdmin.dateStart && x.create_date <= bodyCostReportAdmin.dateEnd).AsQueryable();
-                int api_count = await api_result.CountAsync();
-                if (api_count > 0)
+                returnCostReport.listReturnCostReportData.Add(new ReturnCostReportData()
                 {
-                    int xml_count = await api_result.SumAsync(x => x.xml_count);
-                    int pdf_count = await api_result.SumAsync(x => x.pdf_count);
-                    int email_count = await api_result.SumAsync(x => x.email_count);
-                    int sms_count = await api_result.SumAsync(x => x.sms_message_count);
-                    int ebxml_count = await api_result.SumAsync(x => x.ebxml_count);
+                    row_name = "Api",
+                    xml_count = successCount.xml_count,
+                    pdf_count = successCount.pdf_count,
+                    email_count = successCount.email_count,
+                    sms_count = successCount.sms_count,
+                    ebxml_count = successCount.ebxml_count,
+                });
 
-                    returnCostReport.listReturnCostReportData.Add(new ReturnCostReportData()
-                    {
-                        row_name = "Api",
-                        xml_count = xml_count,
-                        pdf_count = pdf_count,
-                        email_count = email_count,
-                        sms_count = sms_count,
-                        ebxml_count = ebxml_count,
-                    });
-
-                    returnCostReport.total_xml_count += xml_count;
-                    returnCostReport.total_pdf_count += pdf_count;
-                    returnCostReport.total_email_count += email_count;
-                    returnCostReport.total_sms_count += sms_count;
-                    returnCostReport.total_ebxml_count += ebxml_count;
-                }
+                returnCostReport.total_xml_count += successCount.xml_count;
+                returnCostReport.total_pdf_count += successCount.pdf_count;
+                returnCostReport.total_email_count += successCount.email_count;
+                returnCostReport.total_sms_count += successCount.sms_count;
+                returnCostReport.total_ebxml_count += successCount.ebxml_count;
 
                 List<MemberPriceXml> listMemberPriceXml = await _context.member_price_xml.Where(x => x.member_id == bodyCostReportAdmin.member_id).OrderByPropertyDescending("count").ToListAsync();
                 List<MemberPricePdf> listMemberPricePdf = await _context.member_price_pdf.Where(x => x.member_id == bodyCostReportAdmin.member_id).OrderByPropertyDescending("count").ToListAsync();
@@ -2175,12 +2228,9 @@ namespace Etax_Api.Controllers
                 List<MemberPriceEbxml> listMemberPriceEbxml = await _context.member_price_ebxml.Where(x => x.member_id == bodyCostReportAdmin.member_id).OrderByPropertyDescending("count").ToListAsync();
 
 
-                int tmp_xml_count = returnCostReport.total_xml_count;
-                int tmp_pdf_count = returnCostReport.total_pdf_count;
-                int tmp_email_count = returnCostReport.total_email_count;
-                int tmp_sms_count = returnCostReport.total_sms_count;
-                int tmp_ebxml_count = returnCostReport.total_ebxml_count;
 
+
+                int tmp_xml_count = returnCostReport.total_xml_count;
                 foreach (MemberPriceXml memberPriceXml in listMemberPriceXml)
                 {
                     if (tmp_xml_count > memberPriceXml.count)
@@ -2190,6 +2240,7 @@ namespace Etax_Api.Controllers
                     }
                 }
 
+                int tmp_pdf_count = returnCostReport.total_pdf_count;
                 foreach (MemberPricePdf memberPricePdf in listMemberPricePdf)
                 {
                     if (tmp_pdf_count > memberPricePdf.count)
@@ -2199,15 +2250,45 @@ namespace Etax_Api.Controllers
                     }
                 }
 
-                foreach (MemberPriceEmail memberPriceEmail in listMemberPriceEmail)
+                if (price_type != null && price_type.email_price_type == "tran")
                 {
-                    if (tmp_email_count > memberPriceEmail.count)
+                    var email_tran = await _context.view_send_email
+                    .Where(x => x.member_id == jwtStatus.member_id && x.send_email_status == "success" && x.create_date >= bodyCostReportAdmin.dateStart && x.create_date <= bodyCostReportAdmin.dateEnd)
+                    .GroupBy(x => x.etax_file_id)
+                    .Select(x => new
                     {
-                        returnCostReport.total_email_price += (tmp_email_count - memberPriceEmail.count) * memberPriceEmail.price;
-                        tmp_email_count = memberPriceEmail.count;
+                        etax_id = x.Key,
+                        count = x.Count()
+                    })
+                    .ToListAsync();
+
+                    foreach (var et in email_tran)
+                    {
+                        int tmp_email_count = et.count;
+                        foreach (MemberPriceEmail memberPriceEmail in listMemberPriceEmail)
+                        {
+                            if (tmp_email_count > memberPriceEmail.count)
+                            {
+                                returnCostReport.total_email_price += (tmp_email_count - memberPriceEmail.count) * memberPriceEmail.price;
+                                tmp_email_count = memberPriceEmail.count;
+                            }
+                        }
+                    }
+                }
+                else
+                {
+                    int tmp_email_count = returnCostReport.total_email_count;
+                    foreach (MemberPriceEmail memberPriceEmail in listMemberPriceEmail)
+                    {
+                        if (tmp_email_count > memberPriceEmail.count)
+                        {
+                            returnCostReport.total_email_price += (tmp_email_count - memberPriceEmail.count) * memberPriceEmail.price;
+                            tmp_email_count = memberPriceEmail.count;
+                        }
                     }
                 }
 
+                int tmp_sms_count = returnCostReport.total_sms_count;
                 foreach (MemberPriceSms memberPriceSms in listMemberPriceSms)
                 {
                     if (tmp_sms_count > memberPriceSms.count)
@@ -2217,6 +2298,7 @@ namespace Etax_Api.Controllers
                     }
                 }
 
+                int tmp_ebxml_count = returnCostReport.total_ebxml_count;
                 foreach (MemberPriceEbxml memberPriceEbxml in listMemberPriceEbxml)
                 {
                     if (tmp_ebxml_count > memberPriceEbxml.count)
@@ -2264,7 +2346,7 @@ namespace Etax_Api.Controllers
             try
             {
                 string token = Request.Headers[HeaderNames.Authorization].ToString();
-                JwtStatus jwtStatus = Jwt.ValidateJwtToken(token);
+                JwtStatus jwtStatus = Jwt.ValidateJwtTokenUser(token, _config);
 
                 if (!jwtStatus.status)
                     return StatusCode(401, new { message = "token ไม่ถูกต้องหรือหมดอายุ", });
@@ -2451,7 +2533,7 @@ namespace Etax_Api.Controllers
             try
             {
                 string token = Request.Headers[HeaderNames.Authorization].ToString();
-                JwtStatus jwtStatus = Jwt.ValidateJwtToken(token);
+                JwtStatus jwtStatus = Jwt.ValidateJwtTokenUser(token, _config);
 
                 if (!jwtStatus.status)
                     return StatusCode(401, new { message = "token ไม่ถูกต้องหรือหมดอายุ", });
@@ -2473,10 +2555,9 @@ namespace Etax_Api.Controllers
                 var result = _context.view_send_email.Where(x => listDocumentTypeID.Contains(x.document_type_id)).AsQueryable();
 
 
-                if (bodyDtParameters.member.Count() > 0)
+                if (bodyDtParameters.id != 0)
                 {
-                    var memberIds = bodyDtParameters.member.Select(m => m.id).ToList();
-                    result = result.Where(x => memberIds.Contains(x.member_id));
+                    result = result.Where(x => x.member_id == bodyDtParameters.id);
                 }
                 else
                 {
@@ -2627,7 +2708,7 @@ namespace Etax_Api.Controllers
             try
             {
                 string token = Request.Headers[HeaderNames.Authorization].ToString();
-                JwtStatus jwtStatus = Jwt.ValidateJwtToken(token);
+                JwtStatus jwtStatus = Jwt.ValidateJwtTokenUser(token, _config);
 
                 if (!jwtStatus.status)
                     return StatusCode(401, new { message = "token ไม่ถูกต้องหรือหมดอายุ", });
@@ -2648,10 +2729,9 @@ namespace Etax_Api.Controllers
 
                 var result = _context.view_send_ebxml.Where(x => listDocumentTypeID.Contains(x.document_type_id)).AsQueryable();
 
-                if (bodyDtParameters.member.Count() > 0)
+                if (bodyDtParameters.id != 0)
                 {
-                    var memberIds = bodyDtParameters.member.Select(m => m.id).ToList();
-                    result = result.Where(x => memberIds.Contains(x.member_id));
+                    result = result.Where(x => x.member_id == bodyDtParameters.id);
                 }
                 else
                 {

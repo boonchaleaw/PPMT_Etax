@@ -15,6 +15,7 @@ namespace Etax_Api
         public string name { get; set; }
         public string type { get; set; }
         public int document_type_id { get; set; }
+        public string document_type_name { get; set; }
         public string create_type { get; set; }
         public string? raw_name { get; set; }
         public string gen_xml_status { get; set; }

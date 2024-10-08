@@ -30,11 +30,11 @@ namespace Etax_Api.Controllers
         {
             try
             {
-                string token = Request.Headers[HeaderNames.Authorization].ToString();
-                JwtStatus jwtStatus = Jwt.ValidateJwtToken(token);
+                //string token = Request.Headers[HeaderNames.Authorization].ToString();
+                //JwtStatus jwtStatus = Jwt.ValidateJwtToken(token);
 
-                if (!jwtStatus.status)
-                    return StatusCode(401, new { message = "token ไม่ถูกต้องหรือหมดอายุ", });
+                //if (!jwtStatus.status)
+                //    return StatusCode(401, new { message = "token ไม่ถูกต้องหรือหมดอายุ", });
 
 
                 var province = await _context.province
@@ -76,11 +76,11 @@ namespace Etax_Api.Controllers
         {
             try
             {
-                string token = Request.Headers[HeaderNames.Authorization].ToString();
-                JwtStatus jwtStatus = Jwt.ValidateJwtToken(token);
+                //string token = Request.Headers[HeaderNames.Authorization].ToString();
+                //JwtStatus jwtStatus = Jwt.ValidateJwtToken(token);
 
-                if (!jwtStatus.status)
-                    return StatusCode(401, new { message = "token ไม่ถูกต้องหรือหมดอายุ", });
+                //if (!jwtStatus.status)
+                //    return StatusCode(401, new { message = "token ไม่ถูกต้องหรือหมดอายุ", });
 
 
                 var district = await _context.amphoe
@@ -88,7 +88,7 @@ namespace Etax_Api.Controllers
                 {
                     x.amphoe_code,
                     x.province_code,
-                    x.amphoe_th,
+                    amphoe_th = x.amphoe_th_s,
                 })
                 .Where(x => x.province_code == province_code)
                 .ToListAsync();
@@ -123,11 +123,11 @@ namespace Etax_Api.Controllers
         {
             try
             {
-                string token = Request.Headers[HeaderNames.Authorization].ToString();
-                JwtStatus jwtStatus = Jwt.ValidateJwtToken(token);
+                //string token = Request.Headers[HeaderNames.Authorization].ToString();
+                //JwtStatus jwtStatus = Jwt.ValidateJwtToken(token);
 
-                if (!jwtStatus.status)
-                    return StatusCode(401, new { message = "token ไม่ถูกต้องหรือหมดอายุ", });
+                //if (!jwtStatus.status)
+                //    return StatusCode(401, new { message = "token ไม่ถูกต้องหรือหมดอายุ", });
 
 
                 var district = await _context.district
@@ -135,7 +135,7 @@ namespace Etax_Api.Controllers
                 {
                     x.district_code,
                     x.amphoe_code,
-                    x.district_th,
+                    district_th = x.district_th_s,
                     x.zipcode,
                 })
                 .Where(x => x.amphoe_code == amphoe_code)
@@ -173,11 +173,11 @@ namespace Etax_Api.Controllers
         {
             try
             {
-                string token = Request.Headers[HeaderNames.Authorization].ToString();
-                JwtStatus jwtStatus = Jwt.ValidateJwtToken(token);
+                //string token = Request.Headers[HeaderNames.Authorization].ToString();
+                //JwtStatus jwtStatus = Jwt.ValidateJwtToken(token);
 
-                if (!jwtStatus.status)
-                    return StatusCode(401, new { message = "token ไม่ถูกต้องหรือหมดอายุ", });
+                //if (!jwtStatus.status)
+                //    return StatusCode(401, new { message = "token ไม่ถูกต้องหรือหมดอายุ", });
 
 
                 var province = await _context.province
@@ -219,11 +219,11 @@ namespace Etax_Api.Controllers
         {
             try
             {
-                string token = Request.Headers[HeaderNames.Authorization].ToString();
-                JwtStatus jwtStatus = Jwt.ValidateJwtToken(token);
+                //string token = Request.Headers[HeaderNames.Authorization].ToString();
+                //JwtStatus jwtStatus = Jwt.ValidateJwtToken(token);
 
-                if (!jwtStatus.status)
-                    return StatusCode(401, new { message = "token ไม่ถูกต้องหรือหมดอายุ", });
+                //if (!jwtStatus.status)
+                //    return StatusCode(401, new { message = "token ไม่ถูกต้องหรือหมดอายุ", });
 
 
                 var district = await _context.amphoe
@@ -231,7 +231,7 @@ namespace Etax_Api.Controllers
                 {
                     x.amphoe_code,
                     x.province_code,
-                    x.amphoe_th,
+                    amphoe_th = x.amphoe_th_s,
                 })
                 .Where(x => x.province_code == province_code)
                 .ToListAsync();
@@ -266,11 +266,11 @@ namespace Etax_Api.Controllers
         {
             try
             {
-                string token = Request.Headers[HeaderNames.Authorization].ToString();
-                JwtStatus jwtStatus = Jwt.ValidateJwtToken(token);
+                //string token = Request.Headers[HeaderNames.Authorization].ToString();
+                //JwtStatus jwtStatus = Jwt.ValidateJwtToken(token);
 
-                if (!jwtStatus.status)
-                    return StatusCode(401, new { message = "token ไม่ถูกต้องหรือหมดอายุ", });
+                //if (!jwtStatus.status)
+                //    return StatusCode(401, new { message = "token ไม่ถูกต้องหรือหมดอายุ", });
 
 
                 var district = await _context.district
@@ -278,7 +278,7 @@ namespace Etax_Api.Controllers
                 {
                     x.district_code,
                     x.amphoe_code,
-                    x.district_th,
+                    district_th = x.district_th_s,
                     x.zipcode,
                 })
                 .Where(x => x.amphoe_code == amphoe_code)

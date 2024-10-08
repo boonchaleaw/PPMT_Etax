@@ -32,19 +32,22 @@ namespace Etax_Api.Controllers
             try
             {
                 string token = Request.Headers[HeaderNames.Authorization].ToString();
-                JwtStatus jwtStatus = Jwt.ValidateJwtToken(token);
+                JwtStatus jwtStatus = Jwt.ValidateJwtTokenMember(token, _config);
 
                 if (!jwtStatus.status)
-                    return StatusCode(401, new { message = "token ไม่ถูกต้องหรือหมดอายุ", });
+                    return StatusCode(401, new { message = "token ไม่ถูกต้องหรือหมดอายุแล้ว", });
 
+                var price_type = await (from mpt in _context.member_price_type
+                                        where mpt.member_id == jwtStatus.member_id
+                                        select mpt).FirstOrDefaultAsync();
 
                 var totalCount = new
                 {
                     xml_count = await _context.etax_files.Where(x => x.member_id == jwtStatus.member_id && x.gen_xml_status != "no" && x.xml_payment_status == "pending").CountAsync(),
                     pdf_count = await _context.etax_files.Where(x => x.member_id == jwtStatus.member_id && x.gen_pdf_status != "no" && x.pdf_payment_status == "pending").CountAsync(),
                     email_count = await _context.etax_files.Where(x => x.member_id == jwtStatus.member_id && x.add_email_status != "no" && x.pdf_payment_status == "pending").CountAsync(),
-                    ebxml_count = await _context.etax_files.Where(x => x.member_id == jwtStatus.member_id && x.add_ebxml_status != "no" && x.xml_payment_status == "pending").CountAsync(),
                     sms_count = await _context.etax_files.Where(x => x.member_id == jwtStatus.member_id && x.add_sms_status != "no" && x.pdf_payment_status == "pending").CountAsync(),
+                    ebxml_count = await _context.etax_files.Where(x => x.member_id == jwtStatus.member_id && x.add_ebxml_status != "no" && x.xml_payment_status == "pending").CountAsync(),
                 };
 
                 var pendingCount = new
@@ -52,8 +55,8 @@ namespace Etax_Api.Controllers
                     xml_count = await _context.etax_files.Where(x => x.member_id == jwtStatus.member_id && x.gen_xml_status == "pending" && x.xml_payment_status == "pending" && x.delete_status == 0).CountAsync(),
                     pdf_count = await _context.etax_files.Where(x => x.member_id == jwtStatus.member_id && x.gen_pdf_status == "pending" && x.pdf_payment_status == "pending" && x.delete_status == 0).CountAsync(),
                     email_count = await _context.view_send_email.Where(x => x.member_id == jwtStatus.member_id && x.send_email_status == "pending" && x.payment_status == "pending").CountAsync(),
-                    ebxml_count = await _context.view_send_ebxml.Where(x => x.member_id == jwtStatus.member_id && x.send_ebxml_status == "pending" && x.payment_status == "pending").CountAsync(),
                     sms_count = await _context.view_send_sms.Where(x => x.member_id == jwtStatus.member_id && x.send_sms_status == "pending" && x.payment_status == "pending").CountAsync(),
+                    ebxml_count = await _context.view_send_ebxml.Where(x => x.member_id == jwtStatus.member_id && x.send_ebxml_status == "pending" && x.payment_status == "pending").CountAsync(),
                 };
 
                 var successCount = new
@@ -62,17 +65,33 @@ namespace Etax_Api.Controllers
                     pdf_count = await _context.etax_files.Where(x => x.member_id == jwtStatus.member_id && x.gen_pdf_status == "success" && x.pdf_payment_status == "pending").CountAsync(),
                     email_count = await _context.view_send_email.Where(x => x.member_id == jwtStatus.member_id && x.send_email_status == "success" && x.payment_status == "pending").SumAsync(x => x.send_count),
                     ebxml_count = await _context.view_send_ebxml.Where(x => x.member_id == jwtStatus.member_id && x.send_ebxml_status == "success" && x.payment_status == "pending").CountAsync(),
-                    sms_count = await _context.view_send_sms.Where(x => x.member_id == jwtStatus.member_id && x.send_sms_status == "success" && x.payment_status == "pending").SumAsync(x => x.send_count),
                     sms_cradit_count = await _context.view_send_sms.Where(x => x.member_id == jwtStatus.member_id && x.send_sms_status == "success" && x.payment_status == "pending").SumAsync(x => x.message_count),
+                    sms_count = await _context.view_send_sms.Where(x => x.member_id == jwtStatus.member_id && x.send_sms_status == "success" && x.payment_status == "pending").SumAsync(x => x.send_count),
                 };
 
                 var errorCount = new
                 {
                     xml_count = await _context.etax_files.Where(x => x.member_id == jwtStatus.member_id && x.gen_xml_status == "fail" && x.xml_payment_status == "pending" && x.delete_status == 0).CountAsync(),
                     pdf_count = await _context.etax_files.Where(x => x.member_id == jwtStatus.member_id && x.gen_pdf_status == "fail" && x.pdf_payment_status == "pending" && x.delete_status == 0).CountAsync(),
-                    email_count = await _context.view_send_email.Where(x => x.member_id == jwtStatus.member_id && x.send_email_status == "fail" && x.payment_status == "pending").CountAsync(),
-                    ebxml_count = await _context.view_send_ebxml.Where(x => x.member_id == jwtStatus.member_id && x.send_ebxml_status == "fail" && x.payment_status == "pending").CountAsync(),
-                    sms_count = await _context.view_send_sms.Where(x => x.member_id == jwtStatus.member_id && x.send_sms_status == "fail" && x.payment_status == "pending").CountAsync(),
+
+                    email_count = await _context.view_send_email.Where(x =>
+                     (x.member_id == jwtStatus.member_id && x.send_email_status == "fail" && x.payment_status == "pending") ||
+                     (x.member_id == jwtStatus.member_id && x.send_email_status == "fail" && x.payment_status == null) ||
+                     (x.member_id == jwtStatus.member_id && x.email_status == "fail" && x.payment_status == "pending") ||
+                     (x.member_id == jwtStatus.member_id && x.email_status == "fail" && x.payment_status == null))
+                    .CountAsync(),
+
+                    sms_count = await _context.view_send_sms.Where(x =>
+                     (x.member_id == jwtStatus.member_id && x.send_sms_status == "fail" && x.payment_status == "pending") ||
+                     (x.member_id == jwtStatus.member_id && x.send_sms_status == "fail" && x.payment_status == null))
+                    .CountAsync(),
+
+                    ebxml_count = await _context.view_send_ebxml.Where(x =>
+                     (x.member_id == jwtStatus.member_id && x.send_ebxml_status == "fail" && x.payment_status == "pending") ||
+                     (x.member_id == jwtStatus.member_id && x.send_ebxml_status == "fail" && x.payment_status == null) ||
+                     (x.member_id == jwtStatus.member_id && x.etax_status == "fail" && x.payment_status == "pending") ||
+                     (x.member_id == jwtStatus.member_id && x.etax_status == "fail" && x.payment_status == null))
+                    .CountAsync(),
                 };
 
 
@@ -105,13 +124,41 @@ namespace Etax_Api.Controllers
                 }
 
                 double email_price = 0;
-                int email_count = successCount.email_count;
-                foreach (MemberPriceEmail memberPriceEmail in listMemberPriceEmail)
+                if (price_type != null && price_type.email_price_type == "tran")
                 {
-                    if (email_count > memberPriceEmail.count)
+                    var email_tran = await _context.view_send_email
+                    .Where(x => x.member_id == jwtStatus.member_id && x.send_email_status == "success" && x.payment_status == "pending")
+                    .GroupBy(x => x.etax_file_id)
+                    .Select(x => new
                     {
-                        email_price += (email_count - memberPriceEmail.count) * memberPriceEmail.price;
-                        email_count = memberPriceEmail.count;
+                        etax_id = x.Key,
+                        count = x.Count()
+                    })
+                    .ToListAsync();
+
+                    foreach (var et in email_tran)
+                    {
+                        int email_count = et.count;
+                        foreach (MemberPriceEmail memberPriceEmail in listMemberPriceEmail)
+                        {
+                            if (email_count > memberPriceEmail.count)
+                            {
+                                email_price += (email_count - memberPriceEmail.count) * memberPriceEmail.price;
+                                email_count = memberPriceEmail.count;
+                            }
+                        }
+                    }
+                }
+                else
+                {
+                    int email_count = successCount.email_count;
+                    foreach (MemberPriceEmail memberPriceEmail in listMemberPriceEmail)
+                    {
+                        if (email_count > memberPriceEmail.count)
+                        {
+                            email_price += (email_count - memberPriceEmail.count) * memberPriceEmail.price;
+                            email_count = memberPriceEmail.count;
+                        }
                     }
                 }
 
@@ -128,25 +175,14 @@ namespace Etax_Api.Controllers
 
                 double sms_price = 0;
                 int sms_count = successCount.sms_cradit_count;
-                foreach (MemberPriceEmail memberPriceEmail in listMemberPriceEmail)
+                foreach (MemberPriceSms memberPriceSms in listMemberPriceSms)
                 {
-                    if (sms_count > memberPriceEmail.count)
+                    if (sms_count > memberPriceSms.count)
                     {
-                        email_price += (sms_count - memberPriceEmail.count) * memberPriceEmail.price;
-                        sms_count = memberPriceEmail.count;
+                        sms_price += (sms_count - memberPriceSms.count) * memberPriceSms.price;
+                        sms_count = memberPriceSms.count;
                     }
                 }
-
-                //double sms_price = 0;
-                //int sms_price = successCount.ebxml_count;
-                //foreach (MemberPriceEbxml memberPriceEbxml in listMemberPriceEbxml)
-                //{
-                //    if (ebxml_count > memberPriceEbxml.count)
-                //    {
-                //        ebxml_price += (ebxml_count - memberPriceEbxml.count) * memberPriceEbxml.price;
-                //        ebxml_count = memberPriceEbxml.count;
-                //    }
-                //}
 
 
                 return StatusCode(200, new
@@ -182,7 +218,7 @@ namespace Etax_Api.Controllers
             try
             {
                 string token = Request.Headers[HeaderNames.Authorization].ToString();
-                JwtStatus jwtStatus = Jwt.ValidateJwtToken(token);
+                JwtStatus jwtStatus = Jwt.ValidateJwtTokenMember(token, _config);
 
                 if (!jwtStatus.status)
                     return StatusCode(401, new { message = "token ไม่ถูกต้องหรือหมดอายุ", });
@@ -246,7 +282,7 @@ namespace Etax_Api.Controllers
             try
             {
                 string token = Request.Headers[HeaderNames.Authorization].ToString();
-                JwtStatus jwtStatus = Jwt.ValidateJwtToken(token);
+                JwtStatus jwtStatus = Jwt.ValidateJwtTokenMember(token, _config);
 
                 if (!jwtStatus.status)
                     return StatusCode(401, new { message = "token ไม่ถูกต้องหรือหมดอายุ", });
@@ -312,7 +348,7 @@ namespace Etax_Api.Controllers
             try
             {
                 string token = Request.Headers[HeaderNames.Authorization].ToString();
-                JwtStatus jwtStatus = Jwt.ValidateJwtToken(token);
+                JwtStatus jwtStatus = Jwt.ValidateJwtTokenMember(token, _config);
 
                 if (!jwtStatus.status)
                     return StatusCode(401, new { message = "token ไม่ถูกต้องหรือหมดอายุ", });
@@ -381,7 +417,7 @@ namespace Etax_Api.Controllers
             try
             {
                 string token = Request.Headers[HeaderNames.Authorization].ToString();
-                JwtStatus jwtStatus = Jwt.ValidateJwtToken(token);
+                JwtStatus jwtStatus = Jwt.ValidateJwtTokenUser(token, _config);
 
                 if (!jwtStatus.status)
                     return StatusCode(401, new { message = "token ไม่ถูกต้องหรือหมดอายุ", });
@@ -446,7 +482,7 @@ namespace Etax_Api.Controllers
             try
             {
                 string token = Request.Headers[HeaderNames.Authorization].ToString();
-                JwtStatus jwtStatus = Jwt.ValidateJwtToken(token);
+                JwtStatus jwtStatus = Jwt.ValidateJwtTokenUser(token, _config);
 
                 if (!jwtStatus.status)
                     return StatusCode(401, new { message = "token ไม่ถูกต้องหรือหมดอายุ", });
@@ -472,7 +508,7 @@ namespace Etax_Api.Controllers
                     if (etaxCountMonthyNew.Count() > 0)
                     {
                         int file_total = 0;
-                        foreach(ViewEtaxCountMonth e in etaxCountMonthyNew)
+                        foreach (ViewEtaxCountMonth e in etaxCountMonthyNew)
                         {
                             file_total += e.file_total;
                         }
@@ -528,7 +564,7 @@ namespace Etax_Api.Controllers
             try
             {
                 string token = Request.Headers[HeaderNames.Authorization].ToString();
-                JwtStatus jwtStatus = Jwt.ValidateJwtToken(token);
+                JwtStatus jwtStatus = Jwt.ValidateJwtTokenUser(token, _config);
 
                 if (!jwtStatus.status)
                     return StatusCode(401, new { message = "token ไม่ถูกต้องหรือหมดอายุ", });
@@ -559,8 +595,8 @@ namespace Etax_Api.Controllers
 
 
                 List<int> membereId = await (from um in _context.user_members
-                                          where um.user_id == jwtStatus.user_id
-                                          select um.member_id).ToListAsync();
+                                             where um.user_id == jwtStatus.user_id
+                                             select um.member_id).ToListAsync();
 
                 //แก้ไขการดึงข้อมูลให้ดึงข้อมูลตามวันที่ที่เลือก
                 List<ViewTotalReport> listTotal = await (from ef in _context.etax_files

@@ -11,6 +11,5 @@ namespace Etax_Api
         public int member_id { get; set; }
         public DateTime dateStart { get; set; }
         public DateTime dateEnd { get; set; }
-        public List<Member> member { get; set; }
     }
 }

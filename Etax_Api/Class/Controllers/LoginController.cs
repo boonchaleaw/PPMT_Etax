@@ -52,12 +52,31 @@ namespace Etax_Api.Controllers
                     x.password,
                     x.first_name,
                     x.member_name,
+                    x.delete_status,
                 })
-                .Where(x => x.username == bodyLogin.username && x.password == Encryption.SHA256(bodyLogin.password))
+                .Where(x => x.username == bodyLogin.username && x.password == Encryption.SHA256(bodyLogin.password) && x.delete_status == 0)
                 .FirstOrDefault();
 
             if (user != null)
             {
+                var session = await (from ms in _context.member_session
+                                     where ms.member_id == user.member_id && ms.member_user_id == user.id
+                                     select ms).FirstOrDefaultAsync();
+
+                if (session != null)
+                    _context.Remove(session);
+
+                string session_key = Encryption.GetUniqueKey(50);
+                _context.member_session.Add(new MemberSession()
+                {
+                    member_id = user.member_id,
+                    member_user_id = user.id,
+                    session_key = session_key,
+                    create_date = DateTime.Now,
+                });
+                _context.SaveChanges();
+
+
                 return StatusCode(200, new
                 {
                     message = "เข้าสู่ระบบสำเร็จ",
@@ -68,7 +87,7 @@ namespace Etax_Api.Controllers
                         user_name = user.first_name,
                         member_name = user.member_name,
                     },
-                    token = Jwt.GenerateJwtToken(user.id, user.member_id),
+                    token = Jwt.GenerateJwtToken(user.id, user.member_id, session_key),
                 });
             }
             else
@@ -79,6 +98,33 @@ namespace Etax_Api.Controllers
                 });
             }
         }
+        [HttpPost]
+        [Route("logout")]
+        public async Task<IActionResult> Logout()
+        {
+            string token = Request.Headers[HeaderNames.Authorization].ToString();
+            JwtStatus jwtStatus = Jwt.ValidateJwtTokenMember(token, _config);
+
+            if (!jwtStatus.status)
+                return StatusCode(401, new { message = "token ไม่ถูกต้องหรือหมดอายุ", });
+
+            var session = (from ms in _context.member_session
+                           where ms.member_id == jwtStatus.member_id &&
+                           ms.member_user_id == jwtStatus.user_id &&
+                           ms.session_key == jwtStatus.session_key
+                           select ms).FirstOrDefault();
+
+            if (session != null)
+            {
+                _context.Remove(session);
+                _context.SaveChanges();
+            }
+
+            return StatusCode(200, new
+            {
+                message = "ออกจากระบบสำเร็จ",
+            });
+        }
 
         [HttpPost]
         [Route("get_user_permission")]
@@ -87,7 +133,7 @@ namespace Etax_Api.Controllers
             try
             {
                 string token = Request.Headers[HeaderNames.Authorization].ToString();
-                JwtStatus jwtStatus = Jwt.ValidateJwtToken(token);
+                JwtStatus jwtStatus = Jwt.ValidateJwtTokenMember(token, _config);
 
                 if (!jwtStatus.status)
                     return StatusCode(401, new { message = "token ไม่ถูกต้องหรือหมดอายุ", });
@@ -110,8 +156,10 @@ namespace Etax_Api.Controllers
                     x.per_email_manage,
                     x.per_sms_view,
                     x.per_sms_manage,
+                    x.per_etax_delete,
                     x.per_ebxml_view,
                     x.per_report_view,
+                    x.per_email_import,
                     x.view_self_only,
                     x.view_branch_only,
                 })
@@ -158,6 +206,8 @@ namespace Etax_Api.Controllers
                             per_sms_manage = (memberUserPermission.per_sms_manage == "Y") ? true : false,
                             per_ebxml_view = (memberUserPermission.per_ebxml_view == "Y") ? true : false,
                             per_report_view = (memberUserPermission.per_report_view == "Y") ? true : false,
+                            per_etax_delete = (memberUserPermission.per_etax_delete == "Y") ? true : false,
+                            per_email_import = (memberUserPermission.per_email_import == "Y") ? true : false,
                             view_self_only = (memberUserPermission.view_self_only == "Y") ? true : false,
                             view_branch_only = (memberUserPermission.view_branch_only == "Y") ? true : false,
                             branchs = memberUserBranch,
@@ -187,7 +237,7 @@ namespace Etax_Api.Controllers
                     return StatusCode(400, new { message = "กรุณากรอกรหัสผ่านให้ถูกต้อง", });
 
                 var user = _context.users
-                .Where(x => x.username == bodyLogin.username)
+                .Where(x => x.username == bodyLogin.username && x.delete_status == 0)
                 .FirstOrDefault();
 
                 if (user == null)
@@ -201,6 +251,14 @@ namespace Etax_Api.Controllers
                     if (!userValid)
                         return StatusCode(404, new { message = "ไม่พบข้อมูลผู้ใช้งานหรือรหัสผ่านไม่ถูกต้อง", });
 
+                    string session_key = Encryption.GetUniqueKey(50);
+                    _context.user_session.Add(new UserSession()
+                    {
+                        user_id = user.id,
+                        session_key = session_key,
+                        create_date = DateTime.Now,
+                    });
+                    _context.SaveChanges();
 
                     return StatusCode(200, new
                     {
@@ -210,19 +268,28 @@ namespace Etax_Api.Controllers
                             id = user.id,
                             username = user.username,
                         },
-                        token = Jwt.GenerateJwtToken(user.id, user.id),
+                        token = Jwt.GenerateJwtToken(user.id, user.id, session_key),
                     });
                 }
                 else
                 {
                     var checkUser = _context.users
-                    .Where(x => x.username == bodyLogin.username && x.password == Encryption.SHA256(bodyLogin.password))
+                    .Where(x => x.username == bodyLogin.username && x.password == Encryption.SHA256(bodyLogin.password) && x.delete_status == 0)
                     .FirstOrDefault();
 
 
                     if (checkUser == null)
                         return StatusCode(404, new { message = "ไม่พบข้อมูลผู้ใช้งานหรือรหัสผ่านไม่ถูกต้อง", });
 
+                    string session_key = Encryption.GetUniqueKey(50);
+                    _context.user_session.Add(new UserSession()
+                    {
+                        user_id = user.id,
+                        session_key = session_key,
+                        create_date = DateTime.Now,
+                    });
+                    _context.SaveChanges();
+
                     return StatusCode(200, new
                     {
                         message = "เข้าสู่ระบบสำเร็จ",
@@ -231,7 +298,7 @@ namespace Etax_Api.Controllers
                             id = user.id,
                             username = user.username,
                         },
-                        token = Jwt.GenerateJwtToken(user.id, user.id),
+                        token = Jwt.GenerateJwtToken(user.id, user.id, session_key),
                     });
                 }
             }
@@ -248,7 +315,7 @@ namespace Etax_Api.Controllers
             try
             {
                 string token = Request.Headers[HeaderNames.Authorization].ToString();
-                JwtStatus jwtStatus = Jwt.ValidateJwtToken(token);
+                JwtStatus jwtStatus = Jwt.ValidateJwtTokenUser(token, _config);
 
                 if (!jwtStatus.status)
                     return StatusCode(401, new { message = "token ไม่ถูกต้องหรือหมดอายุ", });

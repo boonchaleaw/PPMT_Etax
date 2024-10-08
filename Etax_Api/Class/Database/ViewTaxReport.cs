@@ -22,6 +22,7 @@ namespace Etax_Api
         public string buyer_tax_id { get; set; }
         public string buyer_address { get; set; }
         public double original_price { get; set; }
+        public double new_price { get; set; }
         public double price { get; set; }
         public double discount { get; set; }
         public string tax_type { get; set; }

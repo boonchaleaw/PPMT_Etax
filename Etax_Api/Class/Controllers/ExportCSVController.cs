@@ -38,20 +38,10 @@ namespace Etax_Api.Class.Controllers
             try
             {
                 string token = Request.Headers[HeaderNames.Authorization].ToString();
-                JwtStatus jwtStatus = Jwt.ValidateJwtToken(token);
+                JwtStatus jwtStatus = Jwt.ValidateJwtTokenUser(token, _config);
 
                 if (!jwtStatus.status)
                     return StatusCode(401, new { message = "token ไม่ถูกต้องหรือหมดอายุ", });
-
-                var member = await _context.members
-                            .Where(x => x.id == jwtStatus.member_id)
-                            .Select(x => new
-                            {
-                                x.id,
-                                x.name,
-                                x.tax_id,
-                            })
-                            .FirstOrDefaultAsync();
 
                 var searchBy = bodyDtParameters.searchText;
                 var orderCriteria = "id";
@@ -66,30 +56,8 @@ namespace Etax_Api.Class.Controllers
                 List<int> listDocumentTypeID = await (from td in _context.document_type
                                                       where td.type == "etax"
                                                       select td.id).ToListAsync();
-                var result = _context.view_etax_files
-                    .Where(x => listDocumentTypeID.Contains(x.document_type_id) && x.delete_status == 0)
-                    .Select(v => new ViewEtaxFile
-                    {
-                        etax_id = v.etax_id,
-                        member_name = v.member_name,
-                        document_type_id = v.document_type_id,
-                        gen_xml_status = v.gen_xml_status == "pending" ? "รอดำเนินการ" :
-                                         v.gen_xml_status == "success" ? "ดำเนินการสำเร็จ" :
-                                         v.gen_xml_status == "fail" ? "ดำเนินการล้มเหลว" : v.gen_xml_status,
-                        issue_date = v.issue_date,
-                        gen_xml_finish = v.gen_xml_finish,
-                        member_id = v.member_id,
-                        group_name = v.group_name,
-                        raw_name = v.raw_name,
-                        name = v.name,
-                        create_date = v.create_date,
-                        tax_type_filter = v.tax_type_filter,
-                        gen_pdf_status = v.gen_pdf_status,
-                        add_email_status = v.add_email_status,
-                        add_sms_status = v.add_sms_status,
-                        add_ebxml_status = v.add_ebxml_status
-                    }).AsQueryable();
 
+                var result = _context.view_etax_files.Where(x => listDocumentTypeID.Contains(x.document_type_id) && x.delete_status == 0).AsQueryable();
 
                 if (bodyDtParameters.id != 0)
                 {
@@ -116,9 +84,158 @@ namespace Etax_Api.Class.Controllers
 
                 if (!string.IsNullOrEmpty(searchBy))
                 {
-                    result = ApplySearchAndDateFilters(result, searchBy, bodyDtParameters, document_id);
+                    if (document_id == 0)
+                    {
+                        if (bodyDtParameters.statusType1 == "")
+                        {
+                            if (bodyDtParameters.dateType == "issue_date")
+                            {
+                                result = result.Where(r =>
+                                    (r.etax_id.Contains(searchBy) && r.issue_date >= bodyDtParameters.dateStart && r.issue_date <= bodyDtParameters.dateEnd) ||
+                                    (r.raw_name.Contains(searchBy) && r.issue_date >= bodyDtParameters.dateStart && r.issue_date <= bodyDtParameters.dateEnd) ||
+                                    (r.name.Contains(searchBy) && r.issue_date >= bodyDtParameters.dateStart && r.issue_date <= bodyDtParameters.dateEnd)
+                                );
+                            }
+                            else
+                            {
+                                result = result.Where(r =>
+                                    (r.etax_id.Contains(searchBy) && r.create_date >= bodyDtParameters.dateStart && r.create_date <= bodyDtParameters.dateEnd) ||
+                                    (r.raw_name.Contains(searchBy) && r.create_date >= bodyDtParameters.dateStart && r.create_date <= bodyDtParameters.dateEnd) ||
+                                    (r.name.Contains(searchBy) && r.create_date >= bodyDtParameters.dateStart && r.create_date <= bodyDtParameters.dateEnd)
+                                );
+                            }
+                        }
+                        else
+                        {
+                            if (bodyDtParameters.dateType == "issue_date")
+                            {
+                                result = result.Where(r =>
+                                    (r.gen_xml_status == bodyDtParameters.statusType1 && r.etax_id.Contains(searchBy) && r.issue_date >= bodyDtParameters.dateStart && r.issue_date <= bodyDtParameters.dateEnd) ||
+                                    (r.gen_xml_status == bodyDtParameters.statusType1 && r.raw_name.Contains(searchBy) && r.issue_date >= bodyDtParameters.dateStart && r.issue_date <= bodyDtParameters.dateEnd) ||
+                                    (r.gen_xml_status == bodyDtParameters.statusType1 && r.name.Contains(searchBy) && r.issue_date >= bodyDtParameters.dateStart && r.issue_date <= bodyDtParameters.dateEnd)
+                                );
+                            }
+                            else
+                            {
+                                result = result.Where(r =>
+                                    (r.gen_xml_status == bodyDtParameters.statusType1 && r.etax_id.Contains(searchBy) && r.create_date >= bodyDtParameters.dateStart && r.create_date <= bodyDtParameters.dateEnd) ||
+                                    (r.gen_xml_status == bodyDtParameters.statusType1 && r.raw_name.Contains(searchBy) && r.create_date >= bodyDtParameters.dateStart && r.create_date <= bodyDtParameters.dateEnd) ||
+                                    (r.gen_xml_status == bodyDtParameters.statusType1 && r.name.Contains(searchBy) && r.create_date >= bodyDtParameters.dateStart && r.create_date <= bodyDtParameters.dateEnd)
+                                );
+                            }
+                        }
+                    }
+                    else
+                    {
+                        if (bodyDtParameters.statusType1 == "")
+                        {
+                            if (bodyDtParameters.dateType == "issue_date")
+                            {
+                                result = result.Where(r =>
+                                    (r.document_type_id == document_id && r.etax_id.Contains(searchBy) && r.issue_date >= bodyDtParameters.dateStart && r.issue_date <= bodyDtParameters.dateEnd) ||
+                                    (r.document_type_id == document_id && r.raw_name.Contains(searchBy) && r.issue_date >= bodyDtParameters.dateStart && r.issue_date <= bodyDtParameters.dateEnd) ||
+                                    (r.document_type_id == document_id && r.name.Contains(searchBy) && r.issue_date >= bodyDtParameters.dateStart && r.issue_date <= bodyDtParameters.dateEnd)
+                                );
+                            }
+                            else
+                            {
+                                result = result.Where(r =>
+                                    (r.document_type_id == document_id && r.etax_id.Contains(searchBy) && r.create_date >= bodyDtParameters.dateStart && r.create_date <= bodyDtParameters.dateEnd) ||
+                                    (r.document_type_id == document_id && r.raw_name.Contains(searchBy) && r.create_date >= bodyDtParameters.dateStart && r.create_date <= bodyDtParameters.dateEnd) ||
+                                    (r.document_type_id == document_id && r.name.Contains(searchBy) && r.create_date >= bodyDtParameters.dateStart && r.create_date <= bodyDtParameters.dateEnd)
+                                );
+                            }
+                        }
+                        else
+                        {
+                            if (bodyDtParameters.dateType == "issue_date")
+                            {
+                                result = result.Where(r =>
+                                    (r.document_type_id == document_id && r.gen_xml_status == bodyDtParameters.statusType1 && r.etax_id.Contains(searchBy) && r.issue_date >= bodyDtParameters.dateStart && r.issue_date <= bodyDtParameters.dateEnd) ||
+                                    (r.document_type_id == document_id && r.gen_xml_status == bodyDtParameters.statusType1 && r.raw_name.Contains(searchBy) && r.issue_date >= bodyDtParameters.dateStart && r.issue_date <= bodyDtParameters.dateEnd) ||
+                                    (r.document_type_id == document_id && r.gen_xml_status == bodyDtParameters.statusType1 && r.name.Contains(searchBy) && r.issue_date >= bodyDtParameters.dateStart && r.issue_date <= bodyDtParameters.dateEnd)
+                                );
+                            }
+                            else
+                            {
+                                result = result.Where(r =>
+                                    (r.document_type_id == document_id && r.gen_xml_status == bodyDtParameters.statusType1 && r.etax_id.Contains(searchBy) && r.create_date >= bodyDtParameters.dateStart && r.create_date <= bodyDtParameters.dateEnd) ||
+                                    (r.document_type_id == document_id && r.gen_xml_status == bodyDtParameters.statusType1 && r.raw_name.Contains(searchBy) && r.create_date >= bodyDtParameters.dateStart && r.create_date <= bodyDtParameters.dateEnd) ||
+                                    (r.document_type_id == document_id && r.gen_xml_status == bodyDtParameters.statusType1 && r.name.Contains(searchBy) && r.create_date >= bodyDtParameters.dateStart && r.create_date <= bodyDtParameters.dateEnd)
+                                );
+                            }
+                        }
+                    }
                 }
-                
+                else
+                {
+                    if (document_id == 0)
+                    {
+                        if (bodyDtParameters.statusType1 == "")
+                        {
+                            if (bodyDtParameters.dateType == "issue_date")
+                            {
+                                result = result.Where(r =>
+                                    (r.issue_date >= bodyDtParameters.dateStart && r.issue_date <= bodyDtParameters.dateEnd)
+                                );
+                            }
+                            else
+                            {
+                                result = result.Where(r =>
+                                    (r.create_date >= bodyDtParameters.dateStart && r.create_date <= bodyDtParameters.dateEnd)
+                                );
+                            }
+                        }
+                        else
+                        {
+                            if (bodyDtParameters.dateType == "issue_date")
+                            {
+                                result = result.Where(r =>
+                                    (r.gen_xml_status == bodyDtParameters.statusType1 && r.issue_date >= bodyDtParameters.dateStart && r.issue_date <= bodyDtParameters.dateEnd)
+                                );
+                            }
+                            else
+                            {
+                                result = result.Where(r =>
+                                    (r.gen_xml_status == bodyDtParameters.statusType1 && r.create_date >= bodyDtParameters.dateStart && r.create_date <= bodyDtParameters.dateEnd)
+                                );
+                            }
+                        }
+                    }
+                    else
+                    {
+                        if (bodyDtParameters.statusType1 == "")
+                        {
+                            if (bodyDtParameters.dateType == "issue_date")
+                            {
+                                result = result.Where(r =>
+                                    (r.document_type_id == document_id && r.issue_date >= bodyDtParameters.dateStart && r.issue_date <= bodyDtParameters.dateEnd)
+                                );
+                            }
+                            else
+                            {
+                                result = result.Where(r =>
+                                    (r.document_type_id == document_id && r.create_date >= bodyDtParameters.dateStart && r.create_date <= bodyDtParameters.dateEnd)
+                                );
+                            }
+                        }
+                        else
+                        {
+                            if (bodyDtParameters.dateType == "issue_date")
+                            {
+                                result = result.Where(r =>
+                                    (r.document_type_id == document_id && r.gen_xml_status == bodyDtParameters.statusType1 && r.issue_date >= bodyDtParameters.dateStart && r.issue_date <= bodyDtParameters.dateEnd)
+                                );
+                            }
+                            else
+                            {
+                                result = result.Where(r =>
+                                    (r.document_type_id == document_id && r.gen_xml_status == bodyDtParameters.statusType1 && r.create_date >= bodyDtParameters.dateStart && r.create_date <= bodyDtParameters.dateEnd)
+                                );
+                            }
+                        }
+                    }
+                }
 
                 foreach (ProcessType processType in bodyDtParameters.processType)
                 {
@@ -165,9 +282,9 @@ namespace Etax_Api.Class.Controllers
 
 
                 string output = _config["Path:Share"];
-                string pathExcel = "/" + member.id + "/excel/";
+                string pathExcel = "/admin/" + jwtStatus.user_id + "/excel/";
                 Directory.CreateDirectory(output + pathExcel);
-                pathExcel += "Exportxml_" + member.name + ".csv";
+                pathExcel += "XML_Report_CSV.csv";
 
 
                 ExportxmlFiles(output + pathExcel, bodyDtParameters, listData, _context);
@@ -242,22 +359,12 @@ namespace Etax_Api.Class.Controllers
             try
             {
                 string token = Request.Headers[HeaderNames.Authorization].ToString();
-                JwtStatus jwtStatus = Jwt.ValidateJwtToken(token);
+                JwtStatus jwtStatus = Jwt.ValidateJwtTokenUser(token, _config);
 
                 if (!jwtStatus.status)
                     return StatusCode(401, new { message = "token ไม่ถูกต้องหรือหมดอายุ", });
 
-                var member = await _context.members
-                            .Where(x => x.id == jwtStatus.member_id)
-                            .Select(x => new
-                            {
-                                x.id,
-                                x.name,
-                                x.tax_id,
-                            })
-                            .FirstOrDefaultAsync();
-
-                var searchBy = bodyDtParameters.searchText;
+                var searchBy = bodyDtParameters.Search?.Value;
                 var orderCriteria = "id";
                 var orderAscendingDirection = true;
 
@@ -269,42 +376,191 @@ namespace Etax_Api.Class.Controllers
 
                 List<int> listDocumentTypeID = await (from td in _context.document_type
                                                       where td.type == "etax"
-                                                      select td.id).ToListAsync();
-               
-                var result = _context.view_etax_files
-                            .Where(x => listDocumentTypeID.Contains(x.document_type_id) && x.delete_status == 0);
+                                                      select td.id
+                                                      ).ToListAsync();
 
-                // กรองข้อมูลตาม member_id
+                var result = _context.view_etax_files.Where(x => listDocumentTypeID.Contains(x.document_type_id) && x.delete_status == 0).AsQueryable();
+
                 if (bodyDtParameters.id != 0)
                 {
                     result = result.Where(x => x.member_id == bodyDtParameters.id);
                 }
                 else
                 {
-                    var memberIdList = await _context.user_members
-                                         .Where(um => um.user_id == jwtStatus.user_id)
-                                         .Select(um => um.member_id)
-                                         .ToListAsync();
-                    result = result.Where(x => memberIdList.Contains(x.member_id));
+                    var membereId = await (from um in _context.user_members
+                                           where um.user_id == jwtStatus.user_id
+                                           select um.member_id).ToListAsync();
+
+                    result = result.Where(x => membereId.Contains(x.member_id));
                 }
 
-                // กรองข้อมูลตาม group_name
-                if (!string.IsNullOrEmpty(bodyDtParameters.fileGroup))
+                if (bodyDtParameters.fileGroup != null && bodyDtParameters.fileGroup != "")
                 {
                     result = result.Where(x => x.group_name == bodyDtParameters.fileGroup);
                 }
 
-                // แปลงวันที่
-                bodyDtParameters.dateStart = bodyDtParameters.dateStart.Date;
-                bodyDtParameters.dateEnd = bodyDtParameters.dateEnd.AddDays(1).AddMilliseconds(-1);
+
+                bodyDtParameters.dateStart = DateTime.Parse(bodyDtParameters.dateStart.ToString()).Date;
+                bodyDtParameters.dateEnd = bodyDtParameters.dateEnd.AddDays(+1).AddMilliseconds(-1);
+
+
                 int document_id = System.Convert.ToInt32(bodyDtParameters.docType);
-                // กรองข้อมูลตามเงื่อนไข searchBy และวันที่
+
                 if (!string.IsNullOrEmpty(searchBy))
                 {
-                    result = ApplySearchAndDateFilters(result, searchBy, bodyDtParameters, document_id);
+                    if (document_id == 0)
+                    {
+                        if (bodyDtParameters.statusType1 == "")
+                        {
+                            if (bodyDtParameters.dateType == "issue_date")
+                            {
+                                result = result.Where(r =>
+                                    (r.etax_id.Contains(searchBy) && r.issue_date >= bodyDtParameters.dateStart && r.issue_date <= bodyDtParameters.dateEnd) ||
+                                    (r.raw_name.Contains(searchBy) && r.issue_date >= bodyDtParameters.dateStart && r.issue_date <= bodyDtParameters.dateEnd) ||
+                                    (r.name.Contains(searchBy) && r.issue_date >= bodyDtParameters.dateStart && r.issue_date <= bodyDtParameters.dateEnd)
+                                );
+                            }
+                            else
+                            {
+                                result = result.Where(r =>
+                                    (r.etax_id.Contains(searchBy) && r.create_date >= bodyDtParameters.dateStart && r.create_date <= bodyDtParameters.dateEnd) ||
+                                    (r.raw_name.Contains(searchBy) && r.create_date >= bodyDtParameters.dateStart && r.create_date <= bodyDtParameters.dateEnd) ||
+                                    (r.name.Contains(searchBy) && r.create_date >= bodyDtParameters.dateStart && r.create_date <= bodyDtParameters.dateEnd)
+                                );
+                            }
+                        }
+                        else
+                        {
+                            if (bodyDtParameters.dateType == "issue_date")
+                            {
+                                result = result.Where(r =>
+                                    (r.gen_pdf_status == bodyDtParameters.statusType1 && r.etax_id.Contains(searchBy) && r.issue_date >= bodyDtParameters.dateStart && r.issue_date <= bodyDtParameters.dateEnd) ||
+                                    (r.gen_pdf_status == bodyDtParameters.statusType1 && r.raw_name.Contains(searchBy) && r.issue_date >= bodyDtParameters.dateStart && r.issue_date <= bodyDtParameters.dateEnd) ||
+                                    (r.gen_pdf_status == bodyDtParameters.statusType1 && r.name.Contains(searchBy) && r.issue_date >= bodyDtParameters.dateStart && r.issue_date <= bodyDtParameters.dateEnd)
+                                );
+                            }
+                            else
+                            {
+                                result = result.Where(r =>
+                                    (r.gen_pdf_status == bodyDtParameters.statusType1 && r.etax_id.Contains(searchBy) && r.create_date >= bodyDtParameters.dateStart && r.create_date <= bodyDtParameters.dateEnd) ||
+                                    (r.gen_pdf_status == bodyDtParameters.statusType1 && r.raw_name.Contains(searchBy) && r.create_date >= bodyDtParameters.dateStart && r.create_date <= bodyDtParameters.dateEnd) ||
+                                    (r.gen_pdf_status == bodyDtParameters.statusType1 && r.name.Contains(searchBy) && r.create_date >= bodyDtParameters.dateStart && r.create_date <= bodyDtParameters.dateEnd)
+                                );
+                            }
+                        }
+                    }
+                    else
+                    {
+                        if (bodyDtParameters.statusType1 == "")
+                        {
+                            if (bodyDtParameters.dateType == "issue_date")
+                            {
+                                result = result.Where(r =>
+                                    (r.document_type_id == document_id && r.etax_id.Contains(searchBy) && r.issue_date >= bodyDtParameters.dateStart && r.issue_date <= bodyDtParameters.dateEnd) ||
+                                    (r.document_type_id == document_id && r.raw_name.Contains(searchBy) && r.issue_date >= bodyDtParameters.dateStart && r.issue_date <= bodyDtParameters.dateEnd) ||
+                                    (r.document_type_id == document_id && r.name.Contains(searchBy) && r.issue_date >= bodyDtParameters.dateStart && r.issue_date <= bodyDtParameters.dateEnd)
+                                );
+                            }
+                            else
+                            {
+                                result = result.Where(r =>
+                                    (r.document_type_id == document_id && r.etax_id.Contains(searchBy) && r.create_date >= bodyDtParameters.dateStart && r.create_date <= bodyDtParameters.dateEnd) ||
+                                    (r.document_type_id == document_id && r.raw_name.Contains(searchBy) && r.create_date >= bodyDtParameters.dateStart && r.create_date <= bodyDtParameters.dateEnd) ||
+                                    (r.document_type_id == document_id && r.name.Contains(searchBy) && r.create_date >= bodyDtParameters.dateStart && r.create_date <= bodyDtParameters.dateEnd)
+                                );
+                            }
+                        }
+                        else
+                        {
+                            if (bodyDtParameters.dateType == "issue_date")
+                            {
+                                result = result.Where(r =>
+                                    (r.document_type_id == document_id && r.gen_pdf_status == bodyDtParameters.statusType1 && r.etax_id.Contains(searchBy) && r.issue_date >= bodyDtParameters.dateStart && r.issue_date <= bodyDtParameters.dateEnd) ||
+                                    (r.document_type_id == document_id && r.gen_pdf_status == bodyDtParameters.statusType1 && r.raw_name.Contains(searchBy) && r.issue_date >= bodyDtParameters.dateStart && r.issue_date <= bodyDtParameters.dateEnd) ||
+                                    (r.document_type_id == document_id && r.gen_pdf_status == bodyDtParameters.statusType1 && r.name.Contains(searchBy) && r.issue_date >= bodyDtParameters.dateStart && r.issue_date <= bodyDtParameters.dateEnd)
+                                );
+                            }
+                            else
+                            {
+                                result = result.Where(r =>
+                                    (r.document_type_id == document_id && r.gen_pdf_status == bodyDtParameters.statusType1 && r.etax_id.Contains(searchBy) && r.create_date >= bodyDtParameters.dateStart && r.create_date <= bodyDtParameters.dateEnd) ||
+                                    (r.document_type_id == document_id && r.gen_pdf_status == bodyDtParameters.statusType1 && r.raw_name.Contains(searchBy) && r.create_date >= bodyDtParameters.dateStart && r.create_date <= bodyDtParameters.dateEnd) ||
+                                    (r.document_type_id == document_id && r.gen_pdf_status == bodyDtParameters.statusType1 && r.name.Contains(searchBy) && r.create_date >= bodyDtParameters.dateStart && r.create_date <= bodyDtParameters.dateEnd)
+                                );
+                            }
+                        }
+                    }
+                }
+                else
+                {
+                    if (document_id == 0)
+                    {
+                        if (bodyDtParameters.statusType1 == "")
+                        {
+                            if (bodyDtParameters.dateType == "issue_date")
+                            {
+                                result = result.Where(r =>
+                                    (r.issue_date >= bodyDtParameters.dateStart && r.issue_date <= bodyDtParameters.dateEnd)
+                                );
+                            }
+                            else
+                            {
+                                result = result.Where(r =>
+                                    (r.create_date >= bodyDtParameters.dateStart && r.create_date <= bodyDtParameters.dateEnd)
+                                );
+                            }
+                        }
+                        else
+                        {
+                            if (bodyDtParameters.dateType == "issue_date")
+                            {
+                                result = result.Where(r =>
+                                    (r.gen_pdf_status == bodyDtParameters.statusType1 && r.issue_date >= bodyDtParameters.dateStart && r.issue_date <= bodyDtParameters.dateEnd)
+                                );
+                            }
+                            else
+                            {
+                                result = result.Where(r =>
+                                    (r.gen_pdf_status == bodyDtParameters.statusType1 && r.create_date >= bodyDtParameters.dateStart && r.create_date <= bodyDtParameters.dateEnd)
+                                );
+                            }
+                        }
+                    }
+                    else
+                    {
+                        if (bodyDtParameters.statusType1 == "")
+                        {
+                            if (bodyDtParameters.dateType == "issue_date")
+                            {
+                                result = result.Where(r =>
+                                    (r.document_type_id == document_id && r.issue_date >= bodyDtParameters.dateStart && r.issue_date <= bodyDtParameters.dateEnd)
+                                );
+                            }
+                            else
+                            {
+                                result = result.Where(r =>
+                                    (r.document_type_id == document_id && r.create_date >= bodyDtParameters.dateStart && r.create_date <= bodyDtParameters.dateEnd)
+                                );
+                            }
+                        }
+                        else
+                        {
+                            if (bodyDtParameters.dateType == "issue_date")
+                            {
+                                result = result.Where(r =>
+                                    (r.document_type_id == document_id && r.gen_pdf_status == bodyDtParameters.statusType1 && r.issue_date >= bodyDtParameters.dateStart && r.issue_date <= bodyDtParameters.dateEnd)
+                                );
+                            }
+                            else
+                            {
+                                result = result.Where(r =>
+                                    (r.document_type_id == document_id && r.gen_pdf_status == bodyDtParameters.statusType1 && r.create_date >= bodyDtParameters.dateStart && r.create_date <= bodyDtParameters.dateEnd)
+                                );
+                            }
+                        }
+                    }
                 }
 
-                // กรองตามสถานะการ process
                 foreach (ProcessType processType in bodyDtParameters.processType)
                 {
                     if (processType.id == "pdf")
@@ -317,37 +573,42 @@ namespace Etax_Api.Class.Controllers
                         result = result.Where(r => r.add_ebxml_status == "success");
                 }
 
-                // กรองตาม tax_type
-                List<string> taxTypes = bodyDtParameters.taxType
-                    .Select(tax => tax.id switch
-                    {
-                        "7" => "VAT7",
-                        "0" => "VAT0",
-                        "free" => "FRE",
-                        "no" => "NO",
-                        _ => null
-                    })
-                    .Where(taxType => taxType != null)
-                    .ToList();
-
-                if (taxTypes.Count > 0)
+                List<string> listType = new List<string>();
+                foreach (TaxType tax in bodyDtParameters.taxType)
                 {
-                    result = result.Where(r => taxTypes.Contains(r.tax_type_filter));
+                    if (tax.id == "7")
+                    {
+                        listType.Add("VAT7");
+                    }
+                    else if (tax.id == "0")
+                    {
+                        listType.Add("VAT0");
+                    }
+                    else if (tax.id == "free")
+                    {
+                        listType.Add("FRE");
+                    }
+                    else if (tax.id == "no")
+                    {
+                        listType.Add("NO");
+                    }
                 }
 
-                // จัดเรียงข้อมูล
-                result = orderAscendingDirection
-                    ? result.OrderByProperty(orderCriteria)
-                    : result.OrderByPropertyDescending(orderCriteria);
+                if (listType.Count > 0)
+                {
+                    result = result.Where(r => listType.Contains(r.tax_type_filter));
+                }
+
+                result = orderAscendingDirection ? result.OrderByProperty(orderCriteria) : result.OrderByPropertyDescending(orderCriteria);
 
 
                 List<ViewEtaxFile> listData = await result.ToListAsync();
 
 
                 string output = _config["Path:Share"];
-                string pathExcel = "/" + member.id + "/excel/";
+                string pathExcel = "/admin/" + jwtStatus.user_id + "/excel/";
                 Directory.CreateDirectory(output + pathExcel);
-                pathExcel += "Exportpdf_" + member.name + ".csv";
+                pathExcel += "PDF_Report_CSV.csv";
 
 
                 ExportpdfFiles(output + pathExcel, bodyDtParameters, listData, _context);
@@ -431,20 +692,10 @@ namespace Etax_Api.Class.Controllers
             try
             {
                 string token = Request.Headers[HeaderNames.Authorization].ToString();
-                JwtStatus jwtStatus = Jwt.ValidateJwtToken(token);
+                JwtStatus jwtStatus = Jwt.ValidateJwtTokenUser(token, _config);
 
                 if (!jwtStatus.status)
                     return StatusCode(401, new { message = "token ไม่ถูกต้องหรือหมดอายุ", });
-
-                var member = await _context.members
-                            .Where(x => x.id == jwtStatus.member_id)
-                            .Select(x => new
-                            {
-                                x.id,
-                                x.name,
-                                x.tax_id,
-                            })
-                            .FirstOrDefaultAsync();
 
                 var searchBy = bodyDtParameters.searchText;
                 var orderCriteria = "id";
@@ -460,31 +711,30 @@ namespace Etax_Api.Class.Controllers
                                                       where td.type == "etax"
                                                       select td.id).ToListAsync();
 
-                var result = _context.view_send_email.Where(x => listDocumentTypeID.Contains(x.document_type_id));
 
-                // กรองข้อมูลตาม member_id
+                var result = _context.view_send_email.Where(x => listDocumentTypeID.Contains(x.document_type_id)).AsQueryable();
+
                 if (bodyDtParameters.id != 0)
                 {
                     result = result.Where(x => x.member_id == bodyDtParameters.id);
                 }
                 else
                 {
-                    var memberIdList = await _context.user_members
-                                         .Where(um => um.user_id == jwtStatus.user_id)
-                                         .Select(um => um.member_id)
-                                         .ToListAsync();
-                    result = result.Where(x => memberIdList.Contains(x.member_id));
+                    var membereId = await (from um in _context.user_members
+                                           where um.user_id == jwtStatus.user_id
+                                           select um.member_id).ToListAsync();
+
+                    result = result.Where(x => membereId.Contains(x.member_id));
                 }
 
-                // กรองข้อมูลตาม group_name
-                if (!string.IsNullOrEmpty(bodyDtParameters.fileGroup))
+                if (bodyDtParameters.fileGroup != null && bodyDtParameters.fileGroup != "")
                 {
                     result = result.Where(x => x.group_name == bodyDtParameters.fileGroup);
                 }
 
-                // แปลงวันที่
-                bodyDtParameters.dateStart = bodyDtParameters.dateStart.Date;
-                bodyDtParameters.dateEnd = bodyDtParameters.dateEnd.AddDays(1).AddMilliseconds(-1);
+                bodyDtParameters.dateStart = DateTime.Parse(bodyDtParameters.dateStart.ToString()).Date;
+                bodyDtParameters.dateEnd = bodyDtParameters.dateEnd.AddDays(+1).AddMilliseconds(-1);
+
                 int document_id = System.Convert.ToInt32(bodyDtParameters.docType);
 
                 if (!string.IsNullOrEmpty(searchBy))
@@ -574,16 +824,13 @@ namespace Etax_Api.Class.Controllers
 
                 result = orderAscendingDirection ? result.OrderByProperty(orderCriteria) : result.OrderByPropertyDescending(orderCriteria);
 
-                var filteredResultsCount = await result.CountAsync();
-                var totalResultsCount = 0;
-
                 List<ViewSendEmail> listData = result.ToList();
 
 
                 string output = _config["Path:Share"];
-                string pathExcel = "/" + member.id + "/excel/";
+                string pathExcel = "/admin/" + jwtStatus.user_id + "/excel/";
                 Directory.CreateDirectory(output + pathExcel);
-                pathExcel += "Exportsendmail_" + member.name + ".csv";
+                pathExcel += "Email_Report_CSV" + jwtStatus.user_id + ".csv";
 
 
                 ExportsendmailFiles(output + pathExcel, bodyDtParameters, listData, _context);
@@ -626,7 +873,7 @@ namespace Etax_Api.Class.Controllers
                                          data.email_status == "success" ? "ถึงลูกค้า" :
                                          data.email_status == "open" ? "เปิดอ่านแล้ว" :
                                          data.email_status == "fail" ? "ไม่ถึงลูกค้า" : "",
-                               send_email_finish =  data.send_email_finish 
+                               send_email_finish = data.send_email_finish
                            };
 
                 outputFile.WriteLine("เลขที่เอกสาร,ผู้ประกอบการ,ประเภทเอกสาร,อีเมล,สถานะการส่ง,สถานะการรับ,วันที่ส่ง");
@@ -672,20 +919,10 @@ namespace Etax_Api.Class.Controllers
             try
             {
                 string token = Request.Headers[HeaderNames.Authorization].ToString();
-                JwtStatus jwtStatus = Jwt.ValidateJwtToken(token);
+                JwtStatus jwtStatus = Jwt.ValidateJwtTokenUser(token, _config);
 
                 if (!jwtStatus.status)
                     return StatusCode(401, new { message = "token ไม่ถูกต้องหรือหมดอายุ", });
-
-                var member = await _context.members
-                            .Where(x => x.id == jwtStatus.member_id)
-                            .Select(x => new
-                            {
-                                x.id,
-                                x.name,
-                                x.tax_id,
-                            })
-                            .FirstOrDefaultAsync();
 
                 var searchBy = bodyDtParameters.searchText;
                 var orderCriteria = "id";
@@ -701,31 +938,30 @@ namespace Etax_Api.Class.Controllers
                                                       where td.type == "etax"
                                                       select td.id).ToListAsync();
 
-                var result = _context.view_send_sms.Where(x => listDocumentTypeID.Contains(x.document_type_id));
+                var result = _context.view_send_sms.Where(x => listDocumentTypeID.Contains(x.document_type_id)).AsQueryable();
 
-                // กรองข้อมูลตาม member_id
                 if (bodyDtParameters.id != 0)
                 {
                     result = result.Where(x => x.member_id == bodyDtParameters.id);
                 }
                 else
                 {
-                    var memberIdList = await _context.user_members
-                                         .Where(um => um.user_id == jwtStatus.user_id)
-                                         .Select(um => um.member_id)
-                                         .ToListAsync();
-                    result = result.Where(x => memberIdList.Contains(x.member_id));
+                    var membereId = await (from um in _context.user_members
+                                           where um.user_id == jwtStatus.user_id
+                                           select um.member_id).ToListAsync();
+
+                    result = result.Where(x => membereId.Contains(x.member_id));
                 }
 
-                // กรองข้อมูลตาม group_name
-                if (!string.IsNullOrEmpty(bodyDtParameters.fileGroup))
+
+                if (bodyDtParameters.fileGroup != null && bodyDtParameters.fileGroup != "")
                 {
                     result = result.Where(x => x.group_name == bodyDtParameters.fileGroup);
                 }
 
-                // แปลงวันที่
-                bodyDtParameters.dateStart = bodyDtParameters.dateStart.Date;
-                bodyDtParameters.dateEnd = bodyDtParameters.dateEnd.AddDays(1).AddMilliseconds(-1);
+                bodyDtParameters.dateStart = DateTime.Parse(bodyDtParameters.dateStart.ToString()).Date;
+                bodyDtParameters.dateEnd = bodyDtParameters.dateEnd.AddDays(+1).AddMilliseconds(-1);
+
                 int document_id = System.Convert.ToInt32(bodyDtParameters.docType);
 
                 if (!string.IsNullOrEmpty(searchBy))
@@ -815,16 +1051,13 @@ namespace Etax_Api.Class.Controllers
 
                 result = orderAscendingDirection ? result.OrderByProperty(orderCriteria) : result.OrderByPropertyDescending(orderCriteria);
 
-                var filteredResultsCount = await result.CountAsync();
-                var totalResultsCount = 0;
-
                 List<ViewSendSms> listData = result.ToList();
 
 
                 string output = _config["Path:Share"];
-                string pathExcel = "/" + member.id + "/excel/";
+                string pathExcel = "/admin/" + jwtStatus.user_id + "/excel/";
                 Directory.CreateDirectory(output + pathExcel);
-                pathExcel += "Exportsendsms_" + member.name + ".csv";
+                pathExcel += "SMS_Report_CSV.csv";
 
 
                 ExportsendsmsFiles(output + pathExcel, bodyDtParameters, listData, _context);
@@ -865,7 +1098,7 @@ namespace Etax_Api.Class.Controllers
                                          data.send_sms_status == "fail" ? "การส่งล้มเหลว" : data.send_sms_status,
                                open_sms_status = data.open_sms_status != "success" ? "ไม่มีการเปิด" : "เปิดแล้ว",
                                data.send_sms_finish,
-                               data.open_sms_finish 
+                               data.open_sms_finish
                            };
 
                 outputFile.WriteLine("เลขที่เอกสาร,ผู้ประกอบการ,ประเภทเอกสาร,เบอร์โทรศัพท์,สถานะการส่ง,วันที่ส่ง,สถานะการเปิด,วันที่เปิด");
@@ -913,22 +1146,12 @@ namespace Etax_Api.Class.Controllers
             try
             {
                 string token = Request.Headers[HeaderNames.Authorization].ToString();
-                JwtStatus jwtStatus = Jwt.ValidateJwtToken(token);
+                JwtStatus jwtStatus = Jwt.ValidateJwtTokenUser(token, _config);
 
                 if (!jwtStatus.status)
                     return StatusCode(401, new { message = "token ไม่ถูกต้องหรือหมดอายุ", });
 
-                var member = await _context.members
-                            .Where(x => x.id == jwtStatus.member_id)
-                            .Select(x => new
-                            {
-                                x.id,
-                                x.name,
-                                x.tax_id,
-                            })
-                            .FirstOrDefaultAsync();
-
-                var searchBy = bodyDtParameters.searchText;
+                var searchBy = bodyDtParameters.Search?.Value;
                 var orderCriteria = "id";
                 var orderAscendingDirection = true;
 
@@ -942,7 +1165,7 @@ namespace Etax_Api.Class.Controllers
                                                       where td.type == "etax"
                                                       select td.id).ToListAsync();
 
-                var result = _context.view_send_ebxml.Where(x => listDocumentTypeID.Contains(x.document_type_id));
+                var result = _context.view_send_ebxml.Where(x => listDocumentTypeID.Contains(x.document_type_id)).AsQueryable();
 
                 if (bodyDtParameters.id != 0)
                 {
@@ -1055,16 +1278,13 @@ namespace Etax_Api.Class.Controllers
 
                 result = orderAscendingDirection ? result.OrderByProperty(orderCriteria) : result.OrderByPropertyDescending(orderCriteria);
 
-                var filteredResultsCount = await result.CountAsync();
-                var totalResultsCount = 0;
-
                 List<ViewSendEbxml> listData = result.ToList();
 
 
                 string output = _config["Path:Share"];
-                string pathExcel = "/" + member.id + "/excel/";
+                string pathExcel = "/admin/" + jwtStatus.user_id + "/excel/";
                 Directory.CreateDirectory(output + pathExcel);
-                pathExcel += "ExportsendExml_" + member.name + ".csv";
+                pathExcel += "Send RD CSV.csv";
 
 
                 ExportsendebxmlFiles(output + pathExcel, bodyDtParameters, listData, _context);
@@ -1115,7 +1335,7 @@ namespace Etax_Api.Class.Controllers
                 {
                     // ฟอร์แมตวันที่
                     string send_ebxml_finish = data.send_ebxml_finish.HasValue ? data.send_ebxml_finish.Value.ToString("dd/MM/yyyy HH:mm:ss") : "";
-                    
+
 
                     // จัดการกับค่าที่มี " หรือ , หรือ \r\n
                     string etaxId = data.etax_id.Replace("\"", "\"\"");
@@ -1176,6 +1396,6 @@ namespace Etax_Api.Class.Controllers
             }
         }
 
-        
+
     }
 }

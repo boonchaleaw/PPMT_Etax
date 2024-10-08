@@ -16,6 +16,7 @@ namespace Etax_Api
         public int branch_id { get; set; }
         public int rawdata_file_id { get; set; }
         public int document_type_id { get; set; }
+        public string document_type_name { get; set; }
         public string create_type { get; set; }
         public string name { get; set; }
         public string buyer_tax_id { get; set; }

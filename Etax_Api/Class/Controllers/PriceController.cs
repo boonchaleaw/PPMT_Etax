@@ -31,13 +31,19 @@ namespace Etax_Api.Controllers
             try
             {
                 string token = Request.Headers[HeaderNames.Authorization].ToString();
-                JwtStatus jwtStatus = Jwt.ValidateJwtToken(token);
+                JwtStatus jwtStatus = Jwt.ValidateJwtTokenMember(token, _config);
 
                 if (!jwtStatus.status)
                     return StatusCode(401, new { message = "token ไม่ถูกต้องหรือหมดอายุ", });
 
                 bodyDateFilter.dateStart = DateTime.Parse(bodyDateFilter.dateStart.ToString()).Date;
                 bodyDateFilter.dateEnd = bodyDateFilter.dateEnd.AddDays(+1).AddMilliseconds(-1);
+
+
+                var price_type = await (from mpt in _context.member_price_type
+                                        where mpt.member_id == jwtStatus.member_id
+                                        select mpt).FirstOrDefaultAsync();
+
 
                 List<ReturnPrice> listPriceXml = await _context.member_price_xml
                 .Where(x => x.member_id == jwtStatus.member_id)
@@ -130,15 +136,47 @@ namespace Etax_Api.Controllers
                 }
 
                 double priceTotalEmail = 0;
-                int email_count = successCount.email_count;
-                for (int i = (listPriceEmail.Count - 1); i >= 0; i--)
+                if (price_type != null && price_type.email_price_type == "tran")
                 {
-                    if (email_count > listPriceEmail[i].count)
+                    var email_tran = await _context.view_send_email
+                    .Where(x => x.member_id == jwtStatus.member_id && x.send_email_status == "success" && x.create_date >= bodyDateFilter.dateStart && x.create_date <= bodyDateFilter.dateEnd)
+                    .GroupBy(x => x.etax_file_id)
+                    .Select(x => new
                     {
-                        listPriceEmail[i].count_use = (email_count - listPriceEmail[i].count);
-                        listPriceEmail[i].price_use = listPriceEmail[i].count_use * listPriceEmail[i].price;
-                        priceTotalEmail += listPriceEmail[i].price_use;
-                        email_count = listPriceEmail[i].count;
+                        etax_id = x.Key,
+                        count = x.Count()
+                    })
+                    .ToListAsync();
+
+                    foreach (var et in email_tran)
+                    {
+                        int email_count = et.count;
+                        for (int i = (listPriceEmail.Count - 1); i >= 0; i--)
+                        {
+                            if (email_count > listPriceEmail[i].count)
+                            {
+                                int count_use = (email_count - listPriceEmail[i].count);
+                                double price_use = count_use * listPriceEmail[i].price;
+                                listPriceEmail[i].count_use += count_use;
+                                listPriceEmail[i].price_use += price_use;
+                                priceTotalEmail += price_use;
+                                email_count = listPriceEmail[i].count;
+                            }
+                        }
+                    }
+                }
+                else
+                {
+                    int email_count = successCount.email_count;
+                    for (int i = (listPriceEmail.Count - 1); i >= 0; i--)
+                    {
+                        if (email_count > listPriceEmail[i].count)
+                        {
+                            listPriceEmail[i].count_use = (email_count - listPriceEmail[i].count);
+                            listPriceEmail[i].price_use = listPriceEmail[i].count_use * listPriceEmail[i].price;
+                            priceTotalEmail += listPriceEmail[i].price_use;
+                            email_count = listPriceEmail[i].count;
+                        }
                     }
                 }
 
@@ -266,13 +304,17 @@ namespace Etax_Api.Controllers
             try
             {
                 string token = Request.Headers[HeaderNames.Authorization].ToString();
-                JwtStatus jwtStatus = Jwt.ValidateJwtToken(token);
+                JwtStatus jwtStatus = Jwt.ValidateJwtTokenUser(token, _config);
 
                 if (!jwtStatus.status)
                     return StatusCode(401, new { message = "token ไม่ถูกต้องหรือหมดอายุ", });
 
                 bodyDateFilter.dateStart = DateTime.Parse(bodyDateFilter.dateStart.ToString()).Date;
                 bodyDateFilter.dateEnd = bodyDateFilter.dateEnd.AddDays(+1).AddMilliseconds(-1);
+
+                var price_type = await (from mpt in _context.member_price_type
+                                        where mpt.member_id == bodyDateFilter.member_id
+                                        select mpt).FirstOrDefaultAsync();
 
                 List<ReturnPrice> listPriceXml = await _context.member_price_xml
                 .Where(x => x.member_id == bodyDateFilter.member_id)
@@ -365,15 +407,47 @@ namespace Etax_Api.Controllers
                 }
 
                 double priceTotalEmail = 0;
-                int email_count = successCount.email_count;
-                for (int i = (listPriceEmail.Count - 1); i >= 0; i--)
+                if (price_type != null && price_type.email_price_type == "tran")
                 {
-                    if (email_count > listPriceEmail[i].count)
+                    var email_tran = await _context.view_send_email
+                    .Where(x => x.member_id == bodyDateFilter.member_id && x.send_email_status == "success" && x.create_date >= bodyDateFilter.dateStart && x.create_date <= bodyDateFilter.dateEnd)
+                    .GroupBy(x => x.etax_file_id)
+                    .Select(x => new
                     {
-                        listPriceEmail[i].count_use = (email_count - listPriceEmail[i].count);
-                        listPriceEmail[i].price_use = listPriceEmail[i].count_use * listPriceEmail[i].price;
-                        priceTotalEmail += listPriceEmail[i].price_use;
-                        email_count = listPriceEmail[i].count;
+                        etax_id = x.Key,
+                        count = x.Count()
+                    })
+                    .ToListAsync();
+
+                    foreach (var et in email_tran)
+                    {
+                        int email_count = et.count;
+                        for (int i = (listPriceEmail.Count - 1); i >= 0; i--)
+                        {
+                            if (email_count > listPriceEmail[i].count)
+                            {
+                                int count_use = (email_count - listPriceEmail[i].count);
+                                double price_use = count_use * listPriceEmail[i].price;
+                                listPriceEmail[i].count_use += count_use;
+                                listPriceEmail[i].price_use += price_use;
+                                priceTotalEmail += price_use;
+                                email_count = listPriceEmail[i].count;
+                            }
+                        }
+                    }
+                }
+                else
+                {
+                    int email_count = successCount.email_count;
+                    for (int i = (listPriceEmail.Count - 1); i >= 0; i--)
+                    {
+                        if (email_count > listPriceEmail[i].count)
+                        {
+                            listPriceEmail[i].count_use = (email_count - listPriceEmail[i].count);
+                            listPriceEmail[i].price_use = listPriceEmail[i].count_use * listPriceEmail[i].price;
+                            priceTotalEmail += listPriceEmail[i].price_use;
+                            email_count = listPriceEmail[i].count;
+                        }
                     }
                 }
 
@@ -498,7 +572,7 @@ namespace Etax_Api.Controllers
             try
             {
                 string token = Request.Headers[HeaderNames.Authorization].ToString();
-                JwtStatus jwtStatus = Jwt.ValidateJwtToken(token);
+                JwtStatus jwtStatus = Jwt.ValidateJwtTokenUser(token, _config);
 
                 if (!jwtStatus.status)
                     return StatusCode(401, new { message = "token ไม่ถูกต้องหรือหมดอายุ", });
@@ -506,7 +580,7 @@ namespace Etax_Api.Controllers
                 List<MemberPriceXml> listMemberPriceXml = await _context.member_price_xml.Where(x => x.member_id == id).OrderByProperty("count").ToListAsync();
                 List<MemberPricePdf> listMemberPricePdf = await _context.member_price_pdf.Where(x => x.member_id == id).OrderByProperty("count").ToListAsync();
                 List<MemberPriceEmail> listMemberPriceEmail = await _context.member_price_email.Where(x => x.member_id == id).OrderByProperty("count").ToListAsync();
-                List<MemberPriceSms> listMemberPriceSms = await _context.member_price_sms.Where(x => x.member_id == id).OrderByProperty("count").ToListAsync(); 
+                List<MemberPriceSms> listMemberPriceSms = await _context.member_price_sms.Where(x => x.member_id == id).OrderByProperty("count").ToListAsync();
                 List<MemberPriceEbxml> listMemberPriceEbxml = await _context.member_price_ebxml.Where(x => x.member_id == id).OrderByProperty("count").ToListAsync();
 
                 return StatusCode(200, new
@@ -536,7 +610,7 @@ namespace Etax_Api.Controllers
             try
             {
                 string token = Request.Headers[HeaderNames.Authorization].ToString();
-                JwtStatus jwtStatus = Jwt.ValidateJwtToken(token);
+                JwtStatus jwtStatus = Jwt.ValidateJwtTokenUser(token, _config);
 
                 if (!jwtStatus.status)
                     return StatusCode(401, new { message = "token ไม่ถูกต้องหรือหมดอายุ", });
@@ -588,7 +662,7 @@ namespace Etax_Api.Controllers
             try
             {
                 string token = Request.Headers[HeaderNames.Authorization].ToString();
-                JwtStatus jwtStatus = Jwt.ValidateJwtToken(token);
+                JwtStatus jwtStatus = Jwt.ValidateJwtTokenUser(token, _config);
 
                 if (!jwtStatus.status)
                     return StatusCode(401, new { message = "token ไม่ถูกต้องหรือหมดอายุ", });
@@ -641,7 +715,7 @@ namespace Etax_Api.Controllers
             try
             {
                 string token = Request.Headers[HeaderNames.Authorization].ToString();
-                JwtStatus jwtStatus = Jwt.ValidateJwtToken(token);
+                JwtStatus jwtStatus = Jwt.ValidateJwtTokenUser(token, _config);
 
                 if (!jwtStatus.status)
                     return StatusCode(401, new { message = "token ไม่ถูกต้องหรือหมดอายุ", });
@@ -686,7 +760,7 @@ namespace Etax_Api.Controllers
                 return StatusCode(400, new { message = ex.Message });
             }
         }
-    
+
         [HttpPost]
         [Route("admin/add_price_sms")]
         public async Task<IActionResult> AddPriceSms([FromBody] BodyPrice bodyPrice)
@@ -694,7 +768,7 @@ namespace Etax_Api.Controllers
             try
             {
                 string token = Request.Headers[HeaderNames.Authorization].ToString();
-                JwtStatus jwtStatus = Jwt.ValidateJwtToken(token);
+                JwtStatus jwtStatus = Jwt.ValidateJwtTokenUser(token, _config);
 
                 if (!jwtStatus.status)
                     return StatusCode(401, new { message = "token ไม่ถูกต้องหรือหมดอายุ", });
@@ -747,7 +821,7 @@ namespace Etax_Api.Controllers
             try
             {
                 string token = Request.Headers[HeaderNames.Authorization].ToString();
-                JwtStatus jwtStatus = Jwt.ValidateJwtToken(token);
+                JwtStatus jwtStatus = Jwt.ValidateJwtTokenUser(token, _config);
 
                 if (!jwtStatus.status)
                     return StatusCode(401, new { message = "token ไม่ถูกต้องหรือหมดอายุ", });
@@ -800,7 +874,7 @@ namespace Etax_Api.Controllers
             try
             {
                 string token = Request.Headers[HeaderNames.Authorization].ToString();
-                JwtStatus jwtStatus = Jwt.ValidateJwtToken(token);
+                JwtStatus jwtStatus = Jwt.ValidateJwtTokenUser(token, _config);
 
                 if (!jwtStatus.status)
                     return StatusCode(401, new { message = "token ไม่ถูกต้องหรือหมดอายุ", });
@@ -845,7 +919,7 @@ namespace Etax_Api.Controllers
             try
             {
                 string token = Request.Headers[HeaderNames.Authorization].ToString();
-                JwtStatus jwtStatus = Jwt.ValidateJwtToken(token);
+                JwtStatus jwtStatus = Jwt.ValidateJwtTokenUser(token, _config);
 
                 if (!jwtStatus.status)
                     return StatusCode(401, new { message = "token ไม่ถูกต้องหรือหมดอายุ", });
@@ -890,7 +964,7 @@ namespace Etax_Api.Controllers
             try
             {
                 string token = Request.Headers[HeaderNames.Authorization].ToString();
-                JwtStatus jwtStatus = Jwt.ValidateJwtToken(token);
+                JwtStatus jwtStatus = Jwt.ValidateJwtTokenUser(token, _config);
 
                 if (!jwtStatus.status)
                     return StatusCode(401, new { message = "token ไม่ถูกต้องหรือหมดอายุ", });
@@ -927,7 +1001,7 @@ namespace Etax_Api.Controllers
                 return StatusCode(400, new { message = ex.Message });
             }
         }
- 
+
         [HttpPost]
         [Route("admin/delete_price_sms/{id}")]
         public async Task<IActionResult> DeletePriceSms(int id)
@@ -935,7 +1009,7 @@ namespace Etax_Api.Controllers
             try
             {
                 string token = Request.Headers[HeaderNames.Authorization].ToString();
-                JwtStatus jwtStatus = Jwt.ValidateJwtToken(token);
+                JwtStatus jwtStatus = Jwt.ValidateJwtTokenUser(token, _config);
 
                 if (!jwtStatus.status)
                     return StatusCode(401, new { message = "token ไม่ถูกต้องหรือหมดอายุ", });
@@ -980,7 +1054,7 @@ namespace Etax_Api.Controllers
             try
             {
                 string token = Request.Headers[HeaderNames.Authorization].ToString();
-                JwtStatus jwtStatus = Jwt.ValidateJwtToken(token);
+                JwtStatus jwtStatus = Jwt.ValidateJwtTokenUser(token, _config);
 
                 if (!jwtStatus.status)
                     return StatusCode(401, new { message = "token ไม่ถูกต้องหรือหมดอายุ", });

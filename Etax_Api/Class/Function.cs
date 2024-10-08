@@ -12,6 +12,9 @@ namespace Etax_Api
         {
             foreach (var directory in Directory.GetDirectories(startLocation))
             {
+                if (directory.Contains("files"))
+                    continue;
+
                 DeleteDirectory(directory);
                 if (Directory.GetFiles(directory).Length == 0 && Directory.GetDirectories(directory).Length == 0)
                 {
@@ -26,6 +29,9 @@ namespace Etax_Api
             string[] files = Directory.GetFiles(filePath, "*", SearchOption.AllDirectories);
             foreach (string file in files)
             {
+                if (file.Contains("files"))
+                    continue;
+
                 FileInfo fi = new FileInfo(file);
                 if (fi.CreationTime.AddDays(1) < now)
                     System.IO.File.Delete(file);

@@ -8,6 +8,7 @@ namespace Etax_Api
         public int id { get; set; }
         public int member_id { get; set; }
         public string file_name { get; set; }
+        public string url { get; set; }
         public DateTime? create_date { get; set; }
     }
 }

@@ -30,6 +30,7 @@ namespace Etax_Api
         public DbSet<Member> members { get; set; }
         public DbSet<Branch> branchs { get; set; }
         public DbSet<MemberUser> member_users { get; set; }
+        public DbSet<MemberSession> member_session { get; set; }
         public DbSet<MemberUserPermission> member_user_permission { get; set; }
         public DbSet<RawDataFile> rawdata_files { get; set; }
         public DbSet<EtaxFile> etax_files { get; set; }
@@ -37,6 +38,7 @@ namespace Etax_Api
         public DbSet<SendEbxml> send_ebxml { get; set; }
         public DbSet<SendEmail> send_email { get; set; }
         public DbSet<SendSms> send_sms { get; set; }
+        public DbSet<MemberPriceType> member_price_type { get; set; }
         public DbSet<MemberPriceXml> member_price_xml { get; set; }
         public DbSet<MemberPricePdf> member_price_pdf { get; set; }
         public DbSet<MemberPriceEmail> member_price_email { get; set; }
@@ -56,6 +58,7 @@ namespace Etax_Api
         public DbSet<MemberUserBranch> member_user_branch { get; set; }
         public DbSet<UserMember> user_members { get; set; }
         public DbSet<UserPermission> user_permission { get; set; }
+        public DbSet<UserSession> user_session { get; set; }
 
 
         public DbSet<ViewMemberUser> view_member_users { get; set; }

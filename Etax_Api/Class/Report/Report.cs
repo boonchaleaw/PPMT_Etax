@@ -73,8 +73,8 @@ namespace Etax_Api
                 
 
                 outputFile.WriteLine("");
-                outputFile.WriteLine("จำนวนรวม," + xml_count_total.ToString() + "," + pdf_count_total.ToString() + "," + email_count_total.ToString() + "," + ebxml_count_total.ToString() + "," + sms_count_total.ToString());
-                outputFile.WriteLine("ราคารวม," + xml_price_total.ToString("0.00") + "," + pdf_price_total.ToString("0.00") + "," + email_price_total.ToString("0.00") + "," + ebxml_price_total.ToString("0.00") + "," + sms_price_total.ToString("0.00"));
+                outputFile.WriteLine("จำนวนรวม," + xml_count_total.ToString() + "," + pdf_count_total.ToString() + "," + email_count_total.ToString() + "," + sms_count_total.ToString() + "," + ebxml_count_total.ToString());
+                outputFile.WriteLine("ราคารวม," + xml_price_total.ToString("0.00") + "," + pdf_price_total.ToString("0.00") + "," + email_price_total.ToString("0.00") + "," + sms_price_total.ToString("0.00") + "," + ebxml_price_total.ToString("0.00"));
                 outputFile.WriteLine("ราคารวมทั้งหมด,,,,," + (xml_price_total + pdf_price_total + email_price_total + ebxml_price_total + sms_price_total).ToString("0.00"));
 
             }
@@ -250,7 +250,7 @@ namespace Etax_Api
         {
             using (StreamWriter outputFile = new StreamWriter(path, false, Encoding.UTF8))
             {
-                outputFile.WriteLine("หมายเลขเอกสาร,ประเภทเอกสาร,หมายเลขผู้เสียภาษี,ชื่อผู้เสียภาษี,อีเมล,ออกเอกสาร,วันที่ส่ง");
+                outputFile.WriteLine("รหัสไฟล์,หมายเลขเอกสาร,ประเภทเอกสาร,หมายเลขผู้เสียภาษี,ชื่อผู้เสียภาษี,อีเมล,ออกเอกสาร,วันที่ส่ง");
 
                 foreach (ViewSendEmailList data in listData)
                 {
@@ -267,6 +267,7 @@ namespace Etax_Api
                         send_email_finish = "";
 
                     outputFile.WriteLine(
+                        data.id.ToString() + "," +
                         data.etax_id.ToString() + "," +
                         data.document_type_name + "," +
                         "'" + data.buyer_tax_id + "," +
