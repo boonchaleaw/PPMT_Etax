@@ -571,6 +571,9 @@ namespace Etax_Api.Controllers
                 if (String.IsNullOrEmpty(bodySms.buyer_tel))
                     return StatusCode(400, new { message = "กรุณากำหนดเบอโทรศัพ", });
 
+                if (bodySms.buyer_tel.Split(',').Length >= 10)
+                    return StatusCode(400, new { message = "สามารถส่ง sms ได้สูงสุด 10 รายการ" });
+
                 using (var transaction = _context.Database.BeginTransaction())
                 {
                     try

@@ -1387,6 +1387,12 @@ namespace Etax_Api.Controllers
                 if (permission != "Y")
                     return StatusCode(401, new { message = "ไม่มีสิทธิในการใช้งานส่วนนี้", });
 
+                if (bodyProcess.buyer_email.Split(',').Length >= 10)
+                    return StatusCode(400, new { message = "สามารถส่ง email ได้สูงสุด 10 รายการ" });
+
+                if (bodyProcess.buyer_tel.Split(',').Length >= 10)
+                    return StatusCode(400, new { message = "สามารถส่ง sms ได้สูงสุด 10 รายการ" });
+
 
                 double size = 0;
                 foreach (BodySendOtherFile of in bodyProcess.send_other_file)

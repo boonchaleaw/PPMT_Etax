@@ -8,6 +8,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Data;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Net;
@@ -431,46 +432,65 @@ namespace Etax_Api.Controllers
         }
 
         [HttpPost]
-        [Route("save_form")]
-
-        [HttpPost]
         [Route("get_data_form")]
         public async Task<IActionResult> GetSataForm([FromBody] BodyMkData bodyMkData)
         {
             try
             {
-                string tax_id = "";
-                if (bodyMkData.companyType == "MKG")
-                    tax_id = "0107555000317";
-                else if (bodyMkData.companyType == "MKI")
-                    tax_id = "0105549022370";
-                else if (bodyMkData.companyType == "LCS")
-                    tax_id = "0105562032146";
+                var branch = await (from b in _context.branchs
+                                    where b.name.Contains(bodyMkData.branchCode)
+                                    select new
+                                    {
+                                        b.id,
+                                        b.member_id,
+                                        b.name,
+                                        b.branch_code,
+                                        b.building_number,
+                                        b.building_name,
+                                        b.street_name,
+                                        b.district_code,
+                                        b.district_name,
+                                        b.amphoe_code,
+                                        b.amphoe_name,
+                                        b.province_code,
+                                        b.province_name,
+                                        b.zipcode,
+                                    }).FirstOrDefaultAsync();
 
-                var member = await _context.members
-                .Where(x => x.group_name == "Mk" && x.tax_id == tax_id)
-                .FirstOrDefaultAsync();
 
-                var branch = await _context.branchs
-                .Where(x => x.member_id == member.id && x.branch_code == bodyMkData.branchID)
-                .Select(x => new
+                var member = await (from m in _context.members
+                                    where m.group_name == "Mk" && m.id == branch.member_id
+                                    select new
+                                    {
+                                        m.id,
+                                        m.name,
+                                        m.tax_id,
+                                    }).FirstOrDefaultAsync();
+
+                var etaxFile = await (from ef in _context.etax_files
+                                      where ef.member_id == branch.member_id && ef.etax_id == bodyMkData.billID
+                                      select new
+                                      {
+                                          ef.buyer_name,
+                                          ef.buyer_tax_id,
+                                          ef.buyer_address,
+                                          ef.buyer_zipcode,
+                                          ef.buyer_tel,
+                                          ef.buyer_email,
+                                          ef.create_date,
+                                      }).FirstOrDefaultAsync();
+
+                bool already = false;
+                bool expiry = false;
+
+                if (etaxFile != null)
                 {
-                    x.id,
-                    x.name,
-                    x.branch_code,
-                    x.building_number,
-                    x.building_name,
-                    x.street_name,
-                    x.district_code,
-                    x.district_name,
-                    x.amphoe_code,
-                    x.amphoe_name,
-                    x.province_code,
-                    x.province_name,
-                    x.zipcode,
-                })
-                .FirstOrDefaultAsync();
+                    already = true;
 
+                    DateTime expiryDate = DateTime.Now.AddDays(-14);
+                    if (expiryDate > etaxFile.create_date)
+                        expiry = true;
+                }
 
                 if (member != null && branch != null)
                 {
@@ -479,27 +499,12 @@ namespace Etax_Api.Controllers
                         message = "เรียกดูข้อมูลสำเร็จ",
                         data = new
                         {
-                            member = new
-                            {
-                                id = member.id,
-                                name = member.name,
-                                tax_id = member.tax_id,
-                            },
-                            branch = new
-                            {
-                                id = branch.id,
-                                name = branch.name,
-                                building_number = branch.building_number,
-                                building_name = branch.building_name,
-                                street_name = branch.street_name,
-                                district_code = branch.district_code,
-                                district_name = branch.district_name,
-                                amphoe_code = branch.amphoe_code,
-                                amphoe_name = branch.amphoe_name,
-                                province_code = branch.province_code,
-                                province_name = branch.province_name,
-                                zipcode = branch.zipcode,
-                            },
+                            member = member,
+                            branch = branch,
+                            etaxFile = etaxFile,
+                            already = already,
+                            expiry = expiry,
+                            totalText = Function.ThBahtText(bodyMkData.totalAmount),
                         },
                     });
                 }
@@ -518,6 +523,9 @@ namespace Etax_Api.Controllers
             }
         }
 
+
+        [HttpPost]
+        [Route("save_form")]
         public async Task<IActionResult> SaveForm([FromBody] BodyUserform bodyUserform)
         {
             try
@@ -526,16 +534,99 @@ namespace Etax_Api.Controllers
                 {
                     try
                     {
+                        DateTime now = DateTime.Now;
+
                         EtaxFile etaxFile = await _context.etax_files
-                        .Where(x => x.id == bodyUserform.id && x.form_code == bodyUserform.code)
+                        .Where(x => x.member_id == bodyUserform.member_id && x.etax_id == bodyUserform.dataQr.billID)
                         .FirstOrDefaultAsync();
 
-                        etaxFile.buyer_tax_id = bodyUserform.tax_id;
-                        etaxFile.buyer_name = bodyUserform.name;
-                        etaxFile.buyer_address = bodyUserform.address + " " + bodyUserform.zipcode;
-                        etaxFile.buyer_email = bodyUserform.email;
-                        etaxFile.buyer_tel = bodyUserform.tel;
-                        etaxFile.mode = "normal";
+                        if (etaxFile == null)
+                        {
+                            EtaxFile newEtaxFile = new EtaxFile()
+                            {
+                                member_id = bodyUserform.member_id,
+                                branch_id = bodyUserform.branch_id,
+                                member_user_id = 0,
+                                document_type_id = 7,
+                                create_type = "api",
+                                rawdata_file_id = 0,
+                                gen_xml_status = "pending",
+                                gen_pdf_status = "pending",
+                                add_email_status = "pending",
+                                add_sms_status = "no",
+                                add_ebxml_status = "no",
+                                send_xml_status = "N",
+                                send_other_status = "N",
+                                error = "",
+                                output_path = _config["Path:Output"],
+                                etax_id = bodyUserform.dataQr.billID,
+                                buyer_branch_code = "00000",
+                                issue_date = DateTime.ParseExact(bodyUserform.dataQr.bilIDate, "yyyyMMdd", CultureInfo.InvariantCulture),
+                                buyer_id = "",
+                                buyer_name = bodyUserform.name,
+                                buyer_tax_id = bodyUserform.tax_id,
+                                buyer_tax_type = "",
+                                buyer_address = bodyUserform.address + " " + bodyUserform.district + " " + bodyUserform.amphoe + " " + bodyUserform.province,
+                                buyer_zipcode = bodyUserform.zipcode,
+                                buyer_tel = bodyUserform.tel,
+                                buyer_fax = "",
+                                buyer_country_code = "TH",
+                                buyer_email = bodyUserform.email,
+                                price = double.Parse(bodyUserform.dataQr.baseAmount),
+                                discount = double.Parse(bodyUserform.dataQr.discount),
+                                tax_rate = 7,
+                                tax = double.Parse(bodyUserform.dataQr.vat),
+                                total = double.Parse(bodyUserform.dataQr.totalAmount),
+                                remark = "",
+                                other = "",
+                                group_name = "",
+                                template_pdf = "",
+                                template_email = "",
+                                xml_payment_status = "pending",
+                                pdf_payment_status = "pending",
+                                mode = "normal",
+                                update_date = now,
+                                create_date = now,
+                            };
+                            _context.Add(newEtaxFile);
+                            await _context.SaveChangesAsync();
+
+                            EtaxFileItem newEtaxFileItem = new EtaxFileItem()
+                            {
+                                etax_file_id = newEtaxFile.id,
+                                code = "",
+                                name = "อาหารและเครื่องดื่ม",
+                                qty = 1,
+                                unit = "",
+                                price = newEtaxFile.price,
+                                discount = newEtaxFile.discount,
+                                tax = newEtaxFile.tax,
+                                tax_rate = 7,
+                                total = newEtaxFile.total,
+                            };
+                            _context.Add(newEtaxFileItem);
+                        }
+                        else
+                        {
+                            etaxFile.buyer_name = bodyUserform.name;
+                            etaxFile.buyer_tax_id = bodyUserform.tax_id;
+                            etaxFile.buyer_address = bodyUserform.address + " " + bodyUserform.district + " " + bodyUserform.amphoe + " " + bodyUserform.province;
+                            etaxFile.buyer_zipcode = bodyUserform.zipcode;
+                            etaxFile.buyer_tel = bodyUserform.tel;
+                            etaxFile.buyer_email = bodyUserform.email;
+
+                            etaxFile.gen_xml_status = "pending";
+                            etaxFile.gen_pdf_status = "pending";
+                            etaxFile.add_email_status = "pending";
+                        }
+
+                        EtaxFile etaxFileRef = await _context.etax_files
+                        .Where(x => x.member_id == bodyUserform.member_id && x.etax_id == bodyUserform.dataQr.billIDRef)
+                        .FirstOrDefaultAsync();
+
+                        if (etaxFileRef != null)
+                            etaxFileRef.delete_status = 1;
+
 
                         await _context.SaveChangesAsync();
                         transaction.Commit();

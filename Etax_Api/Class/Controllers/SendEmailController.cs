@@ -580,6 +580,8 @@ namespace Etax_Api.Controllers
                 if (permission != "Y")
                     return StatusCode(401, new { message = "ไม่มีสิทธิในการใช้งานส่วนนี้", });
 
+                if (bodyEmail.buyer_email.Split(',').Length >= 10)
+                    return StatusCode(400, new { message = "สามารถส่ง email ได้สูงสุด 10 รายการ" });
 
 
                 if (String.IsNullOrEmpty(bodyEmail.buyer_email))

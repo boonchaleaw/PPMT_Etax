@@ -133,6 +133,34 @@ namespace Etax_Api.Controllers
                 if (bodyMemberUser.password.Length < 8)
                     return StatusCode(400, new { message = "กรุณากำหนดรหัสผ่านมากกว่า 8 ตัวอักษร", });
 
+
+                var hasNumber = new Regex(@"[0-9]+");
+                var hasUpperChar = new Regex(@"[A-Z]+");
+                var hasMiniMaxChars = new Regex(@".{8,64}");
+                var hasLowerChar = new Regex(@"[a-z]+");
+                var hasSymbols = new Regex(@"[!@#$%^&*()_+=\[{\]};:<>|./?,-]");
+
+                if (!hasLowerChar.IsMatch(bodyMemberUser.password))
+                {
+                    return StatusCode(400, new { message = "กรุณาตั้งรหัสผ่านให้มีภาษาอังกฤษตัวเล็กอย่างน้อย 1 ตัวอักษร", });
+                }
+                else if (!hasUpperChar.IsMatch(bodyMemberUser.password))
+                {
+                    return StatusCode(400, new { message = "กรุณาตั้งรหัสผ่านให้มีภาษาอังกฤษตัวใหญ่อย่างน้อย 1 ตัวอักษร", });
+                }
+                else if (!hasMiniMaxChars.IsMatch(bodyMemberUser.password))
+                {
+                    return StatusCode(400, new { message = "กรุณากำหนดรหัสผ่านใหม่มากกว่า 8 ตัวอักษร", });
+                }
+                else if (!hasNumber.IsMatch(bodyMemberUser.password))
+                {
+                    return StatusCode(400, new { message = "กรุณาตั้งรหัสผ่านให้มีภาษาอังกฤษตัวเลขอย่างน้อย 1 ตัวอักษร", });
+                }
+                else if (!hasSymbols.IsMatch(bodyMemberUser.password))
+                {
+                    return StatusCode(400, new { message = "กรุณาตั้งรหัสผ่านให้มีสัญลักษณ์พิเศษอย่างน้อย 1 ตัวอักษร", });
+                }
+
                 var checkMemberUser = _context.member_users
                     .Where(x => x.username == bodyMemberUser.username)
                     .FirstOrDefault();
@@ -561,32 +589,32 @@ namespace Etax_Api.Controllers
                 if (bodyResetPassword.new_password != bodyResetPassword.confirm_password)
                     return StatusCode(400, new { message = "กรุณากำหนดรหัสผ่านใหม่และยืนยันรหัสผ่านใหม่ให้ตรงกัน", });
 
-                //var hasNumber = new Regex(@"[0-9]+");
-                //var hasUpperChar = new Regex(@"[A-Z]+");
-                //var hasMiniMaxChars = new Regex(@".{8,64}");
-                //var hasLowerChar = new Regex(@"[a-z]+");
-                //var hasSymbols = new Regex(@"[!@#$%^&*()_+=\[{\]};:<>|./?,-]");
+                var hasNumber = new Regex(@"[0-9]+");
+                var hasUpperChar = new Regex(@"[A-Z]+");
+                var hasMiniMaxChars = new Regex(@".{8,64}");
+                var hasLowerChar = new Regex(@"[a-z]+");
+                var hasSymbols = new Regex(@"[!@#$%^&*()_+=\[{\]};:<>|./?,-]");
 
-                //if (!hasLowerChar.IsMatch(bodyResetPassword.new_password))
-                //{
-                //    return StatusCode(400, new { message = "กรุณาตั้งรหัสผ่านให้มีภาษาอังกฤษตัวเล็กอย่างน้อย 1 ตัวอักษร", });
-                //}
-                //else if (!hasUpperChar.IsMatch(bodyResetPassword.new_password))
-                //{
-                //    return StatusCode(400, new { message = "กรุณาตั้งรหัสผ่านให้มีภาษาอังกฤษตัวใหญ่อย่างน้อย 1 ตัวอักษร", });
-                //}
-                //else if (!hasMiniMaxChars.IsMatch(bodyResetPassword.new_password))
-                //{
-                //    return StatusCode(400, new { message = "กรุณากำหนดรหัสผ่านใหม่มากกว่า 8 ตัวอักษร", });
-                //}
-                //else if (!hasNumber.IsMatch(bodyResetPassword.new_password))
-                //{
-                //    return StatusCode(400, new { message = "กรุณาตั้งรหัสผ่านให้มีภาษาอังกฤษตัวเลขอย่างน้อย 1 ตัวอักษร", });
-                //}
-                //else if (!hasSymbols.IsMatch(bodyResetPassword.new_password))
-                //{
-                //    return StatusCode(400, new { message = "กรุณาตั้งรหัสผ่านใหม่และยืนยันรหัสผ่านใหม่ให้ตรงกัน", });
-                //}
+                if (!hasLowerChar.IsMatch(bodyResetPassword.new_password))
+                {
+                    return StatusCode(400, new { message = "กรุณาตั้งรหัสผ่านให้มีภาษาอังกฤษตัวเล็กอย่างน้อย 1 ตัวอักษร", });
+                }
+                else if (!hasUpperChar.IsMatch(bodyResetPassword.new_password))
+                {
+                    return StatusCode(400, new { message = "กรุณาตั้งรหัสผ่านให้มีภาษาอังกฤษตัวใหญ่อย่างน้อย 1 ตัวอักษร", });
+                }
+                else if (!hasMiniMaxChars.IsMatch(bodyResetPassword.new_password))
+                {
+                    return StatusCode(400, new { message = "กรุณากำหนดรหัสผ่านใหม่มากกว่า 8 ตัวอักษร", });
+                }
+                else if (!hasNumber.IsMatch(bodyResetPassword.new_password))
+                {
+                    return StatusCode(400, new { message = "กรุณาตั้งรหัสผ่านให้มีภาษาอังกฤษตัวเลขอย่างน้อย 1 ตัวอักษร", });
+                }
+                else if (!hasSymbols.IsMatch(bodyResetPassword.new_password))
+                {
+                    return StatusCode(400, new { message = "กรุณาตั้งรหัสผ่านให้มีสัญลักษณ์พิเศษอย่างน้อย 1 ตัวอักษร", });
+                }
 
 
                 var memberUser = _context.member_users
@@ -667,6 +695,33 @@ namespace Etax_Api.Controllers
 
                 if (bodyChangePassword.new_password != bodyChangePassword.confirm_password)
                     return StatusCode(400, new { message = "กรุณากำหนดรหัสผ่านใหม่และยืนยันรหัสผ่านใหม่ให้ตรงกัน", });
+
+                var hasNumber = new Regex(@"[0-9]+");
+                var hasUpperChar = new Regex(@"[A-Z]+");
+                var hasMiniMaxChars = new Regex(@".{8,64}");
+                var hasLowerChar = new Regex(@"[a-z]+");
+                var hasSymbols = new Regex(@"[!@#$%^&*()_+=\[{\]};:<>|./?,-]");
+
+                if (!hasLowerChar.IsMatch(bodyChangePassword.new_password))
+                {
+                    return StatusCode(400, new { message = "กรุณาตั้งรหัสผ่านให้มีภาษาอังกฤษตัวเล็กอย่างน้อย 1 ตัวอักษร", });
+                }
+                else if (!hasUpperChar.IsMatch(bodyChangePassword.new_password))
+                {
+                    return StatusCode(400, new { message = "กรุณาตั้งรหัสผ่านให้มีภาษาอังกฤษตัวใหญ่อย่างน้อย 1 ตัวอักษร", });
+                }
+                else if (!hasMiniMaxChars.IsMatch(bodyChangePassword.new_password))
+                {
+                    return StatusCode(400, new { message = "กรุณากำหนดรหัสผ่านใหม่มากกว่า 8 ตัวอักษร", });
+                }
+                else if (!hasNumber.IsMatch(bodyChangePassword.new_password))
+                {
+                    return StatusCode(400, new { message = "กรุณาตั้งรหัสผ่านให้มีภาษาอังกฤษตัวเลขอย่างน้อย 1 ตัวอักษร", });
+                }
+                else if (!hasSymbols.IsMatch(bodyChangePassword.new_password))
+                {
+                    return StatusCode(400, new { message = "กรุณาตั้งรหัสผ่านให้มีสัญลักษณ์พิเศษอย่างน้อย 1 ตัวอักษร", });
+                }
 
 
                 var memberUser = _context.member_users
