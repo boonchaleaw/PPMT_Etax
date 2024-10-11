@@ -367,6 +367,7 @@ namespace Etax_Api.Controllers
                     x.per_sms_view,
                     x.per_sms_manage,
                     x.per_ebxml_view,
+                    x.per_setting_manage,
                     x.per_report_view,
                     x.view_self_only,
                     x.view_branch_only,
@@ -409,6 +410,7 @@ namespace Etax_Api.Controllers
                                 per_sms_view = (memberUserPermission.per_sms_view == "Y") ? true : false,
                                 per_sms_manage = (memberUserPermission.per_sms_manage == "Y") ? true : false,
                                 per_ebxml_view = (memberUserPermission.per_ebxml_view == "Y") ? true : false,
+                                per_setting_manage = (memberUserPermission.per_setting_manage == "Y") ? true : false,
                                 per_report_view = (memberUserPermission.per_report_view == "Y") ? true : false,
                                 view_self_only = (memberUserPermission.view_self_only == "Y") ? true : false,
                                 view_branch_only = (memberUserPermission.view_branch_only == "Y") ? true : false,
@@ -494,6 +496,7 @@ namespace Etax_Api.Controllers
                         memberUserPermission.per_sms_view = (bodyMemberUser.permission.per_sms_view == true) ? "Y" : "N";
                         memberUserPermission.per_sms_manage = (bodyMemberUser.permission.per_sms_manage == true) ? "Y" : "N";
                         memberUserPermission.per_ebxml_view = (bodyMemberUser.permission.per_ebxml_view == true) ? "Y" : "N";
+                        memberUserPermission.per_setting_manage = (bodyMemberUser.permission.per_setting_manage == true) ? "Y" : "N";
                         memberUserPermission.per_report_view = (bodyMemberUser.permission.per_report_view == true) ? "Y" : "N";
                         memberUserPermission.view_self_only = (bodyMemberUser.permission.view_self_only == true) ? "Y" : "N";
                         memberUserPermission.view_branch_only = (bodyMemberUser.permission.view_branch_only == true) ? "Y" : "N";

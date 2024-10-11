@@ -63,14 +63,14 @@ namespace Etax_Api
                 email_count_total = returnCostReport.total_email_count;
                 sms_count_total = returnCostReport.total_sms_count;
                 ebxml_count_total = returnCostReport.total_ebxml_count;
-                
+
 
                 xml_price_total = returnCostReport.total_xml_price;
                 pdf_price_total = returnCostReport.total_pdf_price;
                 email_price_total = returnCostReport.total_email_price;
                 sms_price_total = returnCostReport.total_sms_price;
                 ebxml_price_total = returnCostReport.total_ebxml_price;
-                
+
 
                 outputFile.WriteLine("");
                 outputFile.WriteLine("จำนวนรวม," + xml_count_total.ToString() + "," + pdf_count_total.ToString() + "," + email_count_total.ToString() + "," + sms_count_total.ToString() + "," + ebxml_count_total.ToString());
@@ -250,10 +250,19 @@ namespace Etax_Api
         {
             using (StreamWriter outputFile = new StreamWriter(path, false, Encoding.UTF8))
             {
-                outputFile.WriteLine("รหัสไฟล์,หมายเลขเอกสาร,ประเภทเอกสาร,หมายเลขผู้เสียภาษี,ชื่อผู้เสียภาษี,อีเมล,ออกเอกสาร,วันที่ส่ง");
+                outputFile.WriteLine("รหัสไฟล์,หมายเลขเอกสาร,ประเภทเอกสาร,หมายเลขผู้เสียภาษี,ชื่อผู้เสียภาษี,อีเมล,ออกเอกสาร,วันที่ส่ง,");
+
+                List<int> checkList = new List<int>();
 
                 foreach (ViewSendEmailList data in listData)
                 {
+                    string duplicate = "";
+                    if (!checkList.Contains(data.etax_file_id))
+                        checkList.Add(data.etax_file_id);
+                    else
+                        duplicate = "duplicate";
+
+
                     string issue_date = "";
                     if (data.issue_date != null)
                         issue_date = ((DateTime)data.issue_date).ToString("dd/MM/yyyy");
@@ -267,14 +276,15 @@ namespace Etax_Api
                         send_email_finish = "";
 
                     outputFile.WriteLine(
-                        data.id.ToString() + "," +
+                        data.etax_file_id.ToString() + "," +
                         data.etax_id.ToString() + "," +
                         data.document_type_name + "," +
                         "'" + data.buyer_tax_id + "," +
                         data.buyer_name.Replace("\r\n", " ").Replace(",", " ") + "," +
                         data.email.Replace(",", " |") + "," +
                         issue_date + "," +
-                        send_email_finish
+                        send_email_finish + "," +
+                        duplicate
                         );
                 }
             }

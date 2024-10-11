@@ -36,6 +36,12 @@ namespace Etax_Api.Controllers
                 if (!jwtStatus.status)
                     return StatusCode(401, new { message = "token ไม่ถูกต้องหรือหมดอายุ", });
 
+                var permission = await (from mup in _context.member_user_permission
+                                        where mup.member_user_id == jwtStatus.user_id
+                                        select mup.per_setting_manage).FirstOrDefaultAsync();
+                if (permission != "Y")
+                    return StatusCode(401, new { message = "ไม่มีสิทธิในการใช้งานส่วนนี้", });
+
 
                 var setting = await _context.setting
                 .Where(x =>  x.member_id == jwtStatus.member_id)
@@ -85,6 +91,15 @@ namespace Etax_Api.Controllers
             {
                 string token = Request.Headers[HeaderNames.Authorization].ToString();
                 JwtStatus jwtStatus = Jwt.ValidateJwtTokenMember(token, _config);
+
+                if (!jwtStatus.status)
+                    return StatusCode(401, new { message = "token ไม่ถูกต้องหรือหมดอายุ", });
+
+                var permission = await (from mup in _context.member_user_permission
+                                        where mup.member_user_id == jwtStatus.user_id
+                                        select mup.per_setting_manage).FirstOrDefaultAsync();
+                if (permission != "Y")
+                    return StatusCode(401, new { message = "ไม่มีสิทธิในการใช้งานส่วนนี้", });
 
                 var setting = _context.setting
                     .Where(x => x.member_id == jwtStatus.member_id)

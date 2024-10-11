@@ -133,7 +133,7 @@ namespace Etax_Api.Controllers
 
                 if (price_type != null && price_type.email_price_type == "tran")
                 {
-                    var email_tran = await _context.view_send_email
+                    var email_tran = await _context.view_send_email_list
                     .Where(x => x.member_id == jwtStatus.member_id && x.send_email_status == "success" && x.create_date >= bodyCostReport.dateStart && x.create_date <= bodyCostReport.dateEnd)
                     .GroupBy(x => x.etax_file_id)
                     .Select(x => new
@@ -945,7 +945,7 @@ namespace Etax_Api.Controllers
 
                 if (price_type != null && price_type.email_price_type == "tran")
                 {
-                    var email_tran = await _context.view_send_email
+                    var email_tran = await _context.view_send_email_list
                     .Where(x => x.member_id == jwtStatus.member_id && x.send_email_status == "success" && x.create_date >= bodyCostReport.dateStart && x.create_date <= bodyCostReport.dateEnd)
                     .GroupBy(x => x.etax_file_id)
                     .Select(x => new
@@ -2077,7 +2077,7 @@ namespace Etax_Api.Controllers
 
                 if (price_type != null && price_type.email_price_type == "tran")
                 {
-                    var email_tran = await _context.view_send_email
+                    var email_tran = await _context.view_send_email_list
                     .Where(x => x.member_id == jwtStatus.member_id && x.send_email_status == "success" && x.create_date >= bodyCostReportAdmin.dateStart && x.create_date <= bodyCostReportAdmin.dateEnd)
                     .GroupBy(x => x.etax_file_id)
                     .Select(x => new
@@ -2252,7 +2252,7 @@ namespace Etax_Api.Controllers
 
                 if (price_type != null && price_type.email_price_type == "tran")
                 {
-                    var email_tran = await _context.view_send_email
+                    var email_tran = await _context.view_send_email_list
                     .Where(x => x.member_id == jwtStatus.member_id && x.send_email_status == "success" && x.create_date >= bodyCostReportAdmin.dateStart && x.create_date <= bodyCostReportAdmin.dateEnd)
                     .GroupBy(x => x.etax_file_id)
                     .Select(x => new

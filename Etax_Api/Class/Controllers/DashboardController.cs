@@ -126,7 +126,7 @@ namespace Etax_Api.Controllers
                 double email_price = 0;
                 if (price_type != null && price_type.email_price_type == "tran")
                 {
-                    var email_tran = await _context.view_send_email
+                    var email_tran = await _context.view_send_email_list
                     .Where(x => x.member_id == jwtStatus.member_id && x.send_email_status == "success" && x.payment_status == "pending")
                     .GroupBy(x => x.etax_file_id)
                     .Select(x => new

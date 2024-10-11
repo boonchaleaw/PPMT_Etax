@@ -21,7 +21,9 @@ namespace Etax_Api
         public string url_path { get; set; }
         public DateTime? send_email_finish { get; set; }
         public DateTime? issue_date { get; set; }
+        public DateTime? create_date { get; set; }
         public string ref_etax_id { get; set; }
         public string tax_type_filter { get; set; }
+        public string payment_status { get;set; }
     }
 }

@@ -21,6 +21,7 @@ namespace Etax_Api
         public string per_sms_view { get; set; }
         public string per_sms_manage { get; set; }
         public string per_ebxml_view { get; set; }
+        public string per_setting_manage { get; set; }
         public string per_report_view { get; set; }
         public string per_etax_delete { get; set; }
         public string per_email_import { get; set; }

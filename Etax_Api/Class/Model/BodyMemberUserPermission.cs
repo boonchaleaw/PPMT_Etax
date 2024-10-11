@@ -20,6 +20,7 @@ namespace Etax_Api
         public bool per_sms_view { get; set; }
         public bool per_sms_manage { get; set; }
         public bool per_ebxml_view { get; set; }
+        public bool per_setting_manage { get; set; }
         public bool per_report_view { get; set; }
         public bool view_self_only { get; set; }
         public bool view_branch_only { get; set; }

@@ -47,6 +47,8 @@ namespace Etax_Api
         public string unit { get; set; }
         public double price { get; set; }
         public double discount { get; set; }
+        public double basisamount { get; set; }
+        public double netline_totalamount { get; set; }
         public double tax { get; set; }
         public double total { get; set; }
         public string tax_type { get; set; }

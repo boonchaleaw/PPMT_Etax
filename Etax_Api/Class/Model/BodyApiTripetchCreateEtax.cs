@@ -23,6 +23,8 @@ namespace Etax_Api
         public double price { get; set; }
         public double correct_tax_invoice_amount { get; set; }
         public double discount { get; set; }
+        public double basisamount { get; set; }
+        public double taxbasis_totalamount { get; set; }
         public double tax_rate { get; set; }
         public double tax { get; set; }
         public double total { get; set; }
