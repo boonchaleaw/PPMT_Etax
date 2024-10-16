@@ -396,7 +396,8 @@ namespace Etax_Api.Controllers
                             etaxFile.tax = bodyApiCreateEtax.tax;
                             etaxFile.total = bodyApiCreateEtax.total;
                             etaxFile.remark = bodyApiCreateEtax.remark;
-                            etaxFile.other = bodyApiCreateEtax.myisuzu_service + "|" + bodyApiCreateEtax.correct_tax_invoice_amount + "|" + bodyApiCreateEtax.other + "|" + bodyApiCreateEtax.basisamount + "|" + bodyApiCreateEtax.taxbasis_totalamount;
+                            etaxFile.other = bodyApiCreateEtax.myisuzu_service + "|" + bodyApiCreateEtax.correct_tax_invoice_amount + "|" + bodyApiCreateEtax.other;
+                            etaxFile.other2 = bodyApiCreateEtax.basisamount + "|" + bodyApiCreateEtax.taxbasis_totalamount;
                             etaxFile.group_name = (bodyApiCreateEtax.source_type == null) ? "" : bodyApiCreateEtax.source_type;
                             etaxFile.xml_payment_status = "pending";
                             etaxFile.pdf_payment_status = "pending";

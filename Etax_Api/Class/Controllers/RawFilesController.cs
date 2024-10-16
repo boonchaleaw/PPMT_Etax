@@ -156,8 +156,11 @@ namespace Etax_Api.Controllers
                     x.member_id,
                     x.document_type_id,
                     x.document_type_name,
+                    x.service_type_id,
                 })
-                .Where(x => x.member_id == jwtStatus.member_id)
+                .Where(x =>
+                (x.member_id == jwtStatus.member_id && x.service_type_id == 1) ||
+                (x.member_id == jwtStatus.member_id && x.service_type_id == 3))
                 .ToListAsync();
 
 

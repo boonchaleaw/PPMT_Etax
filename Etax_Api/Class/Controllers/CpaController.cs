@@ -38,6 +38,15 @@ namespace Etax_Api.Controllers
                 if (!jwtStatus.status)
                     return StatusCode(401, new { message = "token ไม่ถูกต้องหรือหมดอายุ", });
 
+                var permission = await (from up in _context.user_permission
+                                        where up.user_id == jwtStatus.user_id
+                                        select up.per_user_detail).FirstOrDefaultAsync();
+
+                if (permission != "Y")
+                    return StatusCode(401, new { message = "ไม่มีสิทธิในการใช้งานส่วนนี้", });
+
+
+
                 var searchBy = bodyDtParameters.Search?.Value;
                 var orderCriteria = "id";
                 var orderAscendingDirection = true;
@@ -137,6 +146,15 @@ namespace Etax_Api.Controllers
                 if (!jwtStatus.status)
                     return StatusCode(401, new { message = "token ไม่ถูกต้องหรือหมดอายุ", });
 
+                var permission = await (from up in _context.user_permission
+                                        where up.user_id == jwtStatus.user_id
+                                        select up.per_user_detail).FirstOrDefaultAsync();
+
+                if (permission != "Y")
+                    return StatusCode(401, new { message = "ไม่มีสิทธิในการใช้งานส่วนนี้", });
+
+
+
 
                 var cpa = await _context.cpa
                 .Where(x => x.id == id)
@@ -183,6 +201,15 @@ namespace Etax_Api.Controllers
 
                 if (!jwtStatus.status)
                     return StatusCode(401, new { message = "token ไม่ถูกต้องหรือหมดอายุ", });
+
+                var permission = await (from up in _context.user_permission
+                                        where up.user_id == jwtStatus.user_id
+                                        select up.per_user_detail).FirstOrDefaultAsync();
+
+                if (permission != "Y")
+                    return StatusCode(401, new { message = "ไม่มีสิทธิในการใช้งานส่วนนี้", });
+
+
 
                 if (String.IsNullOrEmpty(bodyCpa.cpa_id))
                     return StatusCode(400, new { message = "กรุณากำหนด CPA ID", });
@@ -241,6 +268,14 @@ namespace Etax_Api.Controllers
 
                 if (!jwtStatus.status)
                     return StatusCode(401, new { message = "token ไม่ถูกต้องหรือหมดอายุ", });
+
+                var permission = await (from up in _context.user_permission
+                                        where up.user_id == jwtStatus.user_id
+                                        select up.per_user_detail).FirstOrDefaultAsync();
+
+                if (permission != "Y")
+                    return StatusCode(401, new { message = "ไม่มีสิทธิในการใช้งานส่วนนี้", });
+
 
                 if (String.IsNullOrEmpty(bodyCpa.cpa_id))
                     return StatusCode(400, new { message = "กรุณากำหนด CPA ID", });
@@ -302,6 +337,15 @@ namespace Etax_Api.Controllers
 
                 if (!jwtStatus.status)
                     return StatusCode(401, new { message = "token ไม่ถูกต้องหรือหมดอายุ", });
+
+                var permission = await (from up in _context.user_permission
+                                        where up.user_id == jwtStatus.user_id
+                                        select up.per_user_detail).FirstOrDefaultAsync();
+
+                if (permission != "Y")
+                    return StatusCode(401, new { message = "ไม่มีสิทธิในการใช้งานส่วนนี้", });
+
+
 
                 using (var transaction = _context.Database.BeginTransaction())
                 {

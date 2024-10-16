@@ -27,5 +27,6 @@ namespace Etax_Api
         public string per_report_detail { get; set; }
         public string per_xml_file { get; set; }
         public string per_pdf_file { get; set; }
+        public string per_etax_delete { get; set; }
     }
 }

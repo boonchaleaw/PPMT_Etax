@@ -98,6 +98,7 @@ namespace Etax_Api.Controllers
                 });
             }
         }
+     
         [HttpPost]
         [Route("logout")]
         public async Task<IActionResult> Logout()
@@ -253,6 +254,14 @@ namespace Etax_Api.Controllers
                     if (!userValid)
                         return StatusCode(404, new { message = "ไม่พบข้อมูลผู้ใช้งานหรือรหัสผ่านไม่ถูกต้อง", });
 
+
+                    var session = await (from ms in _context.user_session
+                                         where ms.user_id == user.id
+                                         select ms).FirstOrDefaultAsync();
+
+                    if (session != null)
+                        _context.Remove(session);
+
                     string session_key = Encryption.GetUniqueKey(50);
                     _context.user_session.Add(new UserSession()
                     {
@@ -283,6 +292,15 @@ namespace Etax_Api.Controllers
                     if (checkUser == null)
                         return StatusCode(404, new { message = "ไม่พบข้อมูลผู้ใช้งานหรือรหัสผ่านไม่ถูกต้อง", });
 
+
+                    var session = await (from ms in _context.user_session
+                                         where ms.user_id == user.id
+                                         select ms).FirstOrDefaultAsync();
+
+                    if (session != null)
+                        _context.Remove(session);
+
+
                     string session_key = Encryption.GetUniqueKey(50);
                     _context.user_session.Add(new UserSession()
                     {
@@ -309,6 +327,34 @@ namespace Etax_Api.Controllers
                 return StatusCode(400, new { message = ex.Message });
             }
         }
+
+        [HttpPost]
+        [Route("admin/logout_user")]
+        public async Task<IActionResult> LogoutUser()
+        {
+            string token = Request.Headers[HeaderNames.Authorization].ToString();
+            JwtStatus jwtStatus = Jwt.ValidateJwtTokenUser(token, _config);
+
+            if (!jwtStatus.status)
+                return StatusCode(401, new { message = "token ไม่ถูกต้องหรือหมดอายุ", });
+
+            var session = (from ms in _context.user_session
+                           where ms.user_id == jwtStatus.user_id &&
+                           ms.session_key == jwtStatus.session_key
+                           select ms).FirstOrDefault();
+
+            if (session != null)
+            {
+                _context.Remove(session);
+                _context.SaveChanges();
+            }
+
+            return StatusCode(200, new
+            {
+                message = "ออกจากระบบสำเร็จ",
+            });
+        }
+
 
         [HttpPost]
         [Route("admin/get_user_permission")]
@@ -346,6 +392,7 @@ namespace Etax_Api.Controllers
                                                 per_report_detail = (up.per_report_detail == "Y") ? true : false,
                                                 per_xml_file = (up.per_xml_file == "Y") ? true : false,
                                                 per_pdf_file = (up.per_pdf_file == "Y") ? true : false,
+                                                per_etax_delete = (up.per_etax_delete == "Y") ? true : false,
                                             }).ToListAsync();
 
 

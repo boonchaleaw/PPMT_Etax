@@ -309,12 +309,21 @@ namespace Etax_Api.Controllers
                 if (!jwtStatus.status)
                     return StatusCode(401, new { message = "token ไม่ถูกต้องหรือหมดอายุ", });
 
+                var checkMember = await (from um in _context.user_members
+                                      where um.user_id == jwtStatus.user_id && um.member_id == bodyDateFilter.member_id
+                                      select um).FirstOrDefaultAsync();
+
+                if(checkMember == null)
+                    return StatusCode(401, new { message = "ไม่มีสิทธิในการใช้งานส่วนนี้", });
+
+
                 bodyDateFilter.dateStart = DateTime.Parse(bodyDateFilter.dateStart.ToString()).Date;
                 bodyDateFilter.dateEnd = bodyDateFilter.dateEnd.AddDays(+1).AddMilliseconds(-1);
 
                 var price_type = await (from mpt in _context.member_price_type
                                         where mpt.member_id == bodyDateFilter.member_id
                                         select mpt).FirstOrDefaultAsync();
+
 
                 List<ReturnPrice> listPriceXml = await _context.member_price_xml
                 .Where(x => x.member_id == bodyDateFilter.member_id)

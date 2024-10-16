@@ -43,6 +43,16 @@ namespace Etax_Api.Class.Controllers
                 if (!jwtStatus.status)
                     return StatusCode(401, new { message = "token ไม่ถูกต้องหรือหมดอายุ", });
 
+
+                var permission = await (from up in _context.user_permission
+                                        where up.user_id == jwtStatus.user_id
+                                        select up.per_xml_menu).FirstOrDefaultAsync();
+
+                if (permission != "Y")
+                    return StatusCode(401, new { message = "ไม่มีสิทธิในการใช้งานส่วนนี้", });
+
+
+
                 var searchBy = bodyDtParameters.searchText;
                 var orderCriteria = "id";
                 var orderAscendingDirection = true;
@@ -363,6 +373,13 @@ namespace Etax_Api.Class.Controllers
 
                 if (!jwtStatus.status)
                     return StatusCode(401, new { message = "token ไม่ถูกต้องหรือหมดอายุ", });
+
+                var permission = await (from up in _context.user_permission
+                                        where up.user_id == jwtStatus.user_id
+                                        select up.per_pdf_menu).FirstOrDefaultAsync();
+
+                if (permission != "Y")
+                    return StatusCode(401, new { message = "ไม่มีสิทธิในการใช้งานส่วนนี้", });
 
                 var searchBy = bodyDtParameters.Search?.Value;
                 var orderCriteria = "id";
@@ -697,6 +714,14 @@ namespace Etax_Api.Class.Controllers
                 if (!jwtStatus.status)
                     return StatusCode(401, new { message = "token ไม่ถูกต้องหรือหมดอายุ", });
 
+                var permission = await (from up in _context.user_permission
+                                        where up.user_id == jwtStatus.user_id
+                                        select up.per_email_menu).FirstOrDefaultAsync();
+
+                if (permission != "Y")
+                    return StatusCode(401, new { message = "ไม่มีสิทธิในการใช้งานส่วนนี้", });
+
+
                 var searchBy = bodyDtParameters.searchText;
                 var orderCriteria = "id";
                 var orderAscendingDirection = true;
@@ -924,6 +949,14 @@ namespace Etax_Api.Class.Controllers
                 if (!jwtStatus.status)
                     return StatusCode(401, new { message = "token ไม่ถูกต้องหรือหมดอายุ", });
 
+                var permission = await (from up in _context.user_permission
+                                        where up.user_id == jwtStatus.user_id
+                                        select up.per_sms_menu).FirstOrDefaultAsync();
+
+                if (permission != "Y")
+                    return StatusCode(401, new { message = "ไม่มีสิทธิในการใช้งานส่วนนี้", });
+
+
                 var searchBy = bodyDtParameters.searchText;
                 var orderCriteria = "id";
                 var orderAscendingDirection = true;
@@ -1150,6 +1183,14 @@ namespace Etax_Api.Class.Controllers
 
                 if (!jwtStatus.status)
                     return StatusCode(401, new { message = "token ไม่ถูกต้องหรือหมดอายุ", });
+
+                var permission = await (from up in _context.user_permission
+                                        where up.user_id == jwtStatus.user_id
+                                        select up.per_ebxml_menu).FirstOrDefaultAsync();
+
+                if (permission != "Y")
+                    return StatusCode(401, new { message = "ไม่มีสิทธิในการใช้งานส่วนนี้", });
+
 
                 var searchBy = bodyDtParameters.Search?.Value;
                 var orderCriteria = "id";

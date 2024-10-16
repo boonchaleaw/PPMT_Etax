@@ -4,7 +4,7 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace Etax_Api
 {
-    public class BodyUserform
+    public class BodyMkUserform
     {
         public int member_id { get; set; }
         public int branch_id { get; set; }
@@ -20,10 +20,10 @@ namespace Etax_Api
         public string zipcode { get; set; }
         public string email { get; set; }
         public string tel { get; set; }
-        public BodyUserformDataQr dataQr { get; set; }
+        public BodyMkUserformDataQr dataQr { get; set; }
     }
 
-    public class BodyUserformDataQr
+    public class BodyMkUserformDataQr
     {
         public string documentType { get; set; }
         public string branchCode { get; set; }

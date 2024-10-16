@@ -2107,6 +2107,13 @@ namespace Etax_Api.Controllers
                 if (!jwtStatus.status)
                     return StatusCode(401, new { message = "token ไม่ถูกต้องหรือหมดอายุ", });
 
+                var permission = await (from up in _context.user_permission
+                                        where up.user_id == jwtStatus.user_id
+                                        select up.per_xml_menu).FirstOrDefaultAsync();
+
+                if (permission != "Y")
+                    return StatusCode(401, new { message = "ไม่มีสิทธิในการใช้งานส่วนนี้", });
+
                 var searchBy = bodyDtParameters.searchText.Trim();
                 var orderCriteria = "id";
                 var orderAscendingDirection = true;
@@ -2440,6 +2447,12 @@ namespace Etax_Api.Controllers
                 if (!jwtStatus.status)
                     return StatusCode(401, new { message = "token ไม่ถูกต้องหรือหมดอายุ", });
 
+                var permission = await (from up in _context.user_permission
+                                        where up.user_id == jwtStatus.user_id
+                                        select up.per_xml_detail).FirstOrDefaultAsync();
+
+                if (permission != "Y")
+                    return StatusCode(401, new { message = "ไม่มีสิทธิในการใช้งานส่วนนี้", });
 
                 var xmlFile = await _context.view_etax_files
                 .Where(x => x.id == id)
@@ -2594,6 +2607,13 @@ namespace Etax_Api.Controllers
 
                 if (!jwtStatus.status)
                     return StatusCode(401, new { message = "token ไม่ถูกต้องหรือหมดอายุ", });
+
+                var permission = await (from up in _context.user_permission
+                                        where up.user_id == jwtStatus.user_id
+                                        select up.per_pdf_menu).FirstOrDefaultAsync();
+
+                if (permission != "Y")
+                    return StatusCode(401, new { message = "ไม่มีสิทธิในการใช้งานส่วนนี้", });
 
                 var searchBy = bodyDtParameters.searchText.Trim();
                 var orderCriteria = "id";
@@ -2932,6 +2952,12 @@ namespace Etax_Api.Controllers
                 if (!jwtStatus.status)
                     return StatusCode(401, new { message = "token ไม่ถูกต้องหรือหมดอายุ", });
 
+                var permission = await (from up in _context.user_permission
+                                        where up.user_id == jwtStatus.user_id
+                                        select up.per_pdf_detail).FirstOrDefaultAsync();
+
+                if (permission != "Y")
+                    return StatusCode(401, new { message = "ไม่มีสิทธิในการใช้งานส่วนนี้", });
 
                 var pdfFile = await _context.view_etax_files
                 .Where(x => x.id == id)
@@ -3085,6 +3111,13 @@ namespace Etax_Api.Controllers
                 if (!jwtStatus.status)
                     return StatusCode(401, new { message = "token ไม่ถูกต้องหรือหมดอายุ", });
 
+                var permission = await (from up in _context.user_permission
+                                        where up.user_id == jwtStatus.user_id
+                                        select up.per_etax_delete).FirstOrDefaultAsync();
+
+                if (permission != "Y")
+                    return StatusCode(401, new { message = "ไม่มีสิทธิในการใช้งานส่วนนี้", });
+
                 using (var transaction = _context.Database.BeginTransaction())
                 {
                     try
@@ -3133,6 +3166,14 @@ namespace Etax_Api.Controllers
 
                 if (!jwtStatus.status)
                     return StatusCode(401, new { message = "token ไม่ถูกต้องหรือหมดอายุ", });
+
+
+                var permission = await (from up in _context.user_permission
+                                        where up.user_id == jwtStatus.user_id
+                                        select up.per_pdf_detail).FirstOrDefaultAsync();
+
+                if (permission != "Y")
+                    return StatusCode(401, new { message = "ไม่มีสิทธิในการใช้งานส่วนนี้", });
 
                 using (var transaction = _context.Database.BeginTransaction())
                 {
@@ -3193,6 +3234,16 @@ namespace Etax_Api.Controllers
                 if (!jwtStatus.status)
                     return StatusCode(401, new { message = "token ไม่ถูกต้องหรือหมดอายุ", });
 
+                var permission = await (from up in _context.user_permission
+                                        where up.user_id == jwtStatus.user_id
+                                        select new
+                                        {
+                                            up.per_xml_detail,
+                                            up.per_pdf_detail,
+                                        }).FirstOrDefaultAsync();
+
+                if (permission.per_xml_detail != "Y" && permission.per_pdf_detail != "Y")
+                    return StatusCode(401, new { message = "ไม่มีสิทธิในการใช้งานส่วนนี้", });
 
                 var etaxFiles = await _context.etax_files
                 .Where(x => x.id == id)
@@ -3251,6 +3302,17 @@ namespace Etax_Api.Controllers
 
                 if (!jwtStatus.status)
                     return StatusCode(401, new { message = "token ไม่ถูกต้องหรือหมดอายุ", });
+
+                var permission = await (from up in _context.user_permission
+                                        where up.user_id == jwtStatus.user_id
+                                        select new
+                                        {
+                                            up.per_xml_detail,
+                                            up.per_pdf_detail,
+                                        }).FirstOrDefaultAsync();
+
+                if (permission.per_xml_detail != "Y" && permission.per_pdf_detail != "Y")
+                    return StatusCode(401, new { message = "ไม่มีสิทธิในการใช้งานส่วนนี้", });
 
                 using (var transaction = _context.Database.BeginTransaction())
                 {
@@ -3335,6 +3397,13 @@ namespace Etax_Api.Controllers
                 if (!jwtStatus.status)
                     return StatusCode(401, new { message = "token ไม่ถูกต้องหรือหมดอายุ", });
 
+                var permission = await (from up in _context.user_permission
+                                        where up.user_id == jwtStatus.user_id
+                                        select up.per_xml_file).FirstOrDefaultAsync();
+
+                if (permission != "Y")
+                    return StatusCode(401, new { message = "ไม่มีสิทธิในการใช้งานส่วนนี้", });
+
                 EtaxFile etaxFile = await _context.etax_files
                 .Where(x => x.id == id)
                 .FirstOrDefaultAsync();
@@ -3384,6 +3453,13 @@ namespace Etax_Api.Controllers
 
                 if (!jwtStatus.status)
                     return StatusCode(401, new { message = "token ไม่ถูกต้องหรือหมดอายุ", });
+
+                var permission = await (from up in _context.user_permission
+                                        where up.user_id == jwtStatus.user_id
+                                        select up.per_pdf_file).FirstOrDefaultAsync();
+
+                if (permission != "Y")
+                    return StatusCode(401, new { message = "ไม่มีสิทธิในการใช้งานส่วนนี้", });
 
                 EtaxFile etaxFile = await _context.etax_files
                 .Where(x => x.id == id)

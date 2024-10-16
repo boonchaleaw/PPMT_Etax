@@ -193,10 +193,18 @@ namespace Etax_Api
                 }
                 else
                 {
-                    outputFile.WriteLine("รหัสไฟล์,ประเภทเอกสาร,หมายเลขเอกสาร,หมายเลขผู้เสียภาษี,ชื่อผู้เสียภาษี,สาขา,ที่อยู่,ออกเอกสาร,วันที่สร้าง,ยอดขาย,ส่วนลด,ยอดขายสุทธิ,ภาษี,รวม,สถานะส่งอีเมล,สถานะส่งสรรพากร");
+                    outputFile.WriteLine("รหัสไฟล์,ประเภทเอกสาร,หมายเลขเอกสาร,หมายเลขผู้เสียภาษี,ชื่อผู้เสียภาษี,สาขา,ที่อยู่,ออกเอกสาร,วันที่สร้าง,ยอดขาย,ส่วนลด,ยอดขายสุทธิ,ภาษี,รวม,สถานะส่งอีเมล,สถานะส่งสรรพากร,");
+
+                    List<string> checkList = new List<string>();
 
                     foreach (ViewTaxCsvReport data in listData)
                     {
+                        string duplicate = "";
+                        if (!checkList.Contains(data.etax_id))
+                            checkList.Add(data.etax_id);
+                        else
+                            duplicate = "duplicate";
+
                         string issue_date = "";
                         if (data.issue_date != null)
                             issue_date = ((DateTime)data.issue_date).ToString("dd/MM/yyyy");
@@ -238,7 +246,8 @@ namespace Etax_Api
                             data.tax.ToString("0.00") + "," +
                         data.total.ToString("0.00") + "," +
                         status_email + "," +
-                        status_ebxml
+                        status_ebxml + "," +
+                        duplicate
                             );
                     }
                     outputFile.WriteLine("");

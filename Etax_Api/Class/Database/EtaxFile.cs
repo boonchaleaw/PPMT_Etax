@@ -51,6 +51,7 @@ namespace Etax_Api
         public double total{ get; set; }
         public string remark { get; set; }
         public string other { get; set; }
+        public string other2 { get; set; }
         public string group_name { get; set; }
         public string template_pdf { get; set; }
         public string template_email { get; set; }

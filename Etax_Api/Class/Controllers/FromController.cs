@@ -15,6 +15,7 @@ using System.Net;
 using System.Reflection.PortableExecutable;
 using System.Text;
 using System.Threading.Tasks;
+using System.Xml.Linq;
 
 namespace Etax_Api.Controllers
 {
@@ -432,8 +433,8 @@ namespace Etax_Api.Controllers
         }
 
         [HttpPost]
-        [Route("get_data_form")]
-        public async Task<IActionResult> GetSataForm([FromBody] BodyMkData bodyMkData)
+        [Route("get_data_form_mk")]
+        public async Task<IActionResult> GetSataForm_MK([FromBody] BodyMkData bodyMkData)
         {
             try
             {
@@ -478,32 +479,66 @@ namespace Etax_Api.Controllers
                                           ef.buyer_tel,
                                           ef.buyer_email,
                                           ef.create_date,
+                                          ef.delete_status,
                                       }).FirstOrDefaultAsync();
 
                 bool already = false;
                 bool expiry = false;
+                bool cancel = false;
 
                 if (etaxFile != null)
                 {
                     already = true;
 
-                    DateTime expiryDate = DateTime.Now.AddDays(-14);
+                    DateTime expiryDate = DateTime.Now.AddDays(-7);
                     if (expiryDate > etaxFile.create_date)
                         expiry = true;
+
+                    if (etaxFile.delete_status == 1)
+                        cancel = true;
                 }
 
                 if (member != null && branch != null)
                 {
+
+                    string branch_name = "";
+                    string[] branchNameArray = branch.name.Split('|');
+                    foreach (string branchName in branchNameArray)
+                    {
+                        if (branchName.Contains(bodyMkData.branchCode))
+                        {
+                            branch_name = branchName;
+                            break;
+                        }
+                    }
+
                     return StatusCode(200, new
                     {
                         message = "เรียกดูข้อมูลสำเร็จ",
                         data = new
                         {
                             member = member,
-                            branch = branch,
+                            branch = new
+                            {
+                                branch.id,
+                                branch.member_id,
+                                name = branch_name,
+                                branch.branch_code,
+                                branch.building_number,
+                                branch.building_name,
+                                branch.street_name,
+                                branch.district_code,
+                                branch.district_name,
+                                branch.amphoe_code,
+                                branch.amphoe_name,
+                                branch.province_code,
+                                branch.province_name,
+                                branch.zipcode,
+                            },
                             etaxFile = etaxFile,
                             already = already,
                             expiry = expiry,
+                            cancel = cancel,
                             totalText = Function.ThBahtText(bodyMkData.totalAmount),
                         },
                     });
@@ -525,8 +560,8 @@ namespace Etax_Api.Controllers
 
 
         [HttpPost]
-        [Route("save_form")]
-        public async Task<IActionResult> SaveForm([FromBody] BodyUserform bodyUserform)
+        [Route("save_form_mk")]
+        public async Task<IActionResult> SaveForm_MK([FromBody] BodyMkUserform bodyUserform)
         {
             try
             {
@@ -578,7 +613,7 @@ namespace Etax_Api.Controllers
                                 tax = double.Parse(bodyUserform.dataQr.vat),
                                 total = double.Parse(bodyUserform.dataQr.totalAmount),
                                 remark = "",
-                                other = "",
+                                other = bodyUserform.dataQr.branchCode,
                                 group_name = "",
                                 template_pdf = "",
                                 template_email = "",
@@ -626,6 +661,49 @@ namespace Etax_Api.Controllers
 
                         if (etaxFileRef != null)
                             etaxFileRef.delete_status = 1;
+
+
+                        await _context.SaveChangesAsync();
+                        transaction.Commit();
+                    }
+                    catch (Exception ex)
+                    {
+                        transaction.Rollback();
+                        return StatusCode(400, new { message = ex.Message });
+                    }
+                }
+
+                return StatusCode(200, new
+                {
+                    message = "แก้ไขข้อมูลสำเร็จ",
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(400, new { message = ex.Message });
+            }
+        }
+
+        [HttpPost]
+        [Route("cancel_form_mk")]
+        public async Task<IActionResult> CancelForm_MK([FromBody] BodyMkCancel bodyCancel)
+        {
+            try
+            {
+                if (bodyCancel.cancelPassword != "12345")
+                    return StatusCode(401, new { message = "รหัสลับในการลบใบกำกับภาษีไม่ถูกต้อง", });
+
+                using (var transaction = _context.Database.BeginTransaction())
+                {
+                    try
+                    {
+                        EtaxFile etaxFile = await _context.etax_files
+                        .Where(x => x.member_id == bodyCancel.member_id && x.etax_id == bodyCancel.billID)
+                        .FirstOrDefaultAsync();
+
+
+                        if (etaxFile != null)
+                            etaxFile.delete_status = 1;
 
 
                         await _context.SaveChangesAsync();
