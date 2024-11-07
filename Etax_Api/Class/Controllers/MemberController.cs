@@ -213,13 +213,6 @@ namespace Etax_Api.Controllers
                 if (!jwtStatus.status)
                     return StatusCode(401, new { message = "token ไม่ถูกต้องหรือหมดอายุ", });
 
-                var permission = await (from up in _context.user_permission
-                                        where up.user_id == jwtStatus.user_id
-                                        select up.per_user_detail).FirstOrDefaultAsync();
-
-                if (permission != "Y")
-                    return StatusCode(401, new { message = "ไม่มีสิทธิในการใช้งานส่วนนี้", });
-
 
                 List<int> membereId = await (from um in _context.user_members
                                              where um.user_id == jwtStatus.user_id
@@ -273,7 +266,7 @@ namespace Etax_Api.Controllers
 
                 var permission = await (from up in _context.user_permission
                                         where up.user_id == jwtStatus.user_id
-                                        select up.per_user_detail).FirstOrDefaultAsync();
+                                        select up.per_member_menu).FirstOrDefaultAsync();
 
                 if (permission != "Y")
                     return StatusCode(401, new { message = "ไม่มีสิทธิในการใช้งานส่วนนี้", });
@@ -372,7 +365,7 @@ namespace Etax_Api.Controllers
 
                 var permission = await (from up in _context.user_permission
                                         where up.user_id == jwtStatus.user_id
-                                        select up.per_user_detail).FirstOrDefaultAsync();
+                                        select up.per_member_detail).FirstOrDefaultAsync();
 
                 if (permission != "Y")
                     return StatusCode(401, new { message = "ไม่มีสิทธิในการใช้งานส่วนนี้", });
@@ -516,7 +509,7 @@ namespace Etax_Api.Controllers
 
                 var permission = await (from up in _context.user_permission
                                         where up.user_id == jwtStatus.user_id
-                                        select up.per_user_detail).FirstOrDefaultAsync();
+                                        select up.per_member_detail).FirstOrDefaultAsync();
 
                 if (permission != "Y")
                     return StatusCode(401, new { message = "ไม่มีสิทธิในการใช้งานส่วนนี้", });
@@ -626,7 +619,7 @@ namespace Etax_Api.Controllers
 
                 var permission = await (from up in _context.user_permission
                                         where up.user_id == jwtStatus.user_id
-                                        select up.per_user_detail).FirstOrDefaultAsync();
+                                        select up.per_member_detail).FirstOrDefaultAsync();
 
                 if (permission != "Y")
                     return StatusCode(401, new { message = "ไม่มีสิทธิในการใช้งานส่วนนี้", });
@@ -755,7 +748,7 @@ namespace Etax_Api.Controllers
 
                 var permission = await (from up in _context.user_permission
                                         where up.user_id == jwtStatus.user_id
-                                        select up.per_user_detail).FirstOrDefaultAsync();
+                                        select up.per_member_detail).FirstOrDefaultAsync();
 
                 if (permission != "Y")
                     return StatusCode(401, new { message = "ไม่มีสิทธิในการใช้งานส่วนนี้", });

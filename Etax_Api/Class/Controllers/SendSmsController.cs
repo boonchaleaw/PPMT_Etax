@@ -555,11 +555,21 @@ namespace Etax_Api.Controllers
         {
             try
             {
+                DateTime now = DateTime.Now;
                 string token = Request.Headers[HeaderNames.Authorization].ToString();
                 JwtStatus jwtStatus = Jwt.ValidateJwtTokenMember(token, _config);
 
                 if (!jwtStatus.status)
                     return StatusCode(401, new { message = "token ไม่ถูกต้องหรือหมดอายุ", });
+
+                try
+                {
+                    if (!Log.CheckLogSendSms(bodySms.etax_file_id.ToString(), now))
+                    {
+                        return StatusCode(400, new { message = "มีการส่งข้อมูลรายการเดิมซ้ำในเวลาเดียวกัน", });
+                    }
+                }
+                catch { }
 
                 var permission = await (from mup in _context.member_user_permission
                                         where mup.member_user_id == jwtStatus.user_id
@@ -632,6 +642,13 @@ namespace Etax_Api.Controllers
 
                 if (!jwtStatus.status)
                     return StatusCode(401, new { message = "token ไม่ถูกต้องหรือหมดอายุ", });
+
+                var permission = await (from up in _context.user_permission
+                                        where up.user_id == jwtStatus.user_id
+                                        select up.per_sms_menu).FirstOrDefaultAsync();
+
+                if (permission != "Y")
+                    return StatusCode(401, new { message = "ไม่มีสิทธิในการใช้งานส่วนนี้", });
 
                 var searchBy = bodyDtParameters.searchText.Trim();
                 var orderCriteria = "id";
@@ -855,6 +872,12 @@ namespace Etax_Api.Controllers
                 if (!jwtStatus.status)
                     return StatusCode(401, new { message = "token ไม่ถูกต้องหรือหมดอายุ", });
 
+                var permission = await (from up in _context.user_permission
+                                        where up.user_id == jwtStatus.user_id
+                                        select up.per_sms_detail).FirstOrDefaultAsync();
+
+                if (permission != "Y")
+                    return StatusCode(401, new { message = "ไม่มีสิทธิในการใช้งานส่วนนี้", });
 
                 var sendSms = await _context.view_send_sms
                 .Where(x => x.id == id)
@@ -875,6 +898,13 @@ namespace Etax_Api.Controllers
                     x.url_path,
                 })
                 .FirstOrDefaultAsync();
+
+                var membere = await (from um in _context.user_members
+                                     where um.user_id == jwtStatus.user_id && um.member_id == sendSms.member_id
+                                     select um).FirstOrDefaultAsync();
+
+                if (membere == null)
+                    return StatusCode(401, new { message = "ไม่มีสิทธิในการใช้งานส่วนนี้", });
 
                 var member = await _context.members
                 .Where(x => x.id == sendSms.member_id)
@@ -1014,8 +1044,18 @@ namespace Etax_Api.Controllers
                 if (!jwtStatus.status)
                     return StatusCode(401, new { message = "token ไม่ถูกต้องหรือหมดอายุ", });
 
+                var permission = await (from up in _context.user_permission
+                                        where up.user_id == jwtStatus.user_id
+                                        select up.per_sms_detail).FirstOrDefaultAsync();
+
+                if (permission != "Y")
+                    return StatusCode(401, new { message = "ไม่มีสิทธิในการใช้งานส่วนนี้", });
+
                 if (String.IsNullOrEmpty(bodySms.buyer_tel))
                     return StatusCode(400, new { message = "กรุณากำหนดเบอร์โทรศัพท์", });
+
+                if (bodySms.buyer_tel.Split(',').Length >= 10)
+                    return StatusCode(400, new { message = "สามารถส่ง sms ได้สูงสุด 10 รายการ" });
 
                 using (var transaction = _context.Database.BeginTransaction())
                 {
@@ -1027,6 +1067,13 @@ namespace Etax_Api.Controllers
 
                         if (etaxfile != null)
                         {
+                            var membere = await (from um in _context.user_members
+                                                 where um.user_id == jwtStatus.user_id && um.member_id == etaxfile.member_id
+                                                 select um).FirstOrDefaultAsync();
+
+                            if (membere == null)
+                                return StatusCode(401, new { message = "ไม่มีสิทธิในการใช้งานส่วนนี้", });
+
                             etaxfile.buyer_tel = bodySms.buyer_tel;
 
                             var sendSms = _context.send_sms

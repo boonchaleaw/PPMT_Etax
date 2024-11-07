@@ -9,6 +9,7 @@ namespace Etax_Api
         public int id { get; set; }
         public int member_id { get; set; }
         public string member_name { get; set; }
+        public string member_group_name { get; set; }
         public int member_user_id { get; set; }
         public int rawdata_file_id { get; set; }
         public int branch_id { get; set; }
@@ -45,6 +46,7 @@ namespace Etax_Api
         public double price { get; set; }
         public double discount { get; set; }
         public double tax { get; set; }
+        public int tax_rate { get; set; }
         public double total { get; set; }
         public string mode { get; set; }
         public string form_code { get; set; }
@@ -52,5 +54,9 @@ namespace Etax_Api
         public int delete_status { get; set; }
         public string tax_type_filter { get; set; }
         public string group_name { get; set; }
+        public int webhook { get; set; }
+        public string other { get; set; }
+        public string other2 { get; set; }
+        public string remark { get; set; }
     }
 }

@@ -586,6 +586,13 @@ namespace Etax_Api.Controllers
                 if (!jwtStatus.status)
                     return StatusCode(401, new { message = "token ไม่ถูกต้องหรือหมดอายุ", });
 
+                var permission = await (from up in _context.user_permission
+                                        where up.user_id == jwtStatus.user_id
+                                        select up.per_member_detail).FirstOrDefaultAsync();
+
+                if (permission != "Y")
+                    return StatusCode(401, new { message = "ไม่มีสิทธิในการใช้งานส่วนนี้", });
+
                 List<MemberPriceXml> listMemberPriceXml = await _context.member_price_xml.Where(x => x.member_id == id).OrderByProperty("count").ToListAsync();
                 List<MemberPricePdf> listMemberPricePdf = await _context.member_price_pdf.Where(x => x.member_id == id).OrderByProperty("count").ToListAsync();
                 List<MemberPriceEmail> listMemberPriceEmail = await _context.member_price_email.Where(x => x.member_id == id).OrderByProperty("count").ToListAsync();
@@ -624,7 +631,15 @@ namespace Etax_Api.Controllers
                 if (!jwtStatus.status)
                     return StatusCode(401, new { message = "token ไม่ถูกต้องหรือหมดอายุ", });
 
-                if (bodyPrice.price == 0)
+                var permission = await (from up in _context.user_permission
+                                        where up.user_id == jwtStatus.user_id
+                                        select up.per_member_detail).FirstOrDefaultAsync();
+
+                if (permission != "Y")
+                    return StatusCode(401, new { message = "ไม่มีสิทธิในการใช้งานส่วนนี้", });
+
+
+                if (bodyPrice.price <= 0)
                     return StatusCode(400, new { message = "กรุณากำหนดราคา", });
 
                 var checkPrice = _context.member_price_xml.Where(x => x.member_id == bodyPrice.member_id && x.count == bodyPrice.count).FirstOrDefault();
@@ -676,7 +691,15 @@ namespace Etax_Api.Controllers
                 if (!jwtStatus.status)
                     return StatusCode(401, new { message = "token ไม่ถูกต้องหรือหมดอายุ", });
 
-                if (bodyPrice.price == 0)
+                var permission = await (from up in _context.user_permission
+                                        where up.user_id == jwtStatus.user_id
+                                        select up.per_member_detail).FirstOrDefaultAsync();
+
+                if (permission != "Y")
+                    return StatusCode(401, new { message = "ไม่มีสิทธิในการใช้งานส่วนนี้", });
+
+
+                if (bodyPrice.price <= 0)
                     return StatusCode(400, new { message = "กรุณากำหนดราคา", });
 
                 var checkPrice = _context.member_price_pdf.Where(x => x.member_id == bodyPrice.member_id && x.count == bodyPrice.count).FirstOrDefault();
@@ -729,7 +752,15 @@ namespace Etax_Api.Controllers
                 if (!jwtStatus.status)
                     return StatusCode(401, new { message = "token ไม่ถูกต้องหรือหมดอายุ", });
 
-                if (bodyPrice.price == 0)
+                var permission = await (from up in _context.user_permission
+                                        where up.user_id == jwtStatus.user_id
+                                        select up.per_member_detail).FirstOrDefaultAsync();
+
+                if (permission != "Y")
+                    return StatusCode(401, new { message = "ไม่มีสิทธิในการใช้งานส่วนนี้", });
+
+
+                if (bodyPrice.price <= 0)
                     return StatusCode(400, new { message = "กรุณากำหนดราคา", });
 
                 var checkPrice = _context.member_price_email.Where(x => x.member_id == bodyPrice.member_id && x.count == bodyPrice.count).FirstOrDefault();
@@ -782,7 +813,15 @@ namespace Etax_Api.Controllers
                 if (!jwtStatus.status)
                     return StatusCode(401, new { message = "token ไม่ถูกต้องหรือหมดอายุ", });
 
-                if (bodyPrice.price == 0)
+                var permission = await (from up in _context.user_permission
+                                        where up.user_id == jwtStatus.user_id
+                                        select up.per_member_detail).FirstOrDefaultAsync();
+
+                if (permission != "Y")
+                    return StatusCode(401, new { message = "ไม่มีสิทธิในการใช้งานส่วนนี้", });
+
+
+                if (bodyPrice.price <= 0)
                     return StatusCode(400, new { message = "กรุณากำหนดราคา", });
 
                 var checkPrice = _context.member_price_sms.Where(x => x.member_id == bodyPrice.member_id && x.count == bodyPrice.count).FirstOrDefault();
@@ -835,7 +874,15 @@ namespace Etax_Api.Controllers
                 if (!jwtStatus.status)
                     return StatusCode(401, new { message = "token ไม่ถูกต้องหรือหมดอายุ", });
 
-                if (bodyPrice.price == 0)
+                var permission = await (from up in _context.user_permission
+                                        where up.user_id == jwtStatus.user_id
+                                        select up.per_member_detail).FirstOrDefaultAsync();
+
+                if (permission != "Y")
+                    return StatusCode(401, new { message = "ไม่มีสิทธิในการใช้งานส่วนนี้", });
+
+
+                if (bodyPrice.price <= 0)
                     return StatusCode(400, new { message = "กรุณากำหนดราคา", });
 
                 var checkPrice = _context.member_price_ebxml.Where(x => x.member_id == bodyPrice.member_id && x.count == bodyPrice.count).FirstOrDefault();
@@ -888,6 +935,14 @@ namespace Etax_Api.Controllers
                 if (!jwtStatus.status)
                     return StatusCode(401, new { message = "token ไม่ถูกต้องหรือหมดอายุ", });
 
+                var permission = await (from up in _context.user_permission
+                                        where up.user_id == jwtStatus.user_id
+                                        select up.per_member_detail).FirstOrDefaultAsync();
+
+                if (permission != "Y")
+                    return StatusCode(401, new { message = "ไม่มีสิทธิในการใช้งานส่วนนี้", });
+
+
                 using (var transaction = _context.Database.BeginTransaction())
                 {
                     try
@@ -932,6 +987,14 @@ namespace Etax_Api.Controllers
 
                 if (!jwtStatus.status)
                     return StatusCode(401, new { message = "token ไม่ถูกต้องหรือหมดอายุ", });
+
+                var permission = await (from up in _context.user_permission
+                                        where up.user_id == jwtStatus.user_id
+                                        select up.per_member_detail).FirstOrDefaultAsync();
+
+                if (permission != "Y")
+                    return StatusCode(401, new { message = "ไม่มีสิทธิในการใช้งานส่วนนี้", });
+
 
                 using (var transaction = _context.Database.BeginTransaction())
                 {
@@ -978,6 +1041,14 @@ namespace Etax_Api.Controllers
                 if (!jwtStatus.status)
                     return StatusCode(401, new { message = "token ไม่ถูกต้องหรือหมดอายุ", });
 
+                var permission = await (from up in _context.user_permission
+                                        where up.user_id == jwtStatus.user_id
+                                        select up.per_member_detail).FirstOrDefaultAsync();
+
+                if (permission != "Y")
+                    return StatusCode(401, new { message = "ไม่มีสิทธิในการใช้งานส่วนนี้", });
+
+
                 using (var transaction = _context.Database.BeginTransaction())
                 {
                     try
@@ -1023,6 +1094,14 @@ namespace Etax_Api.Controllers
                 if (!jwtStatus.status)
                     return StatusCode(401, new { message = "token ไม่ถูกต้องหรือหมดอายุ", });
 
+                var permission = await (from up in _context.user_permission
+                                        where up.user_id == jwtStatus.user_id
+                                        select up.per_member_detail).FirstOrDefaultAsync();
+
+                if (permission != "Y")
+                    return StatusCode(401, new { message = "ไม่มีสิทธิในการใช้งานส่วนนี้", });
+
+
                 using (var transaction = _context.Database.BeginTransaction())
                 {
                     try
@@ -1067,6 +1146,14 @@ namespace Etax_Api.Controllers
 
                 if (!jwtStatus.status)
                     return StatusCode(401, new { message = "token ไม่ถูกต้องหรือหมดอายุ", });
+
+                var permission = await (from up in _context.user_permission
+                                        where up.user_id == jwtStatus.user_id
+                                        select up.per_member_detail).FirstOrDefaultAsync();
+
+                if (permission != "Y")
+                    return StatusCode(401, new { message = "ไม่มีสิทธิในการใช้งานส่วนนี้", });
+
 
                 using (var transaction = _context.Database.BeginTransaction())
                 {

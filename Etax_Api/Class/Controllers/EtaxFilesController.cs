@@ -885,8 +885,12 @@ namespace Etax_Api.Controllers
                 .Where(x => x.id == xmlFile.member_user_id)
                 .FirstOrDefaultAsync();
 
-                if (xmlFile != null && member != null && branch != null && member_user != null)
+                if (xmlFile != null && member != null && branch != null)
                 {
+                    string member_user_name = "";
+                    if (member_user != null)
+                        member_user_name = member_user.first_name;
+
                     return StatusCode(200, new
                     {
                         message = "เรียกดูข้อมูลสำเร็จ",
@@ -941,7 +945,7 @@ namespace Etax_Api.Controllers
                             discount = xmlFile.discount,
                             tax = xmlFile.tax,
                             total = xmlFile.total,
-                            member_user_name = member_user.first_name,
+                            member_user_name = member_user_name,
                         },
                     });
                 }
@@ -1050,8 +1054,12 @@ namespace Etax_Api.Controllers
                 .Where(x => x.id == pdfFile.member_user_id)
                 .FirstOrDefaultAsync();
 
-                if (pdfFile != null && member != null && branch != null && member_user != null)
+                if (pdfFile != null && member != null && branch != null)
                 {
+                    string member_user_name = "";
+                    if (member_user != null)
+                        member_user_name = member_user.first_name;
+
                     return StatusCode(200, new
                     {
                         message = "เรียกดูข้อมูลสำเร็จ",
@@ -1106,7 +1114,7 @@ namespace Etax_Api.Controllers
                             discount = pdfFile.discount,
                             tax = pdfFile.tax,
                             total = pdfFile.total,
-                            member_user_name = member_user.first_name,
+                            member_user_name = member_user_name,
                         },
                     });
                 }
@@ -1772,7 +1780,7 @@ namespace Etax_Api.Controllers
                     return StatusCode(400, new { message = "ไม่พบข้อมูลที่ต้องการ", });
 
                 DateTime now = DateTime.Now;
-                string sharePath = "/" + etaxFile.member_id + "/" + Encryption.SHA256("path_" + now.ToString("dd-MM-yyyy")) + "/xml/" + etaxFile.name + ".xml";
+                string sharePath = "/" + etaxFile.member_id + "/" + Encryption.SHA256("path_"+ etaxFile.member_id + now.ToString("dd-MM-yyyy")) + "/xml/" + etaxFile.name + ".xml";
 
                 Function.DeleteFile(_config["Path:Share"]);
                 Function.DeleteDirectory(_config["Path:Share"]);
@@ -1829,7 +1837,7 @@ namespace Etax_Api.Controllers
                     return StatusCode(400, new { message = "ไม่พบข้อมูลที่ต้องการ", });
 
                 DateTime now = DateTime.Now;
-                string sharePath = "/" + etaxFile.member_id + "/" + Encryption.SHA256("path_" + now.ToString("dd-MM-yyyy")) + "/pdf/" + etaxFile.name + ".pdf";
+                string sharePath = "/" + etaxFile.member_id + "/" + Encryption.SHA256("path_"+ etaxFile.member_id + now.ToString("dd-MM-yyyy")) + "/pdf/" + etaxFile.name + ".pdf";
 
                 Function.DeleteFile(_config["Path:Share"]);
                 Function.DeleteDirectory(_config["Path:Share"]);
@@ -2492,6 +2500,15 @@ namespace Etax_Api.Controllers
                 })
                 .FirstOrDefaultAsync();
 
+
+                var membere = await (from um in _context.user_members
+                                     where um.user_id == jwtStatus.user_id && um.member_id == xmlFile.member_id
+                                     select um).FirstOrDefaultAsync();
+
+                if (membere == null)
+                    return StatusCode(401, new { message = "ไม่มีสิทธิในการใช้งานส่วนนี้", });
+
+
                 var member = await _context.members
                 .Where(x => x.id == xmlFile.member_id)
                 .Select(x => new
@@ -2996,6 +3013,14 @@ namespace Etax_Api.Controllers
                 })
                 .FirstOrDefaultAsync();
 
+                var membere = await (from um in _context.user_members
+                                     where um.user_id == jwtStatus.user_id && um.member_id == pdfFile.member_id
+                                     select um).FirstOrDefaultAsync();
+
+                if (membere == null)
+                    return StatusCode(401, new { message = "ไม่มีสิทธิในการใช้งานส่วนนี้", });
+
+
                 var member = await _context.members
                 .Where(x => x.id == pdfFile.member_id)
                 .Select(x => new
@@ -3411,8 +3436,15 @@ namespace Etax_Api.Controllers
                 if (etaxFile == null)
                     return StatusCode(400, new { message = "ไม่พบข้อมูลที่ต้องการ", });
 
+                var membere = await (from um in _context.user_members
+                                     where um.user_id == jwtStatus.user_id && um.member_id == etaxFile.member_id
+                                     select um).FirstOrDefaultAsync();
+
+                if (membere == null)
+                    return StatusCode(401, new { message = "ไม่มีสิทธิในการใช้งานส่วนนี้", });
+
                 DateTime now = DateTime.Now;
-                string sharePath = "/" + etaxFile.member_id + "/" + Encryption.SHA256("path_" + now.ToString("dd-MM-yyyy")) + "/xml/" + etaxFile.name + ".xml";
+                string sharePath = "/" + etaxFile.member_id + "/" + Encryption.SHA256("path_" + etaxFile.member_id + now.ToString("dd-MM-yyyy")) + "/xml/" + etaxFile.name + ".xml";
 
                 Function.DeleteFile(_config["Path:Share"]);
                 Function.DeleteDirectory(_config["Path:Share"]);
@@ -3468,8 +3500,15 @@ namespace Etax_Api.Controllers
                 if (etaxFile == null)
                     return StatusCode(400, new { message = "ไม่พบข้อมูลที่ต้องการ", });
 
+                var membere = await (from um in _context.user_members
+                                     where um.user_id == jwtStatus.user_id && um.member_id == etaxFile.member_id
+                                     select um).FirstOrDefaultAsync();
+
+                if (membere == null)
+                    return StatusCode(401, new { message = "ไม่มีสิทธิในการใช้งานส่วนนี้", });
+
                 DateTime now = DateTime.Now;
-                string sharePath = "/" + etaxFile.member_id + "/" + Encryption.SHA256("path_" + now.ToString("dd-MM-yyyy")) + "/pdf/" + etaxFile.name + ".pdf";
+                string sharePath = "/" + etaxFile.member_id + "/" + Encryption.SHA256("path_"+ etaxFile.member_id + now.ToString("dd-MM-yyyy")) + "/pdf/" + etaxFile.name + ".pdf";
 
                 Function.DeleteFile(_config["Path:Share"]);
                 Function.DeleteDirectory(_config["Path:Share"]);

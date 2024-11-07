@@ -568,11 +568,21 @@ namespace Etax_Api.Controllers
         {
             try
             {
+                DateTime now = DateTime.Now;
                 string token = Request.Headers[HeaderNames.Authorization].ToString();
                 JwtStatus jwtStatus = Jwt.ValidateJwtTokenMember(token, _config);
 
                 if (!jwtStatus.status)
                     return StatusCode(401, new { message = "token ไม่ถูกต้องหรือหมดอายุ", });
+
+                try
+                {
+                    if (!Log.CheckLogSendEmail(bodyEmail.etax_file_id.ToString(), now))
+                    {
+                        return StatusCode(400, new { message = "มีการส่งข้อมูลรายการเดิมซ้ำในเวลาเดียวกัน", });
+                    }
+                }
+                catch { }
 
                 var permission = await (from mup in _context.member_user_permission
                                         where mup.member_user_id == jwtStatus.user_id
@@ -692,7 +702,7 @@ namespace Etax_Api.Controllers
 
         [HttpPost]
         [Route("admin/get_email_tabel")]
-        public async Task<IActionResult> GetSendEbxmlDataTabelAdmin([FromBody] BodyDtParameters bodyDtParameters)
+        public async Task<IActionResult> GetSendEmailDataTabelAdmin([FromBody] BodyDtParameters bodyDtParameters)
         {
             try
             {
@@ -701,6 +711,13 @@ namespace Etax_Api.Controllers
 
                 if (!jwtStatus.status)
                     return StatusCode(401, new { message = "token ไม่ถูกต้องหรือหมดอายุ", });
+
+                var permission = await (from up in _context.user_permission
+                                        where up.user_id == jwtStatus.user_id
+                                        select up.per_email_menu).FirstOrDefaultAsync();
+
+                if (permission != "Y")
+                    return StatusCode(401, new { message = "ไม่มีสิทธิในการใช้งานส่วนนี้", });
 
                 var searchBy = bodyDtParameters.searchText.Trim();
                 var orderCriteria = "id";
@@ -924,6 +941,12 @@ namespace Etax_Api.Controllers
                 if (!jwtStatus.status)
                     return StatusCode(401, new { message = "token ไม่ถูกต้องหรือหมดอายุ", });
 
+                var permission = await (from up in _context.user_permission
+                                        where up.user_id == jwtStatus.user_id
+                                        select up.per_email_detail).FirstOrDefaultAsync();
+
+                if (permission != "Y")
+                    return StatusCode(401, new { message = "ไม่มีสิทธิในการใช้งานส่วนนี้", });
 
                 var sendEmail = await _context.view_send_email
                 .Where(x => x.id == id)
@@ -947,6 +970,13 @@ namespace Etax_Api.Controllers
                     x.url_path,
                 })
                 .FirstOrDefaultAsync();
+
+                var membere = await (from um in _context.user_members
+                                     where um.user_id == jwtStatus.user_id && um.member_id == sendEmail.member_id
+                                     select um).FirstOrDefaultAsync();
+
+                if (membere == null)
+                    return StatusCode(401, new { message = "ไม่มีสิทธิในการใช้งานส่วนนี้", });
 
                 var member = await _context.members
                 .Where(x => x.id == sendEmail.member_id)
@@ -1089,8 +1119,19 @@ namespace Etax_Api.Controllers
                 if (!jwtStatus.status)
                     return StatusCode(401, new { message = "token ไม่ถูกต้องหรือหมดอายุ", });
 
+                var permission = await (from up in _context.user_permission
+                                        where up.user_id == jwtStatus.user_id
+                                        select up.per_email_detail).FirstOrDefaultAsync();
+
+                if (permission != "Y")
+                    return StatusCode(401, new { message = "ไม่มีสิทธิในการใช้งานส่วนนี้", });
+
+
                 if (String.IsNullOrEmpty(bodyEmail.buyer_email))
                     return StatusCode(400, new { message = "กรุณากำหนดอีเมล", });
+
+                if (bodyEmail.buyer_email.Split(',').Length >= 10)
+                    return StatusCode(400, new { message = "สามารถส่ง email ได้สูงสุด 10 รายการ" });
 
                 using (var transaction = _context.Database.BeginTransaction())
                 {
@@ -1102,6 +1143,13 @@ namespace Etax_Api.Controllers
 
                         if (etaxfile != null)
                         {
+                            var membere = await (from um in _context.user_members
+                                                 where um.user_id == jwtStatus.user_id && um.member_id == etaxfile.member_id
+                                                 select um).FirstOrDefaultAsync();
+
+                            if (membere == null)
+                                return StatusCode(401, new { message = "ไม่มีสิทธิในการใช้งานส่วนนี้", });
+
                             etaxfile.buyer_email = bodyEmail.buyer_email;
                             etaxfile.send_xml_status = (bodyEmail.send_xml_status) ? "Y" : "N";
 

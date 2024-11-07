@@ -1991,6 +1991,21 @@ namespace Etax_Api.Controllers
                 if (!jwtStatus.status)
                     return StatusCode(401, new { message = "token ไม่ถูกต้องหรือหมดอายุ", });
 
+                var permission = await (from up in _context.user_permission
+                                        where up.user_id == jwtStatus.user_id
+                                        select up.per_report_menu).FirstOrDefaultAsync();
+
+                if (permission != "Y")
+                    return StatusCode(401, new { message = "ไม่มีสิทธิในการใช้งานส่วนนี้", });
+
+               var membere = await (from um in _context.user_members
+                                             where um.user_id == jwtStatus.user_id && um.member_id == bodyCostReportAdmin.member_id
+                                             select um).FirstOrDefaultAsync();
+
+                if (membere == null)
+                    return StatusCode(401, new { message = "ไม่มีสิทธิในการใช้งานส่วนนี้", });
+
+
                 bodyCostReportAdmin.dateStart = DateTime.Parse(bodyCostReportAdmin.dateStart.ToString()).Date;
                 bodyCostReportAdmin.dateEnd = bodyCostReportAdmin.dateEnd.AddDays(+1).AddMilliseconds(-1);
 
@@ -2078,7 +2093,7 @@ namespace Etax_Api.Controllers
                 if (price_type != null && price_type.email_price_type == "tran")
                 {
                     var email_tran = await _context.view_send_email_list
-                    .Where(x => x.member_id == jwtStatus.member_id && x.send_email_status == "success" && x.create_date >= bodyCostReportAdmin.dateStart && x.create_date <= bodyCostReportAdmin.dateEnd)
+                    .Where(x => x.member_id == bodyCostReportAdmin.member_id && x.send_email_status == "success" && x.create_date >= bodyCostReportAdmin.dateStart && x.create_date <= bodyCostReportAdmin.dateEnd)
                     .GroupBy(x => x.etax_file_id)
                     .Select(x => new
                     {
@@ -2157,6 +2172,21 @@ namespace Etax_Api.Controllers
 
                 if (!jwtStatus.status)
                     return StatusCode(401, new { message = "token ไม่ถูกต้องหรือหมดอายุ", });
+
+                var permission = await (from up in _context.user_permission
+                                        where up.user_id == jwtStatus.user_id
+                                        select up.per_report_menu).FirstOrDefaultAsync();
+
+                if (permission != "Y")
+                    return StatusCode(401, new { message = "ไม่มีสิทธิในการใช้งานส่วนนี้", });
+
+                var membere = await (from um in _context.user_members
+                                     where um.user_id == jwtStatus.user_id && um.member_id == bodyCostReportAdmin.member_id
+                                     select um).FirstOrDefaultAsync();
+
+                if (membere == null)
+                    return StatusCode(401, new { message = "ไม่มีสิทธิในการใช้งานส่วนนี้", });
+
 
                 if (bodyCostReportAdmin.member_id == 0)
                     return StatusCode(400, new { message = "กรุณากำหนดลูกค้า", });
@@ -2253,7 +2283,7 @@ namespace Etax_Api.Controllers
                 if (price_type != null && price_type.email_price_type == "tran")
                 {
                     var email_tran = await _context.view_send_email_list
-                    .Where(x => x.member_id == jwtStatus.member_id && x.send_email_status == "success" && x.create_date >= bodyCostReportAdmin.dateStart && x.create_date <= bodyCostReportAdmin.dateEnd)
+                    .Where(x => x.member_id == bodyCostReportAdmin.member_id && x.send_email_status == "success" && x.create_date >= bodyCostReportAdmin.dateStart && x.create_date <= bodyCostReportAdmin.dateEnd)
                     .GroupBy(x => x.etax_file_id)
                     .Select(x => new
                     {
@@ -2350,6 +2380,21 @@ namespace Etax_Api.Controllers
 
                 if (!jwtStatus.status)
                     return StatusCode(401, new { message = "token ไม่ถูกต้องหรือหมดอายุ", });
+
+                var permission = await (from up in _context.user_permission
+                                        where up.user_id == jwtStatus.user_id
+                                        select up.per_report_menu).FirstOrDefaultAsync();
+
+                if (permission != "Y")
+                    return StatusCode(401, new { message = "ไม่มีสิทธิในการใช้งานส่วนนี้", });
+
+                var membere = await (from um in _context.user_members
+                                     where um.user_id == jwtStatus.user_id && um.member_id == bodyDtParameters.id
+                                     select um).FirstOrDefaultAsync();
+
+                if (membere == null)
+                    return StatusCode(401, new { message = "ไม่มีสิทธิในการใช้งานส่วนนี้", });
+
 
                 var searchBy = bodyDtParameters.searchText;
                 var orderCriteria = "id";
@@ -2538,6 +2583,14 @@ namespace Etax_Api.Controllers
                 if (!jwtStatus.status)
                     return StatusCode(401, new { message = "token ไม่ถูกต้องหรือหมดอายุ", });
 
+                var permission = await (from up in _context.user_permission
+                                        where up.user_id == jwtStatus.user_id
+                                        select up.per_report_menu).FirstOrDefaultAsync();
+
+                if (permission != "Y")
+                    return StatusCode(401, new { message = "ไม่มีสิทธิในการใช้งานส่วนนี้", });
+
+
                 var searchBy = bodyDtParameters.searchText;
                 var orderCriteria = "id";
                 var orderAscendingDirection = true;
@@ -2557,6 +2610,13 @@ namespace Etax_Api.Controllers
 
                 if (bodyDtParameters.id != 0)
                 {
+                    var membere = await (from um in _context.user_members
+                                         where um.user_id == jwtStatus.user_id && um.member_id == bodyDtParameters.id
+                                         select um).FirstOrDefaultAsync();
+
+                    if (membere == null)
+                        return StatusCode(401, new { message = "ไม่มีสิทธิในการใช้งานส่วนนี้", });
+
                     result = result.Where(x => x.member_id == bodyDtParameters.id);
                 }
                 else
@@ -2713,6 +2773,14 @@ namespace Etax_Api.Controllers
                 if (!jwtStatus.status)
                     return StatusCode(401, new { message = "token ไม่ถูกต้องหรือหมดอายุ", });
 
+                var permission = await (from up in _context.user_permission
+                                        where up.user_id == jwtStatus.user_id
+                                        select up.per_report_menu).FirstOrDefaultAsync();
+
+                if (permission != "Y")
+                    return StatusCode(401, new { message = "ไม่มีสิทธิในการใช้งานส่วนนี้", });
+
+
                 var searchBy = bodyDtParameters.Search?.Value;
                 var orderCriteria = "id";
                 var orderAscendingDirection = true;
@@ -2731,6 +2799,13 @@ namespace Etax_Api.Controllers
 
                 if (bodyDtParameters.id != 0)
                 {
+                    var membere = await (from um in _context.user_members
+                                         where um.user_id == jwtStatus.user_id && um.member_id == bodyDtParameters.id
+                                         select um).FirstOrDefaultAsync();
+
+                    if (membere == null)
+                        return StatusCode(401, new { message = "ไม่มีสิทธิในการใช้งานส่วนนี้", });
+
                     result = result.Where(x => x.member_id == bodyDtParameters.id);
                 }
                 else

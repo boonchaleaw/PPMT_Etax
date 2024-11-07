@@ -65,5 +65,6 @@ namespace Etax_Api
         public string form_code { get; set; }
         public int paper { get; set; }
         public int webhook { get; set; }
+        public int update_count { get; set; }
     }
 }

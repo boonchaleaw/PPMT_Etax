@@ -837,6 +837,13 @@ namespace Etax_Api.Controllers
                 if (!jwtStatus.status)
                     return StatusCode(401, new { message = "token ไม่ถูกต้องหรือหมดอายุ", });
 
+                var permission = await (from up in _context.user_permission
+                                        where up.user_id == jwtStatus.user_id
+                                        select up.per_raw_menu).FirstOrDefaultAsync();
+
+                if (permission != "Y")
+                    return StatusCode(401, new { message = "ไม่มีสิทธิในการใช้งานส่วนนี้", });
+
                 var searchBy = bodyDtParameters.searchText;
                 var orderCriteria = "id";
                 var orderAscendingDirection = true;
@@ -951,6 +958,12 @@ namespace Etax_Api.Controllers
                 if (!jwtStatus.status)
                     return StatusCode(401, new { message = "token ไม่ถูกต้องหรือหมดอายุ", });
 
+                var permission = await (from up in _context.user_permission
+                                        where up.user_id == jwtStatus.user_id
+                                        select up.per_raw_detail).FirstOrDefaultAsync();
+
+                if (permission != "Y")
+                    return StatusCode(401, new { message = "ไม่มีสิทธิในการใช้งานส่วนนี้", });
 
                 var rawDataFile = await _context.view_rawdata_files
                 .Where(x => x.id == id)
@@ -977,6 +990,13 @@ namespace Etax_Api.Controllers
                     create_date = x.create_date.ToString("dd/MM/yyyy HH:mm:ss"),
                 })
                 .FirstOrDefaultAsync();
+
+                var membere = await (from um in _context.user_members
+                                     where um.user_id == jwtStatus.user_id && um.member_id == rawDataFile.member_id
+                                     select um).FirstOrDefaultAsync();
+
+                if (membere == null)
+                    return StatusCode(401, new { message = "ไม่มีสิทธิในการใช้งานส่วนนี้", });
 
                 var member = await _context.members
                 .Where(x => x.id == jwtStatus.member_id)

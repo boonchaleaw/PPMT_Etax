@@ -785,6 +785,13 @@ namespace Etax_Api.Controllers
                 if (!jwtStatus.status)
                     return StatusCode(401, new { message = "token ไม่ถูกต้องหรือหมดอายุ", });
 
+                var permission = await (from up in _context.user_permission
+                                        where up.user_id == jwtStatus.user_id
+                                        select up.per_member_detail).FirstOrDefaultAsync();
+
+                if (permission != "Y")
+                    return StatusCode(401, new { message = "ไม่มีสิทธิในการใช้งานส่วนนี้", });
+
                 var searchBy = bodyDtParameters.Search?.Value;
                 var orderCriteria = "id";
                 var orderAscendingDirection = true;
@@ -893,6 +900,13 @@ namespace Etax_Api.Controllers
                 if (!jwtStatus.status)
                     return StatusCode(401, new { message = "token ไม่ถูกต้องหรือหมดอายุ", });
 
+                var permission = await (from up in _context.user_permission
+                                        where up.user_id == jwtStatus.user_id
+                                        select up.per_member_detail).FirstOrDefaultAsync();
+
+                if (permission != "Y")
+                    return StatusCode(401, new { message = "ไม่มีสิทธิในการใช้งานส่วนนี้", });
+
 
                 var member_users = await _context.member_users
                 .Where(x => x.id == id)
@@ -942,6 +956,13 @@ namespace Etax_Api.Controllers
 
                 if (!jwtStatus.status)
                     return StatusCode(401, new { message = "token ไม่ถูกต้องหรือหมดอายุ", });
+
+                var permission = await (from up in _context.user_permission
+                                        where up.user_id == jwtStatus.user_id
+                                        select up.per_member_detail).FirstOrDefaultAsync();
+
+                if (permission != "Y")
+                    return StatusCode(401, new { message = "ไม่มีสิทธิในการใช้งานส่วนนี้", });
 
 
                 var member_user_permission = await _context.member_user_permission
@@ -998,6 +1019,14 @@ namespace Etax_Api.Controllers
                 if (!jwtStatus.status)
                     return StatusCode(401, new { message = "token ไม่ถูกต้องหรือหมดอายุ", });
 
+                var permission = await (from up in _context.user_permission
+                                        where up.user_id == jwtStatus.user_id
+                                        select up.per_member_detail).FirstOrDefaultAsync();
+
+                if (permission != "Y")
+                    return StatusCode(401, new { message = "ไม่มีสิทธิในการใช้งานส่วนนี้", });
+
+
                 if (String.IsNullOrEmpty(bodyMemberUserAdmin.first_name))
                     return StatusCode(400, new { message = "กรุณากำหนดชื่อลูกค้า", });
 
@@ -1015,6 +1044,33 @@ namespace Etax_Api.Controllers
 
                 if (bodyMemberUserAdmin.password != bodyMemberUserAdmin.confirm_password)
                     return StatusCode(400, new { message = "รหัสผ่านและยืนยันรหัสผ่านไม่ถูกต้อง", });
+
+                var hasNumber = new Regex(@"[0-9]+");
+                var hasUpperChar = new Regex(@"[A-Z]+");
+                var hasMiniMaxChars = new Regex(@".{8,64}");
+                var hasLowerChar = new Regex(@"[a-z]+");
+                var hasSymbols = new Regex(@"[!@#$%^&*()_+=\[{\]};:<>|./?,-]");
+
+                if (!hasLowerChar.IsMatch(bodyMemberUserAdmin.password))
+                {
+                    return StatusCode(400, new { message = "กรุณาตั้งรหัสผ่านให้มีภาษาอังกฤษตัวเล็กอย่างน้อย 1 ตัวอักษร", });
+                }
+                else if (!hasUpperChar.IsMatch(bodyMemberUserAdmin.password))
+                {
+                    return StatusCode(400, new { message = "กรุณาตั้งรหัสผ่านให้มีภาษาอังกฤษตัวใหญ่อย่างน้อย 1 ตัวอักษร", });
+                }
+                else if (!hasMiniMaxChars.IsMatch(bodyMemberUserAdmin.password))
+                {
+                    return StatusCode(400, new { message = "กรุณากำหนดรหัสผ่านใหม่มากกว่า 8 ตัวอักษร", });
+                }
+                else if (!hasNumber.IsMatch(bodyMemberUserAdmin.password))
+                {
+                    return StatusCode(400, new { message = "กรุณาตั้งรหัสผ่านให้มีภาษาอังกฤษตัวเลขอย่างน้อย 1 ตัวอักษร", });
+                }
+                else if (!hasSymbols.IsMatch(bodyMemberUserAdmin.password))
+                {
+                    return StatusCode(400, new { message = "กรุณาตั้งรหัสผ่านให้มีสัญลักษณ์พิเศษอย่างน้อย 1 ตัวอักษร", });
+                }
 
                 using (var transaction = _context.Database.BeginTransaction())
                 {
@@ -1090,6 +1146,14 @@ namespace Etax_Api.Controllers
                 if (!jwtStatus.status)
                     return StatusCode(401, new { message = "token ไม่ถูกต้องหรือหมดอายุ", });
 
+                var permission = await (from up in _context.user_permission
+                                        where up.user_id == jwtStatus.user_id
+                                        select up.per_member_detail).FirstOrDefaultAsync();
+
+                if (permission != "Y")
+                    return StatusCode(401, new { message = "ไม่มีสิทธิในการใช้งานส่วนนี้", });
+
+
                 if (String.IsNullOrEmpty(bodyMemberUserAdmin.first_name))
                     return StatusCode(400, new { message = "กรุณากำหนดชื่อลูกค้า", });
 
@@ -1153,6 +1217,14 @@ namespace Etax_Api.Controllers
                 if (!jwtStatus.status)
                     return StatusCode(401, new { message = "token ไม่ถูกต้องหรือหมดอายุ", });
 
+                var permission = await (from up in _context.user_permission
+                                        where up.user_id == jwtStatus.user_id
+                                        select up.per_member_detail).FirstOrDefaultAsync();
+
+                if (permission != "Y")
+                    return StatusCode(401, new { message = "ไม่มีสิทธิในการใช้งานส่วนนี้", });
+
+
                 using (var transaction = _context.Database.BeginTransaction())
                 {
                     try
@@ -1213,11 +1285,46 @@ namespace Etax_Api.Controllers
                 if (!jwtStatus.status)
                     return StatusCode(401, new { message = "token ไม่ถูกต้องหรือหมดอายุ", });
 
+                var permission = await (from up in _context.user_permission
+                                        where up.user_id == jwtStatus.user_id
+                                        select up.per_member_detail).FirstOrDefaultAsync();
+
+                if (permission != "Y")
+                    return StatusCode(401, new { message = "ไม่มีสิทธิในการใช้งานส่วนนี้", });
+
+
                 if (bodyMemberUserAdmin.password.Length < 8)
                     return StatusCode(400, new { message = "กรุณากำหนดรหัสผ่านมากกว่า 8 ตัวอักษร", });
 
                 if (bodyMemberUserAdmin.password != bodyMemberUserAdmin.confirm_password)
                     return StatusCode(400, new { message = "รหัสผ่านและยืนยันรหัสผ่านไม่ถูกต้อง", });
+
+                var hasNumber = new Regex(@"[0-9]+");
+                var hasUpperChar = new Regex(@"[A-Z]+");
+                var hasMiniMaxChars = new Regex(@".{8,64}");
+                var hasLowerChar = new Regex(@"[a-z]+");
+                var hasSymbols = new Regex(@"[!@#$%^&*()_+=\[{\]};:<>|./?,-]");
+
+                if (!hasLowerChar.IsMatch(bodyMemberUserAdmin.password))
+                {
+                    return StatusCode(400, new { message = "กรุณาตั้งรหัสผ่านให้มีภาษาอังกฤษตัวเล็กอย่างน้อย 1 ตัวอักษร", });
+                }
+                else if (!hasUpperChar.IsMatch(bodyMemberUserAdmin.password))
+                {
+                    return StatusCode(400, new { message = "กรุณาตั้งรหัสผ่านให้มีภาษาอังกฤษตัวใหญ่อย่างน้อย 1 ตัวอักษร", });
+                }
+                else if (!hasMiniMaxChars.IsMatch(bodyMemberUserAdmin.password))
+                {
+                    return StatusCode(400, new { message = "กรุณากำหนดรหัสผ่านใหม่มากกว่า 8 ตัวอักษร", });
+                }
+                else if (!hasNumber.IsMatch(bodyMemberUserAdmin.password))
+                {
+                    return StatusCode(400, new { message = "กรุณาตั้งรหัสผ่านให้มีภาษาอังกฤษตัวเลขอย่างน้อย 1 ตัวอักษร", });
+                }
+                else if (!hasSymbols.IsMatch(bodyMemberUserAdmin.password))
+                {
+                    return StatusCode(400, new { message = "กรุณาตั้งรหัสผ่านให้มีสัญลักษณ์พิเศษอย่างน้อย 1 ตัวอักษร", });
+                }
 
                 using (var transaction = _context.Database.BeginTransaction())
                 {
@@ -1266,6 +1373,14 @@ namespace Etax_Api.Controllers
 
                 if (!jwtStatus.status)
                     return StatusCode(401, new { message = "token ไม่ถูกต้องหรือหมดอายุ", });
+
+                var permission = await (from up in _context.user_permission
+                                        where up.user_id == jwtStatus.user_id
+                                        select up.per_member_detail).FirstOrDefaultAsync();
+
+                if (permission != "Y")
+                    return StatusCode(401, new { message = "ไม่มีสิทธิในการใช้งานส่วนนี้", });
+
 
                 using (var transaction = _context.Database.BeginTransaction())
                 {

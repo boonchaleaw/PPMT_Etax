@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Net.Http.Headers;
+using RestSharp;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -28,6 +29,445 @@ namespace Etax_Api.Class.Controllers
             _context.Database.SetCommandTimeout(180);
         }
 
+        [HttpPost]
+        [Route("export_pdffiles_csv")]
+        public async Task<IActionResult> ExportPdfFilesCSV([FromBody] BodyDtParameters bodyDtParameters)
+        {
+            try
+            {
+                string token = Request.Headers[HeaderNames.Authorization].ToString();
+                JwtStatus jwtStatus = Jwt.ValidateJwtTokenMember(token, _config);
+
+                if (!jwtStatus.status)
+                    return StatusCode(401, new { message = "token ไม่ถูกต้องหรือหมดอายุ", });
+
+                var permission = await (from mup in _context.member_user_permission
+                                        where mup.member_user_id == jwtStatus.user_id
+                                        select new
+                                        {
+                                            mup.per_pdf_view,
+                                            mup.view_self_only,
+                                            mup.view_branch_only,
+                                        }).FirstOrDefaultAsync();
+
+                if (permission.per_pdf_view != "Y")
+                    return StatusCode(401, new { message = "ไม่มีสิทธิในการใช้งานส่วนนี้", });
+
+                var searchBy = bodyDtParameters.searchText.Trim();
+                var orderCriteria = "id";
+                var orderAscendingDirection = true;
+
+                if (bodyDtParameters.Order != null)
+                {
+                    orderCriteria = bodyDtParameters.Columns[bodyDtParameters.Order[0].Column].Data;
+                    orderAscendingDirection = bodyDtParameters.Order[0].Dir.ToString().ToLower() == "asc";
+                }
+
+                var result = _context.view_etax_files.Where(x => x.member_id == jwtStatus.member_id && x.gen_pdf_status != "no" && x.delete_status == 0).AsQueryable();
+
+                result = result.Where(r => r.mode != "form");
+
+                if (permission.view_self_only == "Y")
+                {
+                    result = result.Where(r => r.member_user_id == jwtStatus.user_id);
+                }
+
+                if (permission.view_branch_only == "Y")
+                {
+                    List<int> branchId = await (from mub in _context.member_user_branch
+                                                where mub.member_user_id == jwtStatus.user_id
+                                                select mub.branch_id).ToListAsync();
+
+                    result = result.Where(r => branchId.Contains(r.branch_id));
+                }
+
+                bodyDtParameters.dateStart = DateTime.Parse(bodyDtParameters.dateStart.ToString()).Date;
+                bodyDtParameters.dateEnd = bodyDtParameters.dateEnd.AddDays(+1).AddMilliseconds(-1);
+
+
+                int document_id = System.Convert.ToInt32(bodyDtParameters.docType);
+
+                if (!string.IsNullOrEmpty(searchBy))
+                {
+                    if (document_id == 0)
+                    {
+                        if (bodyDtParameters.statusType1 == "")
+                        {
+                            if (bodyDtParameters.dateType == "issue_date")
+                            {
+                                result = result.Where(r =>
+                                    (r.etax_id.Contains(searchBy) && r.issue_date >= bodyDtParameters.dateStart && r.issue_date <= bodyDtParameters.dateEnd) ||
+                                    (r.raw_name.Contains(searchBy) && r.issue_date >= bodyDtParameters.dateStart && r.issue_date <= bodyDtParameters.dateEnd) ||
+                                    (r.name.Contains(searchBy) && r.issue_date >= bodyDtParameters.dateStart && r.issue_date <= bodyDtParameters.dateEnd)
+                                );
+                            }
+                            else
+                            {
+                                result = result.Where(r =>
+                                    (r.etax_id.Contains(searchBy) && r.create_date >= bodyDtParameters.dateStart && r.create_date <= bodyDtParameters.dateEnd) ||
+                                    (r.raw_name.Contains(searchBy) && r.create_date >= bodyDtParameters.dateStart && r.create_date <= bodyDtParameters.dateEnd) ||
+                                    (r.name.Contains(searchBy) && r.create_date >= bodyDtParameters.dateStart && r.create_date <= bodyDtParameters.dateEnd)
+                                );
+                            }
+                        }
+                        else
+                        {
+                            if (bodyDtParameters.dateType == "issue_date")
+                            {
+                                result = result.Where(r =>
+                                    (r.gen_pdf_status == bodyDtParameters.statusType1 && r.etax_id.Contains(searchBy) && r.issue_date >= bodyDtParameters.dateStart && r.issue_date <= bodyDtParameters.dateEnd) ||
+                                    (r.gen_pdf_status == bodyDtParameters.statusType1 && r.raw_name.Contains(searchBy) && r.issue_date >= bodyDtParameters.dateStart && r.issue_date <= bodyDtParameters.dateEnd) ||
+                                    (r.gen_pdf_status == bodyDtParameters.statusType1 && r.name.Contains(searchBy) && r.issue_date >= bodyDtParameters.dateStart && r.issue_date <= bodyDtParameters.dateEnd)
+                                );
+                            }
+                            else
+                            {
+                                result = result.Where(r =>
+                                    (r.gen_pdf_status == bodyDtParameters.statusType1 && r.etax_id.Contains(searchBy) && r.create_date >= bodyDtParameters.dateStart && r.create_date <= bodyDtParameters.dateEnd) ||
+                                    (r.gen_pdf_status == bodyDtParameters.statusType1 && r.raw_name.Contains(searchBy) && r.create_date >= bodyDtParameters.dateStart && r.create_date <= bodyDtParameters.dateEnd) ||
+                                    (r.gen_pdf_status == bodyDtParameters.statusType1 && r.name.Contains(searchBy) && r.create_date >= bodyDtParameters.dateStart && r.create_date <= bodyDtParameters.dateEnd)
+                                );
+                            }
+                        }
+                    }
+                    else
+                    {
+                        if (bodyDtParameters.statusType1 == "")
+                        {
+                            if (bodyDtParameters.dateType == "issue_date")
+                            {
+                                result = result.Where(r =>
+                                    (r.document_type_id == document_id && r.etax_id.Contains(searchBy) && r.issue_date >= bodyDtParameters.dateStart && r.issue_date <= bodyDtParameters.dateEnd) ||
+                                    (r.document_type_id == document_id && r.raw_name.Contains(searchBy) && r.issue_date >= bodyDtParameters.dateStart && r.issue_date <= bodyDtParameters.dateEnd) ||
+                                    (r.document_type_id == document_id && r.name.Contains(searchBy) && r.issue_date >= bodyDtParameters.dateStart && r.issue_date <= bodyDtParameters.dateEnd)
+                                );
+                            }
+                            else
+                            {
+                                result = result.Where(r =>
+                                    (r.document_type_id == document_id && r.etax_id.Contains(searchBy) && r.create_date >= bodyDtParameters.dateStart && r.create_date <= bodyDtParameters.dateEnd) ||
+                                    (r.document_type_id == document_id && r.raw_name.Contains(searchBy) && r.create_date >= bodyDtParameters.dateStart && r.create_date <= bodyDtParameters.dateEnd) ||
+                                    (r.document_type_id == document_id && r.name.Contains(searchBy) && r.create_date >= bodyDtParameters.dateStart && r.create_date <= bodyDtParameters.dateEnd)
+                                );
+                            }
+                        }
+                        else
+                        {
+                            if (bodyDtParameters.dateType == "issue_date")
+                            {
+                                result = result.Where(r =>
+                                    (r.gen_pdf_status == bodyDtParameters.statusType1 && r.document_type_id == document_id && r.etax_id.Contains(searchBy) && r.issue_date >= bodyDtParameters.dateStart && r.issue_date <= bodyDtParameters.dateEnd) ||
+                                    (r.gen_pdf_status == bodyDtParameters.statusType1 && r.document_type_id == document_id && r.raw_name.Contains(searchBy) && r.issue_date >= bodyDtParameters.dateStart && r.issue_date <= bodyDtParameters.dateEnd) ||
+                                    (r.gen_pdf_status == bodyDtParameters.statusType1 && r.document_type_id == document_id && r.name.Contains(searchBy) && r.issue_date >= bodyDtParameters.dateStart && r.issue_date <= bodyDtParameters.dateEnd)
+                                );
+                            }
+                            else
+                            {
+                                result = result.Where(r =>
+                                    (r.gen_pdf_status == bodyDtParameters.statusType1 && r.document_type_id == document_id && r.etax_id.Contains(searchBy) && r.create_date >= bodyDtParameters.dateStart && r.create_date <= bodyDtParameters.dateEnd) ||
+                                    (r.gen_pdf_status == bodyDtParameters.statusType1 && r.document_type_id == document_id && r.raw_name.Contains(searchBy) && r.create_date >= bodyDtParameters.dateStart && r.create_date <= bodyDtParameters.dateEnd) ||
+                                    (r.gen_pdf_status == bodyDtParameters.statusType1 && r.document_type_id == document_id && r.name.Contains(searchBy) && r.create_date >= bodyDtParameters.dateStart && r.create_date <= bodyDtParameters.dateEnd)
+                                );
+                            }
+                        }
+                    }
+                }
+                else
+                {
+                    if (document_id == 0)
+                    {
+                        if (bodyDtParameters.statusType1 == "")
+                        {
+                            if (bodyDtParameters.dateType == "issue_date")
+                            {
+                                result = result.Where(r =>
+                                    (r.issue_date >= bodyDtParameters.dateStart && r.issue_date <= bodyDtParameters.dateEnd)
+                                );
+                            }
+                            else
+                            {
+                                result = result.Where(r =>
+                                    (r.create_date >= bodyDtParameters.dateStart && r.create_date <= bodyDtParameters.dateEnd)
+                                );
+                            }
+                        }
+                        else
+                        {
+                            if (bodyDtParameters.dateType == "issue_date")
+                            {
+                                result = result.Where(r =>
+                                    (r.gen_pdf_status == bodyDtParameters.statusType1 && r.issue_date >= bodyDtParameters.dateStart && r.issue_date <= bodyDtParameters.dateEnd)
+                                );
+                            }
+                            else
+                            {
+                                result = result.Where(r =>
+                                    (r.gen_pdf_status == bodyDtParameters.statusType1 && r.create_date >= bodyDtParameters.dateStart && r.create_date <= bodyDtParameters.dateEnd)
+                                );
+                            }
+                        }
+                    }
+                    else
+                    {
+                        if (bodyDtParameters.statusType1 == "")
+                        {
+                            if (bodyDtParameters.dateType == "issue_date")
+                            {
+                                result = result.Where(r =>
+                                    (r.document_type_id == document_id && r.issue_date >= bodyDtParameters.dateStart && r.issue_date <= bodyDtParameters.dateEnd)
+                                );
+                            }
+                            else
+                            {
+                                result = result.Where(r =>
+                                    (r.document_type_id == document_id && r.create_date >= bodyDtParameters.dateStart && r.create_date <= bodyDtParameters.dateEnd)
+                                );
+                            }
+                        }
+                        else
+                        {
+                            if (bodyDtParameters.dateType == "issue_date")
+                            {
+                                result = result.Where(r =>
+                                    (r.gen_pdf_status == bodyDtParameters.statusType1 && r.document_type_id == document_id && r.issue_date >= bodyDtParameters.dateStart && r.issue_date <= bodyDtParameters.dateEnd)
+                                );
+                            }
+                            else
+                            {
+                                result = result.Where(r =>
+                                    (r.gen_pdf_status == bodyDtParameters.statusType1 && r.document_type_id == document_id && r.create_date >= bodyDtParameters.dateStart && r.create_date <= bodyDtParameters.dateEnd)
+                                );
+                            }
+                        }
+                    }
+                }
+
+                foreach (ProcessType processType in bodyDtParameters.processType)
+                {
+                    if (processType.id == "pdf")
+                        result = result.Where(r => r.gen_pdf_status == "success");
+                    else if (processType.id == "email")
+                        result = result.Where(r => r.add_email_status == "success");
+                    else if (processType.id == "sms")
+                        result = result.Where(r => r.add_sms_status == "success");
+                    else if (processType.id == "rd")
+                        result = result.Where(r => r.add_ebxml_status == "success");
+                }
+
+                List<string> listType = new List<string>();
+                foreach (TaxType tax in bodyDtParameters.taxType)
+                {
+                    if (tax.id == "7")
+                    {
+                        listType.Add("VAT7");
+                    }
+                    else if (tax.id == "0")
+                    {
+                        listType.Add("VAT0");
+                    }
+                    else if (tax.id == "free")
+                    {
+                        listType.Add("FRE");
+                    }
+                    else if (tax.id == "no")
+                    {
+                        listType.Add("NO");
+                    }
+                }
+
+                if (listType.Count > 0)
+                {
+                    result = result.Where(r => listType.Contains(r.tax_type_filter));
+                }
+
+                result = orderAscendingDirection ? result.OrderByProperty(orderCriteria) : result.OrderByPropertyDescending(orderCriteria);
+
+
+                List<ViewEtaxFile> listData = await result.ToListAsync();
+
+
+                string output = _config["Path:Share"];
+                string pathExcel = "/admin/" + jwtStatus.user_id + "/excel/";
+                Directory.CreateDirectory(output + pathExcel);
+                pathExcel += "PDF_Report_CSV.csv";
+
+                if (listData.First().member_group_name == "Isuzu")
+                    ExportpdfFilesIsuzu(output + pathExcel, bodyDtParameters, listData, _context);
+                else
+                    ExportpdfFiles(output + pathExcel, bodyDtParameters, listData, _context);
+
+
+                return StatusCode(200, new
+                {
+                    message = "สร้างไฟล์ CSV สำเร็จ",
+                    data = new
+                    {
+                        filePath = pathExcel,
+                    },
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(400, new { message = ex.Message });
+            }
+        }
+
+        public static void ExportpdfFiles(string path, BodyDtParameters bodyDtParameters, List<ViewEtaxFile> listData, ApplicationDbContext _context)
+        {
+            using (StreamWriter outputFile = new StreamWriter(path, false, Encoding.UTF8))
+            {
+                var list = from data in listData
+                           join docType in _context.document_type
+                           on data.document_type_id equals docType.id
+                           select new
+                           {
+                               data.etax_id,
+                               data.document_type_name,
+                               data.member_name,
+                               docType.name,
+                               gen_xml_status = data.gen_xml_status == "pending" ? "รอดำเนินการ" :
+                                         data.gen_xml_status == "success" ? "ดำเนินการสำเร็จ" :
+                                         data.gen_xml_status == "fail" ? "ดำเนินการล้มเหลว" : data.gen_xml_status,
+                               data.issue_date,
+                               data.gen_xml_finish,
+                               data.member_id,
+                               data.group_name
+                           };
+
+                outputFile.WriteLine("เลขที่เอกสาร,ผู้ประกอบการ,ประเภทเอกสาร,สถานะ,ออกเอกสาร,วันที่สร้าง");
+
+
+                foreach (var data in list)
+                {
+                    // ฟอร์แมตวันที่
+                    string formattedIssueDate = data.issue_date.HasValue ? data.issue_date.Value.ToString("dd/MM/yyyy") : "";
+                    string formattedGenXmlFinish = data.gen_xml_finish.HasValue ? data.gen_xml_finish.Value.ToString("dd/MM/yyyy HH:mm:ss") : "";
+
+                    // จัดการกับค่าที่มี " หรือ , หรือ \r\n
+                    string etaxId = data.etax_id.Replace("\"", "\"\"");
+                    string memberName = data.member_name.Replace("\"", "\"\"").Replace("\r\n", " ").Replace(",", " ");
+                    string document_type_name = data.document_type_name.Replace("\"", "\"\"");
+                    string status = data.gen_xml_status.Replace("\"", "\"\"");
+
+                    // เขียนข้อมูลลงไฟล์
+                    outputFile.WriteLine(
+                        $"\"{etaxId}\"," +
+                        $"\"{memberName}\"," +
+                        $"\"{document_type_name}\"," +
+                        $"\"{status}\"," +
+                        $"\"{formattedIssueDate}\"," +
+                        $"\"{formattedGenXmlFinish}\""
+                    );
+
+
+                }
+            }
+        }
+        public static void ExportpdfFilesIsuzu(string path, BodyDtParameters bodyDtParameters, List<ViewEtaxFile> listData, ApplicationDbContext _context)
+        {
+            using (StreamWriter outputFile = new StreamWriter(path, false, Encoding.UTF8))
+            {
+                 outputFile.WriteLine("เลขที่เอกสาร,ผู้ประกอบการ,ประเภทเอกสาร,สถานะ,ออกเอกสาร,วันที่สร้าง,เลขประจำตัวผู้เสียภาษี,ชื่อลูกค้า,วิธีการส่ง,ราคาก่อนหักส่วนลด (ไม่รวมภาษีมูลค่าเพิ่ม),ส่วนลด,ราคาสุทธิไม่รวมภาษีมูลค่าเพิ่ม,มูลค่าฐานภาษี,อัตราภาษีมูลค่าเพิ่ม,ภาษีมูลค่าเพิ่ม,ราคาสุทธิรวมภาษีมูลค่าเพิ่ม,มูลค่าที่ถูกต้อง");
+
+                List<int> checkList = new List<int>();
+
+                foreach (var data in listData)
+                {
+                    string duplicate = "";
+                    if (!checkList.Contains(data.id))
+                        checkList.Add(data.id);
+                    else
+                        duplicate = "duplicate";
+
+                    // ฟอร์แมตวันที่
+                    string formattedIssueDate = data.issue_date.HasValue ? data.issue_date.Value.ToString("dd/MM/yyyy") : "";
+                    string formattedGenXmlFinish = data.gen_xml_finish.HasValue ? data.gen_xml_finish.Value.ToString("dd/MM/yyyy HH:mm:ss") : "";
+
+                    // จัดการกับค่าที่มี " หรือ , หรือ \r\n
+                    string etaxId = data.etax_id;
+                    string memberName = data.member_name;
+                    string document_type_name = data.document_type_name;
+
+                    string status = "";
+                    if (data.gen_xml_status == "pending")
+                        status = "รอดำเนินการ";
+                    else if (data.gen_xml_status == "success")
+                        status = "ดำเนินการสำเร็จ";
+                    else if (data.gen_xml_status == "fail")
+                        status = "ดำเนินการล้มเหลว";
+
+                    string price = data.price.ToString("0.00");
+                    string discount = data.discount.ToString("0.00");
+
+                    string basisamount = "0";
+                    string taxbasis_totalamount = "0";
+                    string corrected_tax_inovice_amount = "0";
+                    string tax_rate = data.tax_rate.ToString("0.00");
+                    string tax = data.tax.ToString("0.00");
+                    string total = data.total.ToString("0.00");
+                    string remark = data.remark;
+
+                    if (data.other != null)
+                    {
+                        string[] otherArray = data.other.Split('|');
+                        corrected_tax_inovice_amount = (double.Parse(otherArray[1])).ToString("0.00");
+                    }
+
+                    if (data.other2 != null)
+                    {
+                        string[] otherArray2 = data.other2.Split('|');
+                        basisamount = (double.Parse(otherArray2[0])).ToString("0.00");
+                        taxbasis_totalamount = (double.Parse(otherArray2[1])).ToString("0.00");
+                    }
+
+                    string sendingMethod = "";
+                    if (data.add_email_status != "no")
+                    {
+                        sendingMethod = "Email";
+                    }
+                    if (data.add_sms_status != "no")
+                    {
+                        if (sendingMethod != "")
+                            sendingMethod += "/";
+
+                        sendingMethod = "Sms";
+                    }
+                    if (data.webhook != 0)
+                    {
+                        if (sendingMethod != "")
+                            sendingMethod += "/";
+
+                        sendingMethod = "Webhook";
+                    }
+
+                    // เขียนข้อมูลลงไฟล์
+                    outputFile.WriteLine(
+                        etaxId + "," +
+                        memberName + "," +
+                        document_type_name + "," +
+                        status + "," +
+                        formattedIssueDate + "," +
+                        formattedGenXmlFinish + "," +
+                        data.buyer_tax_id + "," +
+                        data.buyer_name + "," +
+                        sendingMethod + "," +
+                        price + "," +
+                        discount + "," +
+                        basisamount + "," +
+                        taxbasis_totalamount + "," +
+                        tax_rate + "," +
+                        tax + "," +
+                        total + "," +
+                        corrected_tax_inovice_amount
+                    );
+
+
+                }
+            }
+        }
+
+
+        //////////////////////////Admin//////////////////////////
 
         #region ExportxmlFiles
 
@@ -327,6 +767,7 @@ namespace Etax_Api.Class.Controllers
                            select new
                            {
                                data.etax_id,
+                               data.document_type_name,
                                data.member_name,
                                docType.name,
                                data.gen_xml_status,
@@ -347,7 +788,7 @@ namespace Etax_Api.Class.Controllers
                     outputFile.WriteLine(
                         "\"" + data.etax_id.Replace("\"", "\"\"") + "\"," +
                         "\"" + data.member_name.Replace("\"", "\"\"").Replace("\r\n", " ").Replace(",", " ") + "\"," +
-                        "\"" + data.name + "\"," +
+                        "\"" + data.document_type_name + "\"," +
                         "\"" + data.gen_xml_status + "\"," +
                         "\"" + formattedIssueDate + "\"," +
                         "\"" + formattedGenXmlFinish + "\""
@@ -364,7 +805,7 @@ namespace Etax_Api.Class.Controllers
 
         [HttpPost]
         [Route("admin/export_pdffiles_csv")]
-        public async Task<IActionResult> ExportPdfFilesCSV([FromBody] BodyDtParameters bodyDtParameters)
+        public async Task<IActionResult> ExportPdfFilesCSV_Admin([FromBody] BodyDtParameters bodyDtParameters)
         {
             try
             {
@@ -627,9 +1068,10 @@ namespace Etax_Api.Class.Controllers
                 Directory.CreateDirectory(output + pathExcel);
                 pathExcel += "PDF_Report_CSV.csv";
 
-
-                ExportpdfFiles(output + pathExcel, bodyDtParameters, listData, _context);
-
+                if (listData.First().member_group_name == "Isuzu")
+                    ExportpdfFilesIsuzu_Admin(output + pathExcel, bodyDtParameters, listData, _context);
+                else
+                    ExportpdfFiles_Admin(output + pathExcel, bodyDtParameters, listData, _context);
 
 
                 return StatusCode(200, new
@@ -647,9 +1089,8 @@ namespace Etax_Api.Class.Controllers
             }
         }
 
-        public static void ExportpdfFiles(string path, BodyDtParameters bodyDtParameters, List<ViewEtaxFile> listData, ApplicationDbContext _context)
+        public static void ExportpdfFiles_Admin(string path, BodyDtParameters bodyDtParameters, List<ViewEtaxFile> listData, ApplicationDbContext _context)
         {
-
             using (StreamWriter outputFile = new StreamWriter(path, false, Encoding.UTF8))
             {
                 var list = from data in listData
@@ -658,6 +1099,7 @@ namespace Etax_Api.Class.Controllers
                            select new
                            {
                                data.etax_id,
+                               data.document_type_name,
                                data.member_name,
                                docType.name,
                                gen_xml_status = data.gen_xml_status == "pending" ? "รอดำเนินการ" :
@@ -681,17 +1123,119 @@ namespace Etax_Api.Class.Controllers
                     // จัดการกับค่าที่มี " หรือ , หรือ \r\n
                     string etaxId = data.etax_id.Replace("\"", "\"\"");
                     string memberName = data.member_name.Replace("\"", "\"\"").Replace("\r\n", " ").Replace(",", " ");
-                    string name = data.name.Replace("\"", "\"\"");
+                    string document_type_name = data.document_type_name.Replace("\"", "\"\"");
                     string status = data.gen_xml_status.Replace("\"", "\"\"");
 
                     // เขียนข้อมูลลงไฟล์
                     outputFile.WriteLine(
                         $"\"{etaxId}\"," +
                         $"\"{memberName}\"," +
-                        $"\"{name}\"," +
+                        $"\"{document_type_name}\"," +
                         $"\"{status}\"," +
                         $"\"{formattedIssueDate}\"," +
                         $"\"{formattedGenXmlFinish}\""
+                    );
+
+
+                }
+            }
+        }
+        public static void ExportpdfFilesIsuzu_Admin(string path, BodyDtParameters bodyDtParameters, List<ViewEtaxFile> listData, ApplicationDbContext _context)
+        {
+            using (StreamWriter outputFile = new StreamWriter(path, false, Encoding.UTF8))
+            {
+                outputFile.WriteLine("เลขที่เอกสาร,ผู้ประกอบการ,ประเภทเอกสาร,สถานะ,ออกเอกสาร,วันที่สร้าง,Sending Method,Price,Discount,Exclude VAT amount,Tax based Amount,Vat Rate,Vat Amount,Include VAT amount,Correct Tax Invoice Amount,Remark");
+                outputFile.WriteLine("เลขที่เอกสาร,ผู้ประกอบการ,ประเภทเอกสาร,สถานะ,ออกเอกสาร,วันที่สร้าง,วิธีการส่ง,ราคาก่อนหักส่วนลด (ไม่รวมภาษีมูลค่าเพิ่ม),ส่วนลด,ราคาสุทธิไม่รวมภาษีมูลค่าเพิ่ม,มูลค่าฐานภาษี,อัตราภาษีมูลค่าเพิ่ม,ภาษีมูลค่าเพิ่ม,ราคาสุทธิรวมภาษีมูลค่าเพิ่ม,มูลค่าที่ถูกต้อง,");
+
+                List<int> checkList = new List<int>();
+
+                foreach (var data in listData)
+                {
+                    string duplicate = "";
+                    if (!checkList.Contains(data.id))
+                        checkList.Add(data.id);
+                    else
+                        duplicate = "duplicate";
+
+                    // ฟอร์แมตวันที่
+                    string formattedIssueDate = data.issue_date.HasValue ? data.issue_date.Value.ToString("dd/MM/yyyy") : "";
+                    string formattedGenXmlFinish = data.gen_xml_finish.HasValue ? data.gen_xml_finish.Value.ToString("dd/MM/yyyy HH:mm:ss") : "";
+
+                    // จัดการกับค่าที่มี " หรือ , หรือ \r\n
+                    string etaxId = data.etax_id;
+                    string memberName = data.member_name;
+                    string document_type_name = data.document_type_name;
+
+                    string status = "";
+                    if (data.gen_xml_status == "pending")
+                        status = "รอดำเนินการ";
+                    else if (data.gen_xml_status == "success")
+                        status = "ดำเนินการสำเร็จ";
+                    else if (data.gen_xml_status == "fail")
+                        status = "ดำเนินการล้มเหลว";
+
+                    string price = data.price.ToString("0.00");
+                    string discount = data.discount.ToString("0.00");
+
+                    string basisamount = "0";
+                    string taxbasis_totalamount = "0";
+                    string corrected_tax_inovice_amount = "0";
+                    string tax_rate = data.tax_rate.ToString("0.00");
+                    string tax = data.tax.ToString("0.00");
+                    string total = data.total.ToString("0.00");
+                    string remark = data.remark;
+
+                    if (data.other != null)
+                    {
+                        string[] otherArray = data.other.Split('|');
+                        corrected_tax_inovice_amount = (double.Parse(otherArray[1])).ToString("0.00");
+                    }
+
+                    if (data.other2 != null)
+                    {
+                        string[] otherArray2 = data.other2.Split('|');
+                        basisamount = (double.Parse(otherArray2[0])).ToString("0.00");
+                        taxbasis_totalamount = (double.Parse(otherArray2[1])).ToString("0.00");
+                    }
+
+                    string sendingMethod = "";
+                    if (data.add_email_status != "no")
+                    {
+                        sendingMethod = "Email";
+                    }
+                    if (data.add_sms_status != "no")
+                    {
+                        if (sendingMethod != "")
+                            sendingMethod += "/";
+
+                        sendingMethod = "Sms";
+                    }
+                    if (data.webhook != 0)
+                    {
+                        if (sendingMethod != "")
+                            sendingMethod += "/";
+
+                        sendingMethod = "Webhook";
+                    }
+
+                    // เขียนข้อมูลลงไฟล์
+                    outputFile.WriteLine(
+                        etaxId + "," +
+                        memberName + "," +
+                        document_type_name + "," +
+                        status + "," +
+                        formattedIssueDate + "," +
+                        formattedGenXmlFinish + "," +
+                        sendingMethod + "," +
+                        price + "," +
+                        discount + "," +
+                        basisamount + "," +
+                        taxbasis_totalamount + "," +
+                        tax_rate + "," +
+                        tax + "," +
+                        total + "," +
+                        corrected_tax_inovice_amount + "," +
+                        duplicate
                     );
 
 
@@ -888,6 +1432,7 @@ namespace Etax_Api.Class.Controllers
                            select new
                            {
                                data.etax_id,
+                               data.document_type_name,
                                data.member_name,
                                docType.name,
                                data.buyer_email,
@@ -912,7 +1457,7 @@ namespace Etax_Api.Class.Controllers
                     // จัดการกับค่าที่มี " หรือ , หรือ \r\n
                     string etaxId = data.etax_id.Replace("\"", "\"\"");
                     string memberName = data.member_name.Replace("\"", "\"\"").Replace("\r\n", " ").Replace(",", " ");
-                    string name = data.name.Replace("\"", "\"\"");
+                    string document_type_name = data.document_type_name.Replace("\"", "\"\"");
                     string email_status = data.email_status.Replace("\"", "\"\"");
                     string buyer_email = data.buyer_email.Replace("\"", "\"\"");
                     string send_email_status = data.send_email_status.Replace("\"", "\"\"");
@@ -922,7 +1467,7 @@ namespace Etax_Api.Class.Controllers
                     outputFile.WriteLine(
                         $"\"{etaxId}\"," +
                         $"\"{memberName}\"," +
-                        $"\"{name}\"," +
+                        $"\"{document_type_name}\"," +
                         $"\"{buyer_email}\"," +
                         $"\"{send_email_status}\"," +
                         $"\"{email_status}\"," +
@@ -1123,6 +1668,7 @@ namespace Etax_Api.Class.Controllers
                            select new
                            {
                                data.etax_id,
+                               data.document_type_name,
                                data.member_name,
                                docType.name,
                                buyer_tel = data.buyer_tel.ToString(),
@@ -1146,7 +1692,7 @@ namespace Etax_Api.Class.Controllers
                     // จัดการกับค่าที่มี " หรือ , หรือ \r\n
                     string etaxId = data.etax_id.Replace("\"", "\"\"");
                     string memberName = data.member_name.Replace("\"", "\"\"").Replace("\r\n", " ").Replace(",", " ");
-                    string name = data.name.Replace("\"", "\"\"");
+                    string document_type_name = data.document_type_name.Replace("\"", "\"\"");
                     string open_sms_status = data.open_sms_status.Replace("\"", "\"\"");
                     string buyer_tel = data.buyer_tel.ToString().Replace("\"", "\"\"");
                     string send_sms_status = data.send_sms_status.Replace("\"", "\"\"");
@@ -1156,7 +1702,7 @@ namespace Etax_Api.Class.Controllers
                     outputFile.WriteLine(
                         $"\"{etaxId}\"," +
                         $"\"{memberName}\"," +
-                        $"\"{name}\"," +
+                        $"\"{document_type_name}\"," +
                         $"\"{buyer_tel}\"," +
                         $"\"{send_sms_status}\"," +
                         $"\"{send_sms_finish.ToString()}\"," +
@@ -1358,6 +1904,7 @@ namespace Etax_Api.Class.Controllers
                            select new
                            {
                                data.etax_id,
+                               data.document_type_name,
                                data.member_name,
                                docType.name,
                                send_ebxml_status = data.send_ebxml_status == "pending" ? "รอดำเนินการ" :
@@ -1381,7 +1928,7 @@ namespace Etax_Api.Class.Controllers
                     // จัดการกับค่าที่มี " หรือ , หรือ \r\n
                     string etaxId = data.etax_id.Replace("\"", "\"\"");
                     string memberName = data.member_name.Replace("\"", "\"\"").Replace("\r\n", " ").Replace(",", " ");
-                    string name = data.name.Replace("\"", "\"\"");
+                    string document_type_name = data.document_type_name.Replace("\"", "\"\"");
                     string send_ebxml_status = data.send_ebxml_status.Replace("\"", "\"\"");
                     string etax_status = data.etax_status.ToString().Replace("\"", "\"\"");
 
@@ -1390,7 +1937,7 @@ namespace Etax_Api.Class.Controllers
                     outputFile.WriteLine(
                         $"\"{etaxId}\"," +
                         $"\"{memberName}\"," +
-                        $"\"{name}\"," +
+                        $"\"{document_type_name}\"," +
                         $"\"{send_ebxml_status}\"," +
                         $"\"{etax_status}\"," +
                         $"\"{send_ebxml_finish}\""
