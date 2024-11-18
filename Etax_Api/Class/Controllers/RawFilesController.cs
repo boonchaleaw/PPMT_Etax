@@ -227,7 +227,7 @@ namespace Etax_Api.Controllers
                 string url = "/" + jwtStatus.member_id + "/" + now.ToString("yyyyMM") + "/" + bodyRawData.raw_file_name;
                 string output = _config["Path:Output"];
 
-                string extension = Path.GetExtension(bodyRawData.raw_file_name);
+                string extension = Path.GetExtension(bodyRawData.raw_file_name).ToLower();
                 if (extension != ".csv" && extension != ".txt" && extension != ".xlsx" && extension != ".xls")
                 {
                     return StatusCode(400, new { message = "สามารถ upload ไฟล์ .txt .csv .xls .xlsx ได้เท่านั้น", });

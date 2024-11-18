@@ -59,6 +59,8 @@ namespace Etax_Api
         public DbSet<UserMember> user_members { get; set; }
         public DbSet<UserPermission> user_permission { get; set; }
         public DbSet<UserSession> user_session { get; set; }
+        public DbSet<MemberLoginFail> member_login_fail { get; set; }
+        public DbSet<UserLoginFail> user_login_fail { get; set; }
         public DbSet<RunningNumber> running_number { get; set; }
 
 

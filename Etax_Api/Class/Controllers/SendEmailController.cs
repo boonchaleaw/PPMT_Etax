@@ -1113,11 +1113,21 @@ namespace Etax_Api.Controllers
         {
             try
             {
+                DateTime now = DateTime.Now;
                 string token = Request.Headers[HeaderNames.Authorization].ToString();
                 JwtStatus jwtStatus = Jwt.ValidateJwtTokenUser(token, _config);
 
                 if (!jwtStatus.status)
                     return StatusCode(401, new { message = "token ไม่ถูกต้องหรือหมดอายุ", });
+
+                try
+                {
+                    if (!Log.CheckLogSendEmail(bodyEmail.etax_file_id.ToString(), now))
+                    {
+                        return StatusCode(400, new { message = "มีการส่งข้อมูลรายการเดิมซ้ำในเวลาเดียวกัน", });
+                    }
+                }
+                catch { }
 
                 var permission = await (from up in _context.user_permission
                                         where up.user_id == jwtStatus.user_id

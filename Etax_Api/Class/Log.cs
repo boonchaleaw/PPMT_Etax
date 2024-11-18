@@ -27,6 +27,8 @@ namespace Etax_Api
                 File.WriteAllText(logPath, json);
             }
 
+            DeleteLogTis(logPath, now);
+
             string text = File.ReadAllText(logPath);
             Dictionary<string, string> data = JsonSerializer.Deserialize<Dictionary<string, string>>(text);
 
@@ -35,7 +37,6 @@ namespace Etax_Api
             {
                 data.Add(id, now.ToString());
                 File.WriteAllText(logPath, JsonSerializer.Serialize(data));
-                DeleteLogTis(logPath, now);
                 return true;
             }
             else

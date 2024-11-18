@@ -442,6 +442,15 @@ namespace Etax_Api.Controllers
         {
             try
             {
+                DateTime now = DateTime.Now;
+                DateTime expiryDate = now.AddDays(-7).Date;
+                DateTime bilIDate = DateTime.ParseExact(bodyMkData.bilIDate, "yyyyMMdd", CultureInfo.InvariantCulture);
+
+                if (expiryDate >= bilIDate)
+                    return StatusCode(404, new { message = "รายการซื้อขายเกิน 7 วัน ไม่สามารถออกใบกำกับภาษีอิเล็กทรอนิคได้", });
+
+
+
                 var branch = await (from b in _context.branchs
                                     where b.name.Contains(bodyMkData.branchCode)
                                     select new
@@ -562,25 +571,48 @@ namespace Etax_Api.Controllers
                          ef.buyer_zipcode,
                          ef.buyer_tel,
                          ef.buyer_email,
+                         ef.issue_date,
+                         ef.ref_issue_date,
                          ef.create_date,
                          ef.delete_status,
                          ef.update_count,
                      }).FirstOrDefaultAsync();
 
                 bool already = false;
-                bool expiry = false;
+                bool expire_edit = false;
+                bool expire_cancel = false;
                 bool cancel = false;
 
 
                 if (etaxFile != null)
                 {
                     already = true;
-                    DateTime expiryDate = DateTime.Now.AddDays(-7);
-                    if (expiryDate > etaxFile.create_date)
-                        expiry = true;
+
+                    expiryDate = now.AddDays(-7).Date;
+                    DateTime ref_issue_date = (DateTime)etaxFile.ref_issue_date;
+
+                    if (expiryDate >= ref_issue_date)
+                        expire_edit = true;
 
                     if (etaxFile.update_count >= 2)
-                        expiry = true;
+                        expire_edit = true;
+
+                    if (bodyMkData.branchCode == "D201")
+                    {
+                        expiryDate = DateTime.ParseExact(now.ToString("yyyy-MM") + "-01", "yyyy-MM-dd", CultureInfo.InvariantCulture);
+                        ref_issue_date = DateTime.ParseExact(((DateTime)etaxFile.ref_issue_date).ToString("yyyy-MM") + "-01", "yyyy-MM-dd", CultureInfo.InvariantCulture);
+
+                        if (expiryDate > ref_issue_date)
+                            expire_cancel = true;
+                    }
+                    else
+                    {
+                        expiryDate = now.AddDays(-1).Date;
+                        ref_issue_date = (DateTime)etaxFile.ref_issue_date;
+
+                        if (expiryDate >= ref_issue_date)
+                            expire_cancel = true;
+                    }
 
                     if (etaxFile.delete_status == 1)
                         cancel = true;
@@ -625,7 +657,8 @@ namespace Etax_Api.Controllers
                             },
                             etaxFile = etaxFile,
                             already = already,
-                            expiry = expiry,
+                            expire_edit = expire_edit,
+                            expire_cancel = expire_cancel,
                             cancel = cancel,
                             totalText = Function.ThBahtText(bodyMkData.totalAmount),
                         },
@@ -743,11 +776,16 @@ namespace Etax_Api.Controllers
 
                             double itemPrice1 = double.Parse(bodyUserform.dataQr.fAndB);
                             double itemTax1 = itemPrice1 * newEtaxFile.tax_rate / 100;
+
+                            string itemName = "อาหารและเครื่องดื่ม";
+                            if (bodyUserform.dataQr.branchCode == "D201")
+                                itemName = "บัตรสมาชิก";
+
                             EtaxFileItem newEtaxFileItem = new EtaxFileItem()
                             {
                                 etax_file_id = newEtaxFile.id,
                                 code = "",
-                                name = "อาหารและเครื่องดื่ม",
+                                name = itemName,
                                 qty = 1,
                                 unit = "",
                                 price = itemPrice1,
@@ -845,7 +883,7 @@ namespace Etax_Api.Controllers
         {
             try
             {
-                if (bodyCancel.cancelPassword != "12345")
+                if (bodyCancel.cancelPassword != "87654321")
                     return StatusCode(401, new { message = "รหัสลับในการลบใบกำกับภาษีไม่ถูกต้อง", });
 
                 using (var transaction = _context.Database.BeginTransaction())

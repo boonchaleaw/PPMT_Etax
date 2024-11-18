@@ -8,6 +8,7 @@ using System;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using System.Diagnostics.Eventing.Reader;
 
 namespace Etax_Api.Controllers
 {
@@ -38,27 +39,100 @@ namespace Etax_Api.Controllers
         public async Task<IActionResult> Login([FromBody] BodyLogin bodyLogin)
         {
             if (bodyLogin.username == null || bodyLogin.username == "")
-                return StatusCode(400, new { message = "กรุณากรอกผู้ใช้งานให้ถูกต้อง", });
+                return StatusCode(400, new { message = "กรุณากรอกผู้ใช้งาน", });
 
             if (bodyLogin.password == null || bodyLogin.password == "")
-                return StatusCode(400, new { message = "กรุณากรอกรหัสผ่านให้ถูกต้อง", });
+                return StatusCode(400, new { message = "กรุณากรอกรหัสผ่าน", });
+
+            DateTime now = DateTime.Now;
+
+            var checkUser = _context.member_users
+                 .Where(x => x.username == bodyLogin.username && x.delete_status == 0)
+                 .FirstOrDefault();
+
+            if (checkUser == null)
+                return StatusCode(404, new { message = "ไม่พบข้อมูลผู้ใช้งานในระบบ", });
+
+
+            var checkLoginFail = (from mlf in _context.member_login_fail
+                                  where mlf.member_user_id == checkUser.id
+                                  select mlf).FirstOrDefault();
+
+            if (checkLoginFail != null)
+            {
+                DateTime checkDate = now.AddMinutes(-10);
+                if (checkLoginFail.login_count >= 5)
+                {
+                    if (checkDate > checkLoginFail.login_date)
+                    {
+                        _context.member_login_fail.Remove(checkLoginFail);
+                        _context.SaveChanges();
+                    }
+                    else
+                    {
+                        return StatusCode(400, new { message = "กรอกรหัสผ่านผิดติดต่อกัน 5 ครั้ง จะไม่สามารถเข้าระบบได้เป็นเวลา 10 นาที", });
+                    }
+                }
+                else
+                {
+                    if (checkDate > checkLoginFail.login_date)
+                    {
+                        _context.member_login_fail.Remove(checkLoginFail);
+                        _context.SaveChanges();
+                    }
+                }
+            }
+
+
+
+
+
+            var checkLoginFail_5 = (from mlf in _context.member_login_fail
+                                    where mlf.member_user_id == checkUser.id && mlf.login_count >= 5
+                                    select mlf).FirstOrDefault();
+
+            if (checkLoginFail_5 != null)
+            {
+                DateTime checkDate = now.AddMinutes(-10);
+                if (checkDate > checkLoginFail_5.login_date)
+                {
+                    _context.member_login_fail.Remove(checkLoginFail_5);
+                    _context.SaveChanges();
+                }
+                else
+                {
+                    return StatusCode(400, new { message = "กรอกรหัสผ่านผิดติดต่อกัน 5 ครั้ง จะไม่สามารถเข้าระบบได้เป็นเวลา 10 นาที", });
+                }
+            }
 
             var user = _context.view_member_users
-                .Select(x => new
-                {
-                    x.id,
-                    x.member_id,
-                    x.username,
-                    x.password,
-                    x.first_name,
-                    x.member_name,
-                    x.delete_status,
-                })
-                .Where(x => x.username == bodyLogin.username && x.password == Encryption.SHA256(bodyLogin.password) && x.delete_status == 0)
-                .FirstOrDefault();
+            .Select(x => new
+            {
+                x.id,
+                x.member_id,
+                x.username,
+                x.password,
+                x.first_name,
+                x.member_name,
+                x.delete_status,
+            })
+            .Where(x => x.username == bodyLogin.username && x.password == Encryption.SHA256(bodyLogin.password) && x.delete_status == 0)
+            .FirstOrDefault();
 
             if (user != null)
             {
+                var listLogin = await (from mlf in _context.member_login_fail
+                                       where mlf.member_user_id == user.id
+                                       select mlf).ToListAsync();
+
+                if (listLogin.Count() > 0)
+                {
+                    foreach (var login in listLogin)
+                    {
+                        _context.member_login_fail.Remove(login);
+                    }
+                }
+
                 var session = await (from ms in _context.member_session
                                      where ms.member_id == user.member_id && ms.member_user_id == user.id
                                      select ms).FirstOrDefaultAsync();
@@ -72,7 +146,7 @@ namespace Etax_Api.Controllers
                     member_id = user.member_id,
                     member_user_id = user.id,
                     session_key = session_key,
-                    create_date = DateTime.Now,
+                    create_date = now,
                 });
                 _context.SaveChanges();
 
@@ -92,13 +166,40 @@ namespace Etax_Api.Controllers
             }
             else
             {
-                return StatusCode(404, new
+                var checkLogin = (from mlf in _context.member_login_fail
+                                  where mlf.member_user_id == checkUser.id
+                                  select mlf).FirstOrDefault();
+
+
+                if (checkLogin == null)
                 {
-                    message = "ไม่พบข้อมูลผู้ใช้งานหรือรหัสผ่านไม่ถูกต้อง",
-                });
+                    _context.member_login_fail.Add(new MemberLoginFail()
+                    {
+                        member_user_id = checkUser.id,
+                        login_count = 1,
+                        login_date = now,
+                        create_date = now,
+                    });
+                    _context.SaveChanges();
+                    return StatusCode(400, new { message = "กรอกรหัสผ่านผิดครั่งที่ 1", });
+                }
+                else
+                {
+                    int login_count = checkLogin.login_count + 1;
+                    checkLogin.login_count = login_count;
+                    checkLogin.login_date = now;
+                    _context.SaveChanges();
+
+
+                    if (login_count >= 5)
+                        return StatusCode(400, new { message = "กรอกรหัสผ่านผิดครั่งที่ " + login_count + " จะไม่สามารถเข้าระบบได้เป็นเวลา 10 นาที", });
+                    else
+
+                        return StatusCode(400, new { message = "กรอกรหัสผ่านผิดครั่งที่ " + login_count, });
+                }
             }
         }
-     
+
         [HttpPost]
         [Route("logout")]
         public async Task<IActionResult> Logout()
@@ -234,92 +335,214 @@ namespace Etax_Api.Controllers
             try
             {
                 if (bodyLogin.username == null || bodyLogin.username == "")
-                    return StatusCode(400, new { message = "กรุณากรอกผู้ใช้งานให้ถูกต้อง", });
+                    return StatusCode(400, new { message = "กรุณากรอกผู้ใช้งาน", });
 
                 if (bodyLogin.password == null || bodyLogin.password == "")
-                    return StatusCode(400, new { message = "กรุณากรอกรหัสผ่านให้ถูกต้อง", });
+                    return StatusCode(400, new { message = "กรุณากรอกรหัสผ่าน", });
 
-                var user = _context.users
+                DateTime now = DateTime.Now;
+
+                var checkUser = _context.users
                 .Where(x => x.username == bodyLogin.username && x.delete_status == 0)
                 .FirstOrDefault();
 
-                if (user == null)
-                    return StatusCode(404, new { message = "ไม่พบข้อมูลผู้ใช้งานหรือรหัสผ่านไม่ถูกต้อง", });
+                if (checkUser == null)
+                    return StatusCode(404, new { message = "ไม่พบข้อมูลผู้ใช้งานในระบบ", });
 
-                if (user.type == "AD")
+
+                var checkLoginFail = (from mlf in _context.user_login_fail
+                                        where mlf.user_id == checkUser.id
+                                        select mlf).FirstOrDefault();
+
+                if (checkLoginFail != null)
+                {
+                    DateTime checkDate = now.AddMinutes(-10);
+                    if (checkLoginFail.login_count >= 5)
+                    {
+                        if (checkDate > checkLoginFail.login_date)
+                        {
+                            _context.user_login_fail.Remove(checkLoginFail);
+                            _context.SaveChanges();
+                        }
+                        else
+                        {
+                            return StatusCode(400, new { message = "กรอกรหัสผ่านผิดติดต่อกัน 5 ครั้ง จะไม่สามารถเข้าระบบได้เป็นเวลา 10 นาที", });
+                        }
+                    }
+                    else
+                    {
+                        if (checkDate > checkLoginFail.login_date)
+                        {
+                            _context.user_login_fail.Remove(checkLoginFail);
+                            _context.SaveChanges();
+                        }
+                    }
+                }
+
+                if (checkUser.type == "AD")
                 {
                     PrincipalContext principalContext = new PrincipalContext(ContextType.Domain, _config["AD:host"]);
                     bool userValid = principalContext.ValidateCredentials(bodyLogin.username, bodyLogin.password);
 
-                    if (!userValid)
-                        return StatusCode(404, new { message = "ไม่พบข้อมูลผู้ใช้งานหรือรหัสผ่านไม่ถูกต้อง", });
-
-
-                    var session = await (from ms in _context.user_session
-                                         where ms.user_id == user.id
-                                         select ms).FirstOrDefaultAsync();
-
-                    if (session != null)
-                        _context.Remove(session);
-
-                    string session_key = Encryption.GetUniqueKey(50);
-                    _context.user_session.Add(new UserSession()
+                    if (userValid)
                     {
-                        user_id = user.id,
-                        session_key = session_key,
-                        create_date = DateTime.Now,
-                    });
-                    _context.SaveChanges();
+                        var listLogin = await (from mlf in _context.user_login_fail
+                                               where mlf.user_id == checkUser.id
+                                               select mlf).ToListAsync();
 
-                    return StatusCode(200, new
-                    {
-                        message = "เข้าสู่ระบบสำเร็จ",
-                        data = new
+                        if (listLogin.Count() > 0)
                         {
-                            id = user.id,
-                            username = user.username,
-                        },
-                        token = Jwt.GenerateJwtToken(user.id, user.id, session_key),
-                    });
+                            foreach (var login in listLogin)
+                            {
+                                _context.user_login_fail.Remove(login);
+                            }
+                        }
+
+                        var session = await (from ms in _context.user_session
+                                             where ms.user_id == checkUser.id
+                                             select ms).FirstOrDefaultAsync();
+
+                        if (session != null)
+                            _context.Remove(session);
+
+                        string session_key = Encryption.GetUniqueKey(50);
+                        _context.user_session.Add(new UserSession()
+                        {
+                            user_id = checkUser.id,
+                            session_key = session_key,
+                            create_date = DateTime.Now,
+                        });
+                        _context.SaveChanges();
+
+                        return StatusCode(200, new
+                        {
+                            message = "เข้าสู่ระบบสำเร็จ",
+                            data = new
+                            {
+                                id = checkUser.id,
+                                username = checkUser.username,
+                            },
+                            token = Jwt.GenerateJwtToken(checkUser.id, checkUser.id, session_key),
+                        });
+                    }
+                    else
+                    {
+                        var checkLogin = (from ulf in _context.user_login_fail
+                                          where ulf.user_id == checkUser.id
+                                          select ulf).FirstOrDefault();
+
+
+                        if (checkLogin == null)
+                        {
+                            _context.user_login_fail.Add(new UserLoginFail()
+                            {
+                                user_id = checkUser.id,
+                                login_count = 1,
+                                login_date = now,
+                                create_date = now,
+                            });
+                            _context.SaveChanges();
+                            return StatusCode(400, new { message = "กรอกรหัสผ่านผิดครั่งที่ 1", });
+                        }
+                        else
+                        {
+                            int login_count = checkLogin.login_count + 1;
+                            checkLogin.login_count = login_count;
+                            checkLogin.login_date = now;
+                            _context.SaveChanges();
+
+
+                            if (login_count >= 5)
+                                return StatusCode(400, new { message = "กรอกรหัสผ่านผิดครั่งที่ " + login_count + " จะไม่สามารถเข้าระบบได้เป็นเวลา 10 นาที", });
+                            else
+
+                                return StatusCode(400, new { message = "กรอกรหัสผ่านผิดครั่งที่ " + login_count, });
+                        }
+                    }
                 }
                 else
                 {
-                    var checkUser = _context.users
+                    var user = _context.users
                     .Where(x => x.username == bodyLogin.username && x.password == Encryption.SHA256(bodyLogin.password) && x.delete_status == 0)
                     .FirstOrDefault();
 
 
-                    if (checkUser == null)
-                        return StatusCode(404, new { message = "ไม่พบข้อมูลผู้ใช้งานหรือรหัสผ่านไม่ถูกต้อง", });
-
-
-                    var session = await (from ms in _context.user_session
-                                         where ms.user_id == user.id
-                                         select ms).FirstOrDefaultAsync();
-
-                    if (session != null)
-                        _context.Remove(session);
-
-
-                    string session_key = Encryption.GetUniqueKey(50);
-                    _context.user_session.Add(new UserSession()
+                    if (user != null)
                     {
-                        user_id = user.id,
-                        session_key = session_key,
-                        create_date = DateTime.Now,
-                    });
-                    _context.SaveChanges();
+                        var listLogin = await (from mlf in _context.user_login_fail
+                                               where mlf.user_id == user.id
+                                               select mlf).ToListAsync();
 
-                    return StatusCode(200, new
-                    {
-                        message = "เข้าสู่ระบบสำเร็จ",
-                        data = new
+                        if (listLogin.Count() > 0)
                         {
-                            id = user.id,
-                            username = user.username,
-                        },
-                        token = Jwt.GenerateJwtToken(user.id, user.id, session_key),
-                    });
+                            foreach (var login in listLogin)
+                            {
+                                _context.user_login_fail.Remove(login);
+                            }
+                        }
+
+                        var session = await (from ms in _context.user_session
+                                             where ms.user_id == user.id
+                                             select ms).FirstOrDefaultAsync();
+
+                        if (session != null)
+                            _context.Remove(session);
+
+
+                        string session_key = Encryption.GetUniqueKey(50);
+                        _context.user_session.Add(new UserSession()
+                        {
+                            user_id = user.id,
+                            session_key = session_key,
+                            create_date = DateTime.Now,
+                        });
+                        _context.SaveChanges();
+
+                        return StatusCode(200, new
+                        {
+                            message = "เข้าสู่ระบบสำเร็จ",
+                            data = new
+                            {
+                                id = user.id,
+                                username = user.username,
+                            },
+                            token = Jwt.GenerateJwtToken(user.id, user.id, session_key),
+                        });
+                    }
+                    else
+                    {
+                        var checkLogin = (from ulf in _context.user_login_fail
+                                          where ulf.user_id == checkUser.id
+                                          select ulf).FirstOrDefault();
+
+
+                        if (checkLogin == null)
+                        {
+                            _context.user_login_fail.Add(new UserLoginFail()
+                            {
+                                user_id = checkUser.id,
+                                login_count = 1,
+                                login_date = now,
+                                create_date = now,
+                            });
+                            _context.SaveChanges();
+                            return StatusCode(400, new { message = "กรอกรหัสผ่านผิดครั่งที่ 1", });
+                        }
+                        else
+                        {
+                            int login_count = checkLogin.login_count + 1;
+                            checkLogin.login_count = login_count;
+                            checkLogin.login_date = now;
+                            _context.SaveChanges();
+
+
+                            if (login_count >= 5)
+                                return StatusCode(400, new { message = "กรอกรหัสผ่านผิดครั่งที่ " + login_count + " จะไม่สามารถเข้าระบบได้เป็นเวลา 10 นาที", });
+                            else
+
+                                return StatusCode(400, new { message = "กรอกรหัสผ่านผิดครั่งที่ " + login_count, });
+                        }
+                    }
                 }
             }
             catch (Exception ex)
