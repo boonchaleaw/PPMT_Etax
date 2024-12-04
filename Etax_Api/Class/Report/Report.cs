@@ -84,175 +84,183 @@ namespace Etax_Api
         {
             using (StreamWriter outputFile = new StreamWriter(path, false, Encoding.UTF8))
             {
-                if (bodyDtParameters.docType == "DBN")
+                //if (bodyDtParameters.docType == "DBN")
+                //{
+                //    outputFile.WriteLine("รหัสไฟล์,ประเภทเอกสาร,หมายเลขเอกสาร,หมายเลขผู้เสียภาษี,ชื่อผู้เสียภาษี,สาขา,ที่อยู่,ออกเอกสาร,วันที่สร้าง,มูลค่าเดิม,มูลค่าใหม่,ผลต่าง,ภาษี,รวม,สถานะส่งอีเมล,สถานะส่งสรรพากร");
+
+                //    foreach (ViewTaxCsvReport data in listData)
+                //    {
+                //        string issue_date = "";
+                //        if (data.issue_date != null)
+                //            issue_date = ((DateTime)data.issue_date).ToString("dd/MM/yyyy");
+                //        else
+                //            issue_date = "";
+
+                //        string gen_xml_finish = "";
+                //        if (data.gen_xml_finish != null)
+                //            gen_xml_finish = ((DateTime)data.gen_xml_finish).ToString("dd/MM/yyyy HH:mm:ss");
+                //        else
+                //            gen_xml_finish = "";
+
+
+                //        string status_email = "ยังไม่ส่ง";
+                //        if (data.send_email_status == "success")
+                //        {
+                //            status_email = "ส่งแล้ว";
+                //        }
+
+                //        string status_ebxml = "ยังไม่ส่ง";
+                //        if (data.send_ebxml_status == "success")
+                //        {
+                //            status_ebxml = "ส่งแล้ว";
+                //        }
+
+                //        outputFile.WriteLine(
+                //            data.id.ToString() + "," +
+                //            data.document_type_name + "," +
+                //            data.etax_id + "," +
+                //            "'" + data.buyer_tax_id + "," +
+                //            data.buyer_name.Replace("\r\n", " ").Replace(",", " ") + "," +
+                //            "'" + data.buyer_branch_code + "," +
+                //            data.buyer_address.Replace("\r\n", " ").Replace(",", " ") + "," +
+                //            issue_date + "," +
+                //            gen_xml_finish + "," +
+                //            data.original_price.ToString("0.00") + "," +
+                //            data.price.ToString("0.00") + "," +
+                //            Math.Abs(data.original_price - data.price).ToString("0.00") + "," +
+                //            data.tax.ToString("0.00") + "," +
+                //        data.total.ToString("0.00") + "," +
+                //        status_email + "," +
+                //        status_ebxml
+                //            );
+                //    }
+                //    outputFile.WriteLine("");
+                //    outputFile.WriteLine(",,,,,,,,รวม," + sumOriginalPrice.ToString("0.00") + "," + sumPrice.ToString("0.00") + "," + Math.Abs(sumOriginalPrice - sumPrice).ToString("0.00") + "," + sumTax.ToString("0.00") + "," + sumTotal.ToString("0.00"));
+
+                //}
+                //else if (bodyDtParameters.docType == "CDN")
+                //{
+                //    outputFile.WriteLine("รหัสไฟล์,ประเภทเอกสาร,หมายเลขเอกสาร,หมายเลขผู้เสียภาษี,ชื่อผู้เสียภาษี,สาขา,ที่อยู่,ออกเอกสาร,วันที่สร้าง,มูลค่าเดิม,มูลค่าใหม่,ผลต่าง,ภาษี,รวม,สถานะส่งอีเมล,สถานะส่งสรรพากร");
+
+                //    foreach (ViewTaxCsvReport data in listData)
+                //    {
+                //        string issue_date = "";
+                //        if (data.issue_date != null)
+                //            issue_date = ((DateTime)data.issue_date).ToString("dd/MM/yyyy");
+                //        else
+                //            issue_date = "";
+
+                //        string gen_xml_finish = "";
+                //        if (data.gen_xml_finish != null)
+                //            gen_xml_finish = ((DateTime)data.gen_xml_finish).ToString("dd/MM/yyyy HH:mm:ss");
+                //        else
+                //            gen_xml_finish = "";
+
+
+                //        string status_email = "ยังไม่ส่ง";
+                //        if (data.send_email_status == "success")
+                //        {
+                //            status_email = "ส่งแล้ว";
+                //        }
+
+                //        string status_ebxml = "ยังไม่ส่ง";
+                //        if (data.send_ebxml_status == "success")
+                //        {
+                //            status_ebxml = "ส่งแล้ว";
+                //        }
+
+                //        outputFile.WriteLine(
+                //            data.id.ToString() + "," +
+                //            data.document_type_name + "," +
+                //            data.etax_id + "," +
+                //            "'" + data.buyer_tax_id + "," +
+                //            data.buyer_name.Replace("\r\n", " ").Replace(",", " ") + "," +
+                //            "'" + data.buyer_branch_code + "," +
+                //            data.buyer_address.Replace("\r\n", " ").Replace(",", " ") + "," +
+                //            issue_date + "," +
+                //            gen_xml_finish + "," +
+                //            data.original_price.ToString("0.00") + "," +
+                //            data.price.ToString("0.00") + "," +
+                //            Math.Abs(data.original_price - data.price).ToString("0.00") + "," +
+                //            data.tax.ToString("0.00") + "," +
+                //        data.total.ToString("0.00") + "," +
+                //        status_email + "," +
+                //        status_ebxml
+                //            );
+                //    }
+                //    outputFile.WriteLine("");
+                //    outputFile.WriteLine(",,,,,,,,รวม," + sumOriginalPrice.ToString("0.00") + "," + sumPrice.ToString("0.00") + "," + Math.Abs(sumOriginalPrice - sumPrice).ToString("0.00") + "," + sumTax.ToString("0.00") + "," + sumTotal.ToString("0.00"));
+                //}
+                //else
+                //{
+                outputFile.WriteLine("รหัสไฟล์,ประเภทเอกสาร,หมายเลขเอกสาร,หมายเลขผู้เสียภาษี,ชื่อผู้เสียภาษี,สาขา,ที่อยู่,ออกเอกสาร,วันที่สร้าง,ยอดขาย,ส่วนลด,ยอดขายสุทธิ,ภาษี,รวม,สถานะส่งอีเมล,สถานะส่งสรรพากร,");
+
+                List<string> checkList = new List<string>();
+
+                foreach (ViewTaxCsvReport data in listData)
                 {
-                    outputFile.WriteLine("รหัสไฟล์,ประเภทเอกสาร,หมายเลขเอกสาร,หมายเลขผู้เสียภาษี,ชื่อผู้เสียภาษี,สาขา,ที่อยู่,ออกเอกสาร,วันที่สร้าง,มูลค่าเดิม,มูลค่าใหม่,ผลต่าง,ภาษี,รวม,สถานะส่งอีเมล,สถานะส่งสรรพากร");
+                    string duplicate = "";
+                    if (!checkList.Contains(data.etax_id))
+                        checkList.Add(data.etax_id);
+                    else
+                        duplicate = "duplicate";
 
-                    foreach (ViewTaxCsvReport data in listData)
+                    string issue_date = "";
+                    if (data.issue_date != null)
+                        issue_date = ((DateTime)data.issue_date).ToString("dd/MM/yyyy");
+                    else
+                        issue_date = "";
+
+                    string gen_xml_finish = "";
+                    if (data.gen_xml_finish != null)
+                        gen_xml_finish = ((DateTime)data.gen_xml_finish).ToString("dd/MM/yyyy HH:mm:ss");
+                    else
+                        gen_xml_finish = "";
+
+
+                    string status_email = "ยังไม่ส่ง";
+                    if (data.send_email_status == "success")
                     {
-                        string issue_date = "";
-                        if (data.issue_date != null)
-                            issue_date = ((DateTime)data.issue_date).ToString("dd/MM/yyyy");
-                        else
-                            issue_date = "";
-
-                        string gen_xml_finish = "";
-                        if (data.gen_xml_finish != null)
-                            gen_xml_finish = ((DateTime)data.gen_xml_finish).ToString("dd/MM/yyyy HH:mm:ss");
-                        else
-                            gen_xml_finish = "";
-
-
-                        string status_email = "ยังไม่ส่ง";
-                        if (data.send_email_status == "success")
-                        {
-                            status_email = "ส่งแล้ว";
-                        }
-
-                        string status_ebxml = "ยังไม่ส่ง";
-                        if (data.send_ebxml_status == "success")
-                        {
-                            status_ebxml = "ส่งแล้ว";
-                        }
-
-                        outputFile.WriteLine(
-                            data.id.ToString() + "," +
-                            data.document_type_name + "," +
-                            data.etax_id + "," +
-                            "'" + data.buyer_tax_id + "," +
-                            data.buyer_name.Replace("\r\n", " ").Replace(",", " ") + "," +
-                            "'" + data.buyer_branch_code + "," +
-                            data.buyer_address.Replace("\r\n", " ").Replace(",", " ") + "," +
-                            issue_date + "," +
-                            gen_xml_finish + "," +
-                            data.original_price.ToString("0.00") + "," +
-                            data.price.ToString("0.00") + "," +
-                            Math.Abs(data.original_price - data.price).ToString("0.00") + "," +
-                            data.tax.ToString("0.00") + "," +
-                        data.total.ToString("0.00") + "," +
-                        status_email + "," +
-                        status_ebxml
-                            );
+                        status_email = "ส่งแล้ว";
                     }
-                    outputFile.WriteLine("");
-                    outputFile.WriteLine(",,,,,,,,รวม," + sumOriginalPrice.ToString("0.00") + "," + sumPrice.ToString("0.00") + "," + Math.Abs(sumOriginalPrice - sumPrice).ToString("0.00") + "," + sumTax.ToString("0.00") + "," + sumTotal.ToString("0.00"));
 
-                }
-                else if (bodyDtParameters.docType == "CDN")
-                {
-                    outputFile.WriteLine("รหัสไฟล์,ประเภทเอกสาร,หมายเลขเอกสาร,หมายเลขผู้เสียภาษี,ชื่อผู้เสียภาษี,สาขา,ที่อยู่,ออกเอกสาร,วันที่สร้าง,มูลค่าเดิม,มูลค่าใหม่,ผลต่าง,ภาษี,รวม,สถานะส่งอีเมล,สถานะส่งสรรพากร");
-
-                    foreach (ViewTaxCsvReport data in listData)
+                    string status_ebxml = "ยังไม่ส่ง";
+                    if (data.send_ebxml_status == "success")
                     {
-                        string issue_date = "";
-                        if (data.issue_date != null)
-                            issue_date = ((DateTime)data.issue_date).ToString("dd/MM/yyyy");
-                        else
-                            issue_date = "";
-
-                        string gen_xml_finish = "";
-                        if (data.gen_xml_finish != null)
-                            gen_xml_finish = ((DateTime)data.gen_xml_finish).ToString("dd/MM/yyyy HH:mm:ss");
-                        else
-                            gen_xml_finish = "";
-
-
-                        string status_email = "ยังไม่ส่ง";
-                        if (data.send_email_status == "success")
-                        {
-                            status_email = "ส่งแล้ว";
-                        }
-
-                        string status_ebxml = "ยังไม่ส่ง";
-                        if (data.send_ebxml_status == "success")
-                        {
-                            status_ebxml = "ส่งแล้ว";
-                        }
-
-                        outputFile.WriteLine(
-                            data.id.ToString() + "," +
-                            data.document_type_name + "," +
-                            data.etax_id + "," +
-                            "'" + data.buyer_tax_id + "," +
-                            data.buyer_name.Replace("\r\n", " ").Replace(",", " ") + "," +
-                            "'" + data.buyer_branch_code + "," +
-                            data.buyer_address.Replace("\r\n", " ").Replace(",", " ") + "," +
-                            issue_date + "," +
-                            gen_xml_finish + "," +
-                            data.original_price.ToString("0.00") + "," +
-                            data.price.ToString("0.00") + "," +
-                            Math.Abs(data.original_price - data.price).ToString("0.00") + "," +
-                            data.tax.ToString("0.00") + "," +
-                        data.total.ToString("0.00") + "," +
-                        status_email + "," +
-                        status_ebxml
-                            );
+                        status_ebxml = "ส่งแล้ว";
                     }
-                    outputFile.WriteLine("");
-                    outputFile.WriteLine(",,,,,,,,รวม," + sumOriginalPrice.ToString("0.00") + "," + sumPrice.ToString("0.00") + "," + Math.Abs(sumOriginalPrice - sumPrice).ToString("0.00") + "," + sumTax.ToString("0.00") + "," + sumTotal.ToString("0.00"));
-                }
-                else
-                {
-                    outputFile.WriteLine("รหัสไฟล์,ประเภทเอกสาร,หมายเลขเอกสาร,หมายเลขผู้เสียภาษี,ชื่อผู้เสียภาษี,สาขา,ที่อยู่,ออกเอกสาร,วันที่สร้าง,ยอดขาย,ส่วนลด,ยอดขายสุทธิ,ภาษี,รวม,สถานะส่งอีเมล,สถานะส่งสรรพากร,");
 
-                    List<string> checkList = new List<string>();
-
-                    foreach (ViewTaxCsvReport data in listData)
+                    if(data.document_type_id == 3)
                     {
-                        string duplicate = "";
-                        if (!checkList.Contains(data.etax_id))
-                            checkList.Add(data.etax_id);
-                        else
-                            duplicate = "duplicate";
-
-                        string issue_date = "";
-                        if (data.issue_date != null)
-                            issue_date = ((DateTime)data.issue_date).ToString("dd/MM/yyyy");
-                        else
-                            issue_date = "";
-
-                        string gen_xml_finish = "";
-                        if (data.gen_xml_finish != null)
-                            gen_xml_finish = ((DateTime)data.gen_xml_finish).ToString("dd/MM/yyyy HH:mm:ss");
-                        else
-                            gen_xml_finish = "";
-
-
-                        string status_email = "ยังไม่ส่ง";
-                        if (data.send_email_status == "success")
-                        {
-                            status_email = "ส่งแล้ว";
-                        }
-
-                        string status_ebxml = "ยังไม่ส่ง";
-                        if (data.send_ebxml_status == "success")
-                        {
-                            status_ebxml = "ส่งแล้ว";
-                        }
-
-                        outputFile.WriteLine(
-                            data.id.ToString() + "," +
-                            data.document_type_name + "," +
-                            data.etax_id + "," +
-                            "'" + data.buyer_tax_id + "," +
-                            data.buyer_name.Replace("\r\n", " ").Replace(",", " ") + "," +
-                            "'" + data.buyer_branch_code + "," +
-                            data.buyer_address.Replace("\r\n", " ").Replace(",", " ") + "," +
-                            issue_date + "," +
-                            gen_xml_finish + "," +
-                            data.price.ToString("0.00") + "," +
-                            data.discount.ToString("0.00") + "," +
-                            (data.price - data.discount).ToString("0.00") + "," +
-                            data.tax.ToString("0.00") + "," +
-                        data.total.ToString("0.00") + "," +
-                        status_email + "," +
-                        status_ebxml + "," +
-                        duplicate
-                            );
+                        data.price = -data.price;
+                        data.discount = -data.discount;
+                        data.tax = -data.tax;
+                        data.total = -data.total;
                     }
-                    outputFile.WriteLine("");
-                    outputFile.WriteLine(",,,,,,,,รวม," + sumPrice.ToString("0.00") + "," + sumDiscount.ToString("0.00") + "," + (sumPrice - sumDiscount).ToString("0.00") + "," + sumTax.ToString("0.00") + "," + sumTotal.ToString("0.00"));
+
+                    outputFile.WriteLine(
+                        data.id.ToString() + "," +
+                        data.document_type_name + "," +
+                        data.etax_id + "," +
+                        "'" + data.buyer_tax_id + "," +
+                        data.buyer_name.Replace("\r\n", " ").Replace(",", " ") + "," +
+                        "'" + data.buyer_branch_code + "," +
+                        data.buyer_address.Replace("\r\n", " ").Replace(",", " ") + "," +
+                        issue_date + "," +
+                        gen_xml_finish + "," +
+                        data.price.ToString("0.00") + "," +
+                        data.discount.ToString("0.00") + "," +
+                        (data.price - data.discount).ToString("0.00") + "," +
+                        data.tax.ToString("0.00") + "," +
+                    data.total.ToString("0.00") + "," +
+                    status_email + "," +
+                    status_ebxml + "," +
+                    duplicate
+                        );
                 }
+                outputFile.WriteLine("");
+                outputFile.WriteLine(",,,,,,,,รวม," + sumPrice.ToString("0.00") + "," + sumDiscount.ToString("0.00") + "," + (sumPrice - sumDiscount).ToString("0.00") + "," + sumTax.ToString("0.00") + "," + sumTotal.ToString("0.00"));
+                //}
             }
         }
         public static void DefaultEmailReport(string path, BodyDtParameters bodyDtParameters, List<ViewSendEmailList> listData)

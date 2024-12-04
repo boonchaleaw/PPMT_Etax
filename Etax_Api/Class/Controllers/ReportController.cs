@@ -343,11 +343,19 @@ namespace Etax_Api.Controllers
                     result = result.Where(r => listType.Contains(r.tax_type_filter));
                 }
 
-                double sumOriginalPrice = result.Sum(s => s.original_price);
-                double sumPrice = result.Sum(s => s.price);
-                double sumDiscount = result.Sum(s => s.discount);
-                double sumTax = result.Sum(s => s.tax);
-                double sumTotal = result.Sum(s => s.total);
+                //double sumOriginalPrice = result.Sum(s => s.original_price);
+
+                double sumPrice = result.Where(x => x.document_type_id != 3).Sum(s => s.price);
+                double sumPriceCN = result.Where(x => x.document_type_id == 3).Sum(s => s.price);
+
+                double sumDiscount = result.Where(x => x.document_type_id != 3).Sum(s => s.discount);
+                double sumDiscountCN = result.Where(x => x.document_type_id == 3).Sum(s => s.discount);
+
+                double sumTax = result.Where(x => x.document_type_id != 3).Sum(s => s.tax);
+                double sumTaxCN = result.Where(x => x.document_type_id == 3).Sum(s => s.tax);
+
+                double sumTotal = result.Where(x => x.document_type_id != 3).Sum(s => s.total);
+                double sumTotalCN = result.Where(x => x.document_type_id == 3).Sum(s => s.total);
 
                 result = orderAscendingDirection ? result.OrderByProperty(orderCriteria) : result.OrderByPropertyDescending(orderCriteria);
 
@@ -363,6 +371,7 @@ namespace Etax_Api.Controllers
                         x.id,
                         x.etax_id,
                         x.document_type_id,
+                        x.document_type_name,
                         x.buyer_tax_id,
                         x.buyer_name,
                         x.original_price,
@@ -383,11 +392,11 @@ namespace Etax_Api.Controllers
                         recordsTotal = totalResultsCount,
                         recordsFiltered = filteredResultsCount,
                         countTotal = filteredResultsCount,
-                        sumOriginalPrice = sumOriginalPrice,
-                        sumPrice = sumPrice,
-                        sumDiscount = sumDiscount,
-                        sumTax = sumTax,
-                        sumTotal = sumTotal,
+                        //sumOriginalPrice = sumOriginalPrice,
+                        sumPrice = (sumPrice - sumPriceCN),
+                        sumDiscount = (sumDiscount - sumDiscountCN),
+                        sumTax = (sumTax - sumTaxCN),
+                        sumTotal = (sumTotal - sumTotalCN),
                         data = data,
                     });
                 }
@@ -399,6 +408,7 @@ namespace Etax_Api.Controllers
                         x.id,
                         x.etax_id,
                         x.document_type_id,
+                        x.document_type_name,
                         x.buyer_tax_id,
                         x.buyer_name,
                         x.original_price,
@@ -421,11 +431,11 @@ namespace Etax_Api.Controllers
                         recordsTotal = totalResultsCount,
                         recordsFiltered = filteredResultsCount,
                         countTotal = filteredResultsCount,
-                        sumOriginalPrice = sumOriginalPrice,
-                        sumPrice = sumPrice,
-                        sumDiscount = sumDiscount,
-                        sumTax = sumTax,
-                        sumTotal = sumTotal,
+                        //sumOriginalPrice = sumOriginalPrice,
+                        sumPrice = (sumPrice - sumPriceCN),
+                        sumDiscount = (sumDiscount - sumDiscountCN),
+                        sumTax = (sumTax - sumTaxCN),
+                        sumTotal = (sumTotal - sumTotalCN),
                         data = data,
                     });
                 }
@@ -824,6 +834,246 @@ namespace Etax_Api.Controllers
                 return StatusCode(400, new { message = ex.Message });
             }
         }
+        [HttpPost]
+        [Route("get_cancel_report")]
+        public async Task<IActionResult> GetCancelReport([FromBody] BodyDtParameters bodyDtParameters)
+        {
+            try
+            {
+                string token = Request.Headers[HeaderNames.Authorization].ToString();
+                JwtStatus jwtStatus = Jwt.ValidateJwtTokenMember(token, _config);
+
+                if (!jwtStatus.status)
+                    return StatusCode(401, new { message = "token ไม่ถูกต้องหรือหมดอายุ", });
+
+                var permission = await (from mup in _context.member_user_permission
+                                        where mup.member_user_id == jwtStatus.user_id
+                                        select mup.per_report_view).FirstOrDefaultAsync();
+                if (permission != "Y")
+                    return StatusCode(401, new { message = "ไม่มีสิทธิในการใช้งานส่วนนี้", });
+
+
+                var searchBy = bodyDtParameters.searchText;
+                var orderCriteria = "id";
+                var orderAscendingDirection = true;
+
+                if (bodyDtParameters.Order != null)
+                {
+                    orderCriteria = bodyDtParameters.Columns[bodyDtParameters.Order[0].Column].Data;
+                    orderAscendingDirection = bodyDtParameters.Order[0].Dir.ToString().ToLower() == "asc";
+                }
+
+                var result = _context.view_tex_report.Where(x => x.member_id == jwtStatus.member_id && x.gen_xml_status == "success" && x.delete_status == 1).AsQueryable();
+
+                bodyDtParameters.dateStart = DateTime.Parse(bodyDtParameters.dateStart.ToString()).Date;
+                bodyDtParameters.dateEnd = bodyDtParameters.dateEnd.AddDays(+1).AddMilliseconds(-1);
+
+                int document_id = System.Convert.ToInt32(bodyDtParameters.docType);
+
+                if (!string.IsNullOrEmpty(searchBy))
+                {
+                    if (document_id == 0)
+                    {
+                        if (bodyDtParameters.dateType == "issue_date")
+                        {
+                            result = result.Where(r =>
+                                (r.etax_id.Contains(searchBy) && r.issue_date >= bodyDtParameters.dateStart && r.issue_date <= bodyDtParameters.dateEnd) ||
+                                (r.buyer_name.Contains(searchBy) && r.issue_date >= bodyDtParameters.dateStart && r.issue_date <= bodyDtParameters.dateEnd) ||
+                                (r.name.Contains(searchBy) && r.issue_date >= bodyDtParameters.dateStart && r.issue_date <= bodyDtParameters.dateEnd)
+                            );
+                        }
+                        else
+                        {
+                            result = result.Where(r =>
+                                (r.etax_id.Contains(searchBy) && r.create_date >= bodyDtParameters.dateStart && r.create_date <= bodyDtParameters.dateEnd) ||
+                                (r.buyer_name.Contains(searchBy) && r.create_date >= bodyDtParameters.dateStart && r.create_date <= bodyDtParameters.dateEnd) ||
+                                (r.name.Contains(searchBy) && r.create_date >= bodyDtParameters.dateStart && r.create_date <= bodyDtParameters.dateEnd)
+                            );
+                        }
+                    }
+                    else
+                    {
+                        if (bodyDtParameters.dateType == "issue_date")
+                        {
+                            result = result.Where(r =>
+                                (r.document_type_id == document_id && r.etax_id.Contains(searchBy) && r.issue_date >= bodyDtParameters.dateStart && r.issue_date <= bodyDtParameters.dateEnd) ||
+                                (r.document_type_id == document_id && r.buyer_name.Contains(searchBy) && r.issue_date >= bodyDtParameters.dateStart && r.issue_date <= bodyDtParameters.dateEnd) ||
+                                (r.document_type_id == document_id && r.name.Contains(searchBy) && r.issue_date >= bodyDtParameters.dateStart && r.issue_date <= bodyDtParameters.dateEnd)
+                            );
+                        }
+                        else
+                        {
+                            result = result.Where(r =>
+                                (r.document_type_id == document_id && r.etax_id.Contains(searchBy) && r.create_date >= bodyDtParameters.dateStart && r.create_date <= bodyDtParameters.dateEnd) ||
+                                (r.document_type_id == document_id && r.buyer_name.Contains(searchBy) && r.create_date >= bodyDtParameters.dateStart && r.create_date <= bodyDtParameters.dateEnd) ||
+                                (r.document_type_id == document_id && r.name.Contains(searchBy) && r.create_date >= bodyDtParameters.dateStart && r.create_date <= bodyDtParameters.dateEnd)
+                            );
+                        }
+                    }
+                }
+                else
+                {
+                    if (document_id == 0)
+                    {
+                        if (bodyDtParameters.dateType == "issue_date")
+                        {
+                            result = result.Where(r =>
+                                (r.issue_date >= bodyDtParameters.dateStart && r.issue_date <= bodyDtParameters.dateEnd)
+                            );
+                        }
+                        else
+                        {
+                            result = result.Where(r =>
+                                (r.create_date >= bodyDtParameters.dateStart && r.create_date <= bodyDtParameters.dateEnd)
+                            );
+                        }
+                    }
+                    else
+                    {
+                        if (bodyDtParameters.dateType == "issue_date")
+                        {
+                            result = result.Where(r =>
+                                (r.document_type_id == document_id && r.issue_date >= bodyDtParameters.dateStart && r.issue_date <= bodyDtParameters.dateEnd)
+                            );
+                        }
+                        else
+                        {
+                            result = result.Where(r =>
+                                (r.document_type_id == document_id && r.create_date >= bodyDtParameters.dateStart && r.create_date <= bodyDtParameters.dateEnd)
+                            );
+                        }
+                    }
+                }
+
+
+                List<string> listType = new List<string>();
+                foreach (TaxType tax in bodyDtParameters.taxType)
+                {
+                    if (tax.id == "7")
+                    {
+                        listType.Add("VAT7");
+                    }
+                    else if (tax.id == "0")
+                    {
+                        listType.Add("VAT0");
+                    }
+                    else if (tax.id == "free")
+                    {
+                        listType.Add("FRE");
+                    }
+                    else if (tax.id == "no")
+                    {
+                        listType.Add("NO");
+                    }
+                }
+
+                if (listType.Count > 0)
+                {
+                    result = result.Where(r => listType.Contains(r.tax_type_filter));
+                }
+
+                //double sumOriginalPrice = result.Sum(s => s.original_price);
+
+                double sumPrice = result.Where(x => x.document_type_id != 3).Sum(s => s.price);
+                double sumPriceCN = result.Where(x => x.document_type_id == 3).Sum(s => s.price);
+
+                double sumDiscount = result.Where(x => x.document_type_id != 3).Sum(s => s.discount);
+                double sumDiscountCN = result.Where(x => x.document_type_id == 3).Sum(s => s.discount);
+
+                double sumTax = result.Where(x => x.document_type_id != 3).Sum(s => s.tax);
+                double sumTaxCN = result.Where(x => x.document_type_id == 3).Sum(s => s.tax);
+
+                double sumTotal = result.Where(x => x.document_type_id != 3).Sum(s => s.total);
+                double sumTotalCN = result.Where(x => x.document_type_id == 3).Sum(s => s.total);
+
+                result = orderAscendingDirection ? result.OrderByProperty(orderCriteria) : result.OrderByPropertyDescending(orderCriteria);
+
+                var filteredResultsCount = await result.CountAsync();
+                var totalResultsCount = 0;
+
+
+                if (bodyDtParameters.Length == -1)
+                {
+                    var data = await result
+                    .Select(x => new
+                    {
+                        x.id,
+                        x.etax_id,
+                        x.document_type_id,
+                        x.document_type_name,
+                        x.buyer_tax_id,
+                        x.buyer_name,
+                        x.original_price,
+                        x.new_price,
+                        x.price,
+                        x.discount,
+                        x.tax,
+                        x.total,
+                        x.issue_date,
+                        x.gen_xml_finish,
+                    })
+                    .ToListAsync();
+
+
+                    return StatusCode(200, new
+                    {
+                        draw = bodyDtParameters.Draw,
+                        recordsTotal = totalResultsCount,
+                        recordsFiltered = filteredResultsCount,
+                        countTotal = filteredResultsCount,
+                        //sumOriginalPrice = sumOriginalPrice,
+                        sumPrice = (sumPrice - sumPriceCN),
+                        sumDiscount = (sumDiscount - sumDiscountCN),
+                        sumTax = (sumTax - sumTaxCN),
+                        sumTotal = (sumTotal - sumTotalCN),
+                        data = data,
+                    });
+                }
+                else
+                {
+                    var data = await result
+                    .Select(x => new
+                    {
+                        x.id,
+                        x.etax_id,
+                        x.document_type_id,
+                        x.document_type_name,
+                        x.buyer_tax_id,
+                        x.buyer_name,
+                        x.original_price,
+                        x.new_price,
+                        x.price,
+                        x.discount,
+                        x.tax,
+                        x.total,
+                        x.issue_date,
+                        x.gen_xml_finish,
+                    })
+                    .Skip(bodyDtParameters.Start)
+                    .Take(bodyDtParameters.Length)
+                    .ToListAsync();
+
+
+                    return StatusCode(200, new
+                    {
+                        draw = bodyDtParameters.Draw,
+                        recordsTotal = totalResultsCount,
+                        recordsFiltered = filteredResultsCount,
+                        countTotal = filteredResultsCount,
+                        //sumOriginalPrice = sumOriginalPrice,
+                        sumPrice = (sumPrice - sumPriceCN),
+                        sumDiscount = (sumDiscount - sumDiscountCN),
+                        sumTax = (sumTax - sumTaxCN),
+                        sumTotal = (sumTotal - sumTotalCN),
+                        data = data,
+                    });
+                }
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(400, new { message = ex.Message });
+            }
+        }
 
 
 
@@ -1181,10 +1431,24 @@ namespace Etax_Api.Controllers
                 }
 
                 double sumOriginalPrice = result.Sum(s => s.original_price);
-                double sumPrice = result.Sum(s => s.price);
-                double sumDiscount = result.Sum(s => s.discount);
-                double sumTax = result.Sum(s => s.tax);
-                double sumTotal = result.Sum(s => s.total);
+
+
+                double sumPrice = result.Where(x => x.document_type_id != 3).Sum(s => s.price);
+                double sumPriceCN = result.Where(x => x.document_type_id == 3).Sum(s => s.price);
+
+                double sumDiscount = result.Where(x => x.document_type_id != 3).Sum(s => s.discount);
+                double sumDiscountCN = result.Where(x => x.document_type_id == 3).Sum(s => s.discount);
+
+                double sumTax = result.Where(x => x.document_type_id != 3).Sum(s => s.tax);
+                double sumTaxCN = result.Where(x => x.document_type_id == 3).Sum(s => s.tax);
+
+                double sumTotal = result.Where(x => x.document_type_id != 3).Sum(s => s.total);
+                double sumTotalCN = result.Where(x => x.document_type_id == 3).Sum(s => s.total);
+
+                sumPrice = sumPrice - sumPriceCN;
+                sumDiscount = sumDiscount - sumDiscountCN;
+                sumTax = sumTax - sumTaxCN;
+                sumTotal = sumTotal - sumTotalCN;
 
                 result = orderAscendingDirection ? result.OrderByProperty(orderCriteria) : result.OrderByPropertyDescending(orderCriteria);
 
@@ -1541,6 +1805,202 @@ namespace Etax_Api.Controllers
                 {
                     Report.DefaultEbxmlReport(output + pathExcel, bodyDtParameters, listData);
                 }
+
+                return StatusCode(200, new
+                {
+                    message = "สร้างไฟล์ CSV สำเร็จ",
+                    data = new
+                    {
+                        filePath = pathExcel,
+                    },
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(400, new { message = ex.Message });
+            }
+        }
+        [HttpPost]
+        [Route("csv_cancel_report")]
+        public async Task<IActionResult> CsvCancelReport([FromBody] BodyDtParameters bodyDtParameters)
+        {
+            try
+            {
+                string token = Request.Headers[HeaderNames.Authorization].ToString();
+                JwtStatus jwtStatus = Jwt.ValidateJwtTokenMember(token, _config);
+
+                if (!jwtStatus.status)
+                    return StatusCode(401, new { message = "token ไม่ถูกต้องหรือหมดอายุ", });
+
+                var permission = await (from mup in _context.member_user_permission
+                                        where mup.member_user_id == jwtStatus.user_id
+                                        select mup.per_report_view).FirstOrDefaultAsync();
+                if (permission != "Y")
+                    return StatusCode(401, new { message = "ไม่มีสิทธิในการใช้งานส่วนนี้", });
+
+
+                var member = await _context.members
+                .Where(x => x.id == jwtStatus.member_id)
+                .Select(x => new
+                {
+                    x.id,
+                    x.name,
+                    x.tax_id,
+                })
+                .FirstOrDefaultAsync();
+
+
+                var searchBy = bodyDtParameters.searchText;
+                var orderCriteria = "id";
+                var orderAscendingDirection = true;
+
+                if (bodyDtParameters.Order != null)
+                {
+                    orderCriteria = bodyDtParameters.Columns[bodyDtParameters.Order[0].Column].Data;
+                    orderAscendingDirection = bodyDtParameters.Order[0].Dir.ToString().ToLower() == "asc";
+                }
+
+                var result = _context.view_tex_csv_report.Where(x => x.member_id == jwtStatus.member_id && x.gen_xml_status == "success" && x.delete_status == 1).AsQueryable();
+
+                bodyDtParameters.dateStart = DateTime.Parse(bodyDtParameters.dateStart.ToString()).Date;
+                bodyDtParameters.dateEnd = bodyDtParameters.dateEnd.AddDays(+1).AddMilliseconds(-1);
+
+                int document_id = System.Convert.ToInt32(bodyDtParameters.docType);
+
+                if (!string.IsNullOrEmpty(searchBy))
+                {
+                    if (document_id == 0)
+                    {
+                        if (bodyDtParameters.dateType == "issue_date")
+                        {
+                            result = result.Where(r =>
+                                (r.etax_id.Contains(searchBy) && r.issue_date >= bodyDtParameters.dateStart && r.issue_date <= bodyDtParameters.dateEnd) ||
+                                (r.buyer_name.Contains(searchBy) && r.issue_date >= bodyDtParameters.dateStart && r.issue_date <= bodyDtParameters.dateEnd) ||
+                                (r.name.Contains(searchBy) && r.issue_date >= bodyDtParameters.dateStart && r.issue_date <= bodyDtParameters.dateEnd)
+                            );
+                        }
+                        else
+                        {
+                            result = result.Where(r =>
+                                (r.etax_id.Contains(searchBy) && r.create_date >= bodyDtParameters.dateStart && r.create_date <= bodyDtParameters.dateEnd) ||
+                                (r.buyer_name.Contains(searchBy) && r.create_date >= bodyDtParameters.dateStart && r.create_date <= bodyDtParameters.dateEnd) ||
+                                (r.name.Contains(searchBy) && r.create_date >= bodyDtParameters.dateStart && r.create_date <= bodyDtParameters.dateEnd)
+                            );
+                        }
+                    }
+                    else
+                    {
+                        if (bodyDtParameters.dateType == "issue_date")
+                        {
+                            result = result.Where(r =>
+                                (r.document_type_id == document_id && r.etax_id.Contains(searchBy) && r.issue_date >= bodyDtParameters.dateStart && r.issue_date <= bodyDtParameters.dateEnd) ||
+                                (r.document_type_id == document_id && r.buyer_name.Contains(searchBy) && r.issue_date >= bodyDtParameters.dateStart && r.issue_date <= bodyDtParameters.dateEnd) ||
+                                (r.document_type_id == document_id && r.name.Contains(searchBy) && r.issue_date >= bodyDtParameters.dateStart && r.issue_date <= bodyDtParameters.dateEnd)
+                            );
+                        }
+                        else
+                        {
+                            result = result.Where(r =>
+                                (r.document_type_id == document_id && r.etax_id.Contains(searchBy) && r.create_date >= bodyDtParameters.dateStart && r.create_date <= bodyDtParameters.dateEnd) ||
+                                (r.document_type_id == document_id && r.buyer_name.Contains(searchBy) && r.create_date >= bodyDtParameters.dateStart && r.create_date <= bodyDtParameters.dateEnd) ||
+                                (r.document_type_id == document_id && r.name.Contains(searchBy) && r.create_date >= bodyDtParameters.dateStart && r.create_date <= bodyDtParameters.dateEnd)
+                            );
+                        }
+                    }
+                }
+                else
+                {
+                    if (document_id == 0)
+                    {
+                        if (bodyDtParameters.dateType == "issue_date")
+                        {
+                            result = result.Where(r =>
+                                (r.issue_date >= bodyDtParameters.dateStart && r.issue_date <= bodyDtParameters.dateEnd)
+                            );
+                        }
+                        else
+                        {
+                            result = result.Where(r =>
+                                (r.create_date >= bodyDtParameters.dateStart && r.create_date <= bodyDtParameters.dateEnd)
+                            );
+                        }
+                    }
+                    else
+                    {
+                        if (bodyDtParameters.dateType == "issue_date")
+                        {
+                            result = result.Where(r =>
+                                (r.document_type_id == document_id && r.issue_date >= bodyDtParameters.dateStart && r.issue_date <= bodyDtParameters.dateEnd)
+                            );
+                        }
+                        else
+                        {
+                            result = result.Where(r =>
+                                (r.document_type_id == document_id && r.create_date >= bodyDtParameters.dateStart && r.create_date <= bodyDtParameters.dateEnd)
+                            );
+                        }
+                    }
+                }
+
+
+                List<string> listType = new List<string>();
+                foreach (TaxType tax in bodyDtParameters.taxType)
+                {
+                    if (tax.id == "7")
+                    {
+                        listType.Add("VAT7");
+                    }
+                    else if (tax.id == "0")
+                    {
+                        listType.Add("VAT0");
+                    }
+                    else if (tax.id == "free")
+                    {
+                        listType.Add("FRE");
+                    }
+                    else if (tax.id == "no")
+                    {
+                        listType.Add("NO");
+                    }
+                }
+
+                if (listType.Count > 0)
+                {
+                    result = result.Where(r => listType.Contains(r.tax_type_filter));
+                }
+
+                double sumOriginalPrice = result.Sum(s => s.original_price);
+
+
+                double sumPrice = result.Where(x => x.document_type_id != 3).Sum(s => s.price);
+                double sumPriceCN = result.Where(x => x.document_type_id == 3).Sum(s => s.price);
+
+                double sumDiscount = result.Where(x => x.document_type_id != 3).Sum(s => s.discount);
+                double sumDiscountCN = result.Where(x => x.document_type_id == 3).Sum(s => s.discount);
+
+                double sumTax = result.Where(x => x.document_type_id != 3).Sum(s => s.tax);
+                double sumTaxCN = result.Where(x => x.document_type_id == 3).Sum(s => s.tax);
+
+                double sumTotal = result.Where(x => x.document_type_id != 3).Sum(s => s.total);
+                double sumTotalCN = result.Where(x => x.document_type_id == 3).Sum(s => s.total);
+
+                sumPrice = sumPrice - sumPriceCN;
+                sumDiscount = sumDiscount - sumDiscountCN;
+                sumTax = sumTax - sumTaxCN;
+                sumTotal = sumTotal - sumTotalCN;
+
+                result = orderAscendingDirection ? result.OrderByProperty(orderCriteria) : result.OrderByPropertyDescending(orderCriteria);
+
+                List<ViewTaxCsvReport> listData = await result
+                    .ToListAsync();
+
+                string output = _config["Path:Share"];
+                string pathExcel = "/" + member.id + "/excel/";
+                Directory.CreateDirectory(output + pathExcel);
+                pathExcel += "รายงานยกเลิกเอกสาร_" + member.name + ".csv";
+
+                Report.DefaultTexReport(output + pathExcel, bodyDtParameters, listData, sumOriginalPrice, sumPrice, sumDiscount, sumTax, sumTotal);
+
 
                 return StatusCode(200, new
                 {
@@ -1998,9 +2458,9 @@ namespace Etax_Api.Controllers
                 if (permission != "Y")
                     return StatusCode(401, new { message = "ไม่มีสิทธิในการใช้งานส่วนนี้", });
 
-               var membere = await (from um in _context.user_members
-                                             where um.user_id == jwtStatus.user_id && um.member_id == bodyCostReportAdmin.member_id
-                                             select um).FirstOrDefaultAsync();
+                var membere = await (from um in _context.user_members
+                                     where um.user_id == jwtStatus.user_id && um.member_id == bodyCostReportAdmin.member_id
+                                     select um).FirstOrDefaultAsync();
 
                 if (membere == null)
                     return StatusCode(401, new { message = "ไม่มีสิทธิในการใช้งานส่วนนี้", });

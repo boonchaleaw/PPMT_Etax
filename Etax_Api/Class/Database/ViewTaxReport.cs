@@ -10,6 +10,7 @@ namespace Etax_Api
         public int member_id { get; set; }
         public string name { get; set; }
         public int document_type_id { get; set; }
+        public string document_type_name { get; set; }
         public string gen_xml_status { get; set; }
         public DateTime? gen_xml_finish { get; set; }
         public string url_path { get; set; }

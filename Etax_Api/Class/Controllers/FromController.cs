@@ -1,4 +1,5 @@
 ﻿
+using Etax_Api.Class.MocApi;
 using ExcelDataReader;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -14,6 +15,7 @@ using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Net;
+using System.Reflection.Emit;
 using System.Reflection.PortableExecutable;
 using System.Text;
 using System.Text.RegularExpressions;
@@ -487,8 +489,13 @@ namespace Etax_Api.Controllers
 
                 if (member.tax_id == "0105562032146")
                 {
-                    string TextChecksum_X = bodyMkData.branchCode + bodyMkData.billID + bodyMkData.amount + bodyMkData.noDiscount + bodyMkData.fAndB + bodyMkData.service;
-                    string TextChecksum_Y = bodyMkData.bilIDate + bodyMkData.billID + bodyMkData.discount + bodyMkData.totalAmount + bodyMkData.vat + bodyMkData.baseAmount + bodyMkData.billIDRef;
+                    string billID = bodyMkData.billID.Substring(3);
+                    string billIDRef = "";
+                    if (bodyMkData.billIDRef.Length > 1)
+                        billIDRef = bodyMkData.billIDRef.Substring(3);
+
+                    string TextChecksum_X = bodyMkData.branchCode + billID + bodyMkData.amount + bodyMkData.noDiscount + bodyMkData.fAndB + bodyMkData.service;
+                    string TextChecksum_Y = bodyMkData.bilIDate + billID + bodyMkData.discount + bodyMkData.totalAmount + bodyMkData.vat + bodyMkData.baseAmount + billIDRef;
 
                     string dataX = "";
                     string dataY = "";
@@ -517,7 +524,7 @@ namespace Etax_Api.Controllers
                     if (checksum != bodyMkData.checkSum)
                         return StatusCode(404, new
                         {
-                            message = "รูแบบบข้อมูลไม่ถูกต้อง",
+                            message = "รูปแบบบข้อมูลไม่ถูกต้อง",
                         });
                 }
                 else
@@ -552,7 +559,7 @@ namespace Etax_Api.Controllers
                     if (checksum != bodyMkData.checkSum)
                         return StatusCode(404, new
                         {
-                            message = "รูแบบบข้อมูลไม่ถูกต้อง",
+                            message = "รูปแบบบข้อมูลไม่ถูกต้อง",
                         });
 
                 }
@@ -594,8 +601,8 @@ namespace Etax_Api.Controllers
                     if (expiryDate >= ref_issue_date)
                         expire_edit = true;
 
-                    if (etaxFile.update_count >= 2)
-                        expire_edit = true;
+                    //if (etaxFile.update_count >= 2)
+                    //    expire_edit = true;
 
                     if (bodyMkData.branchCode == "D201")
                     {
@@ -836,8 +843,8 @@ namespace Etax_Api.Controllers
                 }
                 else
                 {
-                    if (etaxFile.update_count >= 2)
-                        return StatusCode(404, new { message = "ไม่สามารถแก้ไขข้อมูลได้", });
+                    //if (etaxFile.update_count >= 2)
+                    //    return StatusCode(404, new { message = "ไม่สามารถแก้ไขข้อมูลได้", });
 
 
                     if (bodyUserform.type == 1)
@@ -907,6 +914,126 @@ namespace Etax_Api.Controllers
                         transaction.Rollback();
                         return StatusCode(400, new { message = ex.Message });
                     }
+                }
+
+                return StatusCode(200, new
+                {
+                    message = "แก้ไขข้อมูลสำเร็จ",
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(400, new { message = ex.Message });
+            }
+        }
+
+        [HttpPost]
+        [Route("find_legal_entity/{tax_id}")]
+        public async Task<IActionResult> FindLegalEntity(string tax_id)
+        {
+            try
+            {
+                WalkinCertData data = MocApi.getDataMoc(tax_id);
+                if (data != null)
+                {
+
+                    string address = "";
+
+                    if (data.addressDetail.buildingName != null)
+                        address += data.addressDetail.buildingName + " ";
+                    if (data.addressDetail.roomNo != null)
+                        address += data.addressDetail.roomNo + " ";
+                    if (data.addressDetail.floor != null)
+                        address += data.addressDetail.floor + " ";
+                    if (data.addressDetail.villageName != null)
+                        address += data.addressDetail.villageName + " ";
+                    if (data.addressDetail.houseNumber != null)
+                        address += data.addressDetail.houseNumber + " ";
+                    if (data.addressDetail.moo != null)
+                        address += "ม."+data.addressDetail.moo + " ";
+                    if (data.addressDetail.soi != null)
+                        address += "ซอย"+data.addressDetail.soi + " ";
+                    if (data.addressDetail.street != null)
+                        address += "ถนน"+data.addressDetail.street + " ";
+
+
+                    Province province = null;
+                    Amphoe amphoe = null;
+                    District district = null;
+
+
+                    province = _context.province.Where(x => x.province_th == data.addressDetail.province).FirstOrDefault();
+                    if (province == null)
+                        return StatusCode(404, new { message = "ไม่พบข้อมูล", });
+
+
+                    List<Amphoe> amphoes = _context.amphoe.Where(x => x.province_code == province.province_code).ToList();
+                    if (amphoes.Count > 1)
+                    {
+                        foreach (Amphoe amp in amphoes)
+                        {
+                            if (amp.amphoe_th.Contains(data.addressDetail.subDistrict))
+                            {
+                                amphoe = amp;
+                                break;
+                            }
+                        }
+                    }
+
+
+                    //List<District> districts = _context.district.Where(x => x.zipcode == zipcode).ToList();
+                    //if (districts.Count > 1)
+                    //{
+                    //    foreach (District dis in districts)
+                    //    {
+                    //        if (dis.district_th.Contains(district_address))
+                    //        {
+                    //            district = dis;
+                    //            break;
+                    //        }
+                    //    }
+                    //}
+
+                    //amphoe = _context.amphoe.Where(x => x.amphoe_code == district.amphoe_code).FirstOrDefault();
+                    //province = _context.province.Where(x => x.province_code == amphoe.province_code).FirstOrDefault();
+
+
+                    string newAddress = "";
+                    //foreach (string a in listAddress)
+                    //{
+                    //    bool status = false;
+                    //    if (a.Contains(district.district_th_s))
+                    //        status = true;
+                    //    else if (a.Contains(amphoe.amphoe_th_s))
+                    //        status = true;
+                    //    else if (a.Contains(province.province_th))
+                    //        status = true;
+                    //    else if (a.Contains(zipcode))
+                    //        status = true;
+
+
+                    //    if (!status)
+                    //        newAddress += a + " ";
+                    //}
+
+
+                    return StatusCode(200, new
+                    {
+                        message = "เรียกดูข้อมูลสำเร็จ",
+                        data = new
+                        {
+                            tax_id = data.juristicID,
+                            name = data.juristicNameTH,
+                            address = newAddress.Trim(),
+                            district = district,
+                            amphoe = amphoe,
+                            province = province,
+                        },
+                    });
+                }
+                else
+                {
+                    return StatusCode(404, new { message = "ไม่พบข้อมูล", });
                 }
 
                 return StatusCode(200, new
