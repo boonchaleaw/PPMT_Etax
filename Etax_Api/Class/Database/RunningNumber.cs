@@ -9,5 +9,7 @@ namespace Etax_Api
         public int member_id { get; set; }
         public string type { get; set; }
         public int number { get; set; }
+        public DateTime update_date { get; set; }
+        public DateTime create_date { get; set; }
     }
 }

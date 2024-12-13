@@ -187,18 +187,16 @@ namespace Etax_Api.Controllers
                 string district_address = "";
 
                 List<string> listAddress = address.Split(' ').ToList();
-                foreach (string a in listAddress)
-                {
-                    if (a.Contains("แขวง") || a.Contains("ตำบล") || a.Contains("ต."))
-                        district_address = a.Replace("แขวง", "").Replace("ตำบล", "").Replace("ต.", "");
-                }
 
                 MatchCollection matcheZipCode = rxZipCode.Matches(address);
                 if (matcheZipCode.Count > 0)
                     zipcode = matcheZipCode[matcheZipCode.Count() - 1].Value;
 
-                //if (zipcode == "" && bodyAdjustAddress.zipcode.Length == 5)
-                //    zipcode = bodyAdjustAddress.zipcode;
+                foreach (string a in listAddress)
+                {
+                    if (a.Contains("แขวง") || a.Contains("ตำบล") || a.Contains("ต."))
+                        district_address = a.Replace("แขวง", "").Replace("ตำบล", "").Replace("ต.", "");
+                }
 
                 Province province = new Province();
                 Amphoe amphoe = new Amphoe();
@@ -331,9 +329,9 @@ namespace Etax_Api.Controllers
                 string address = bodyAdjustAddress.address;
                 List<string> listAddress = address.Split(' ').ToList();
 
-                string district_name = listAddress[listAddress.Count-3];
-                string amphoe_name = listAddress[listAddress.Count-2];
-                string province_name = listAddress[listAddress.Count-1];
+                string district_name = listAddress[listAddress.Count-3].Replace("ตำบล","").Replace("แขวง", "");
+                string amphoe_name = listAddress[listAddress.Count-2].Replace("อำเภอ", "").Replace("เขต", "");
+                string province_name = listAddress[listAddress.Count-1].Replace("จังหวัด", "");
 
                 District district = null;
                 List<District> districts = _context.district.Where(x => x.zipcode == bodyAdjustAddress.zipcode).ToList();

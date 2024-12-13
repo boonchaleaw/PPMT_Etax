@@ -699,184 +699,432 @@ namespace Etax_Api.Controllers
                 .Where(x => x.member_id == bodyUserform.member_id && x.ref_etax_id == bodyUserform.dataQr.billID)
                 .FirstOrDefaultAsync();
 
-                if (etaxFile == null)
+                if (bodyUserform.lang == "EN")
                 {
-                    RunningNumber runningNumber = await _context.running_number
-                    .Where(x => x.member_id == bodyUserform.member_id && x.type == "etax_id")
-                    .FirstOrDefaultAsync();
-
-                    if (runningNumber == null)
-                        return StatusCode(404, new { message = "ไม่พบข้อมูล running_number", });
-
-                    int running_number = runningNumber.number + 1;
-                    runningNumber.number = running_number;
-                    _context.SaveChanges();
-
-                    DateTime ref_issue_date = DateTime.ParseExact(bodyUserform.dataQr.bilIDate, "yyyyMMdd", CultureInfo.InvariantCulture);
-                    double amountNoVat = double.Parse(bodyUserform.dataQr.amount) * 100 / 107;
-                    double discountNoVat = double.Parse(bodyUserform.dataQr.discount) * 100 / 107;
-
-                    string etax_id = bodyUserform.dataQr.branchCode +
-                        ref_issue_date.ToString("yyyyMMdd", new CultureInfo("th-TH")) + "-" +
-                        running_number.ToString().PadLeft(5, '0');
-
-                    using (var transaction = _context.Database.BeginTransaction())
+                    if (etaxFile == null)
                     {
-                        try
+
+                        DateTime ref_issue_date = DateTime.ParseExact(bodyUserform.dataQr.bilIDate, "yyyyMMdd", CultureInfo.InvariantCulture);
+                        string running_name = "etax_id_" + ref_issue_date.ToString("MM_yyyy");
+
+                        if (running_name == "etax_id_12_2024")
+                            running_name = "etax_id";
+
+                        RunningNumber runningNumber = await _context.running_number
+                        .Where(x => x.member_id == bodyUserform.member_id && x.type == running_name)
+                        .FirstOrDefaultAsync();
+
+                        int running_number = 0;
+
+                        if (runningNumber == null)
                         {
-                            EtaxFile newEtaxFile = new EtaxFile()
+                            RunningNumber newRunningNumber = new RunningNumber()
                             {
                                 member_id = bodyUserform.member_id,
-                                branch_id = bodyUserform.branch_id,
-                                member_user_id = 0,
-                                document_type_id = 7,
-                                create_type = "api",
-                                rawdata_file_id = 0,
-                                gen_xml_status = "pending",
-                                gen_pdf_status = "pending",
-                                add_email_status = "pending",
-                                add_sms_status = "no",
-                                add_ebxml_status = "no",
-                                send_xml_status = "N",
-                                send_other_status = "N",
-                                error = "",
-                                output_path = _config["Path:Output"],
-                                etax_id = etax_id,
-                                issue_date = ref_issue_date,
-                                ref_etax_id = bodyUserform.dataQr.billID,
-                                ref_issue_date = ref_issue_date,
-                                buyer_branch_code = "00000",
-                                buyer_id = "",
-                                buyer_name = bodyUserform.name,
-                                buyer_tax_id = bodyUserform.tax_id,
-                                buyer_tax_type = "",
-                                buyer_address = bodyUserform.address + " " + bodyUserform.district + " " + bodyUserform.amphoe + " " + bodyUserform.province,
-                                buyer_zipcode = bodyUserform.zipcode,
-                                buyer_tel = bodyUserform.tel,
-                                buyer_fax = "",
-                                buyer_country_code = "TH",
-                                buyer_email = bodyUserform.email,
-                                price = double.Parse(amountNoVat.ToString("0.00")),
-                                discount = double.Parse(discountNoVat.ToString("0.00")),
-                                tax_rate = 7,
-                                tax = double.Parse(bodyUserform.dataQr.vat),
-                                total = double.Parse(bodyUserform.dataQr.totalAmount),
-                                remark = "",
-                                other = bodyUserform.dataQr.branchCode + "|" + bodyUserform.dataQr.url,
-                                other2 = bodyUserform.dataQr.baseAmount + "|" + bodyUserform.dataQr.noDiscount + "|" + bodyUserform.dataQr.fAndB + "|" + bodyUserform.dataQr.service,
-                                group_name = "",
-                                template_pdf = "",
-                                template_email = "",
-                                xml_payment_status = "pending",
-                                pdf_payment_status = "pending",
-                                mode = "normal",
-                                update_count = 0,
+                                type = running_name,
+                                number = 1,
                                 update_date = now,
                                 create_date = now,
                             };
+                            _context.running_number.Add(newRunningNumber);
+                            _context.SaveChanges();
 
-                            if (bodyUserform.type == 1)
-                                newEtaxFile.buyer_branch_code = bodyUserform.branch_code;
+                            running_number = 1;
+                        }
+                        else
+                        {
+                            running_number = runningNumber.number + 1;
+                            runningNumber.number = running_number;
+                            runningNumber.update_date = now;
+                            _context.SaveChanges();
+                        }
 
-                            _context.Add(newEtaxFile);
-                            await _context.SaveChangesAsync();
 
-                            double itemPrice1 = double.Parse(bodyUserform.dataQr.fAndB);
-                            double itemTax1 = itemPrice1 * newEtaxFile.tax_rate / 100;
+                        double amountNoVat = double.Parse(bodyUserform.dataQr.amount) * 100 / 107;
+                        double discountNoVat = double.Parse(bodyUserform.dataQr.discount) * 100 / 107;
 
-                            string itemName = "อาหารและเครื่องดื่ม";
-                            if (bodyUserform.dataQr.branchCode == "D201")
-                                itemName = "บัตรสมาชิก";
+                        string etax_id = bodyUserform.dataQr.branchCode +
+                            ref_issue_date.ToString("yyyyMMdd", new CultureInfo("th-TH")) + "-" +
+                            running_number.ToString().PadLeft(5, '0');
 
-                            EtaxFileItem newEtaxFileItem = new EtaxFileItem()
+                        using (var transaction = _context.Database.BeginTransaction())
+                        {
+                            try
                             {
-                                etax_file_id = newEtaxFile.id,
-                                code = "",
-                                name = itemName,
-                                qty = 1,
-                                unit = "",
-                                price = itemPrice1,
-                                discount = 0,
-                                tax = itemTax1,
-                                tax_rate = newEtaxFile.tax_rate,
-                                total = (itemPrice1 + itemTax1),
-                            };
-                            _context.Add(newEtaxFileItem);
+                                EtaxFile newEtaxFile = new EtaxFile()
+                                {
+                                    member_id = bodyUserform.member_id,
+                                    branch_id = bodyUserform.branch_id,
+                                    member_user_id = 0,
+                                    document_type_id = 7,
+                                    create_type = "api",
+                                    rawdata_file_id = 0,
+                                    gen_xml_status = "pending",
+                                    gen_pdf_status = "pending",
+                                    add_email_status = "pending",
+                                    add_sms_status = "no",
+                                    add_ebxml_status = "no",
+                                    send_xml_status = "N",
+                                    send_other_status = "N",
+                                    error = "",
+                                    output_path = _config["Path:Output"],
+                                    etax_id = etax_id,
+                                    issue_date = ref_issue_date,
+                                    ref_etax_id = bodyUserform.dataQr.billID,
+                                    ref_issue_date = ref_issue_date,
+                                    buyer_branch_code = "00000",
+                                    buyer_id = "",
+                                    buyer_name = bodyUserform.name,
+                                    buyer_tax_id = bodyUserform.tax_id,
+                                    buyer_tax_type = "",
+                                    buyer_address = bodyUserform.address,
+                                    buyer_zipcode = "00000",
+                                    buyer_tel = bodyUserform.tel,
+                                    buyer_fax = "",
+                                    buyer_country_code = "TH",
+                                    buyer_email = bodyUserform.email,
+                                    price = double.Parse(amountNoVat.ToString("0.00")),
+                                    discount = double.Parse(discountNoVat.ToString("0.00")),
+                                    tax_rate = 7,
+                                    tax = double.Parse(bodyUserform.dataQr.vat),
+                                    total = double.Parse(bodyUserform.dataQr.totalAmount),
+                                    remark = "",
+                                    other = bodyUserform.dataQr.branchCode + "|EN|" + bodyUserform.dataQr.url,
+                                    other2 = bodyUserform.dataQr.baseAmount + "|" + bodyUserform.dataQr.noDiscount + "|" + bodyUserform.dataQr.fAndB + "|" + bodyUserform.dataQr.service,
+                                    group_name = "",
+                                    template_pdf = "",
+                                    template_email = "",
+                                    xml_payment_status = "pending",
+                                    pdf_payment_status = "pending",
+                                    mode = "normal",
+                                    update_count = 0,
+                                    update_date = now,
+                                    create_date = now,
+                                };
 
-                            if (bodyUserform.dataQr.service != "0")
-                            {
-                                double itemPrice2 = double.Parse(bodyUserform.dataQr.service);
-                                double itemTax2 = itemPrice2 * newEtaxFile.tax_rate / 100;
-                                EtaxFileItem newEtaxFileItem2 = new EtaxFileItem()
+                                if (bodyUserform.type == 1)
+                                    newEtaxFile.buyer_branch_code = bodyUserform.branch_code;
+
+                                _context.Add(newEtaxFile);
+                                await _context.SaveChangesAsync();
+
+                                double itemPrice1 = double.Parse(bodyUserform.dataQr.fAndB);
+                                double itemTax1 = itemPrice1 * newEtaxFile.tax_rate / 100;
+
+                                string itemName = "อาหารและเครื่องดื่ม";
+                                if (bodyUserform.dataQr.branchCode == "D201")
+                                    itemName = "บัตรสมาชิก";
+
+                                EtaxFileItem newEtaxFileItem = new EtaxFileItem()
                                 {
                                     etax_file_id = newEtaxFile.id,
                                     code = "",
-                                    name = "ค่าบริการ",
+                                    name = itemName,
                                     qty = 1,
                                     unit = "",
-                                    price = itemPrice2,
+                                    price = itemPrice1,
                                     discount = 0,
-                                    tax = itemTax2,
+                                    tax = itemTax1,
                                     tax_rate = newEtaxFile.tax_rate,
-                                    total = (itemPrice2 + itemTax2),
+                                    total = (itemPrice1 + itemTax1),
                                 };
-                                _context.Add(newEtaxFileItem2);
+                                _context.Add(newEtaxFileItem);
+
+                                if (bodyUserform.dataQr.service != "0")
+                                {
+                                    double itemPrice2 = double.Parse(bodyUserform.dataQr.service);
+                                    double itemTax2 = itemPrice2 * newEtaxFile.tax_rate / 100;
+                                    EtaxFileItem newEtaxFileItem2 = new EtaxFileItem()
+                                    {
+                                        etax_file_id = newEtaxFile.id,
+                                        code = "",
+                                        name = "ค่าบริการ",
+                                        qty = 1,
+                                        unit = "",
+                                        price = itemPrice2,
+                                        discount = 0,
+                                        tax = itemTax2,
+                                        tax_rate = newEtaxFile.tax_rate,
+                                        total = (itemPrice2 + itemTax2),
+                                    };
+                                    _context.Add(newEtaxFileItem2);
+                                }
+
+
+                                EtaxFile etaxFileRef = await _context.etax_files
+                                .Where(x => x.member_id == bodyUserform.member_id && x.etax_id == bodyUserform.dataQr.billIDRef)
+                                .FirstOrDefaultAsync();
+
+                                if (etaxFileRef != null)
+                                    etaxFileRef.delete_status = 1;
+
+                                await _context.SaveChangesAsync();
+                                transaction.Commit();
                             }
-
-
-                            EtaxFile etaxFileRef = await _context.etax_files
-                            .Where(x => x.member_id == bodyUserform.member_id && x.etax_id == bodyUserform.dataQr.billIDRef)
-                            .FirstOrDefaultAsync();
-
-                            if (etaxFileRef != null)
-                                etaxFileRef.delete_status = 1;
-
-                            await _context.SaveChangesAsync();
-                            transaction.Commit();
-                        }
-                        catch (Exception ex)
-                        {
-                            transaction.Rollback();
-                            return StatusCode(400, new { message = ex.Message });
+                            catch (Exception ex)
+                            {
+                                transaction.Rollback();
+                                return StatusCode(400, new { message = ex.Message });
+                            }
                         }
                     }
+                    else
+                    {
+                        //if (etaxFile.update_count >= 2)
+                        //    return StatusCode(404, new { message = "ไม่สามารถแก้ไขข้อมูลได้", });
+
+
+                        if (bodyUserform.type == 1)
+                            etaxFile.buyer_branch_code = bodyUserform.branch_code;
+                        etaxFile.buyer_name = bodyUserform.name;
+                        etaxFile.buyer_tax_id = bodyUserform.tax_id;
+                        etaxFile.buyer_address = bodyUserform.address;
+                        etaxFile.buyer_zipcode = "00000";
+                        etaxFile.buyer_tel = bodyUserform.tel;
+                        etaxFile.buyer_email = bodyUserform.email;
+
+                        etaxFile.gen_xml_status = "pending";
+                        etaxFile.gen_pdf_status = "pending";
+                        etaxFile.add_email_status = "pending";
+
+                        etaxFile.update_count = etaxFile.update_count + 1;
+
+
+                        EtaxFile etaxFileRef = await _context.etax_files
+                        .Where(x => x.member_id == bodyUserform.member_id && x.etax_id == bodyUserform.dataQr.billIDRef)
+                        .FirstOrDefaultAsync();
+
+                        if (etaxFileRef != null)
+                            etaxFileRef.delete_status = 1;
+
+                        await _context.SaveChangesAsync();
+                    }
+
+                    return StatusCode(200, new
+                    {
+                        message = "แก้ไขข้อมูลสำเร็จ",
+                    });
                 }
                 else
                 {
-                    //if (etaxFile.update_count >= 2)
-                    //    return StatusCode(404, new { message = "ไม่สามารถแก้ไขข้อมูลได้", });
+                    if (bodyUserform.province == "กรุงเทพมหานคร")
+                    {
+                        bodyUserform.district = "แขวง" + bodyUserform.district;
+                        bodyUserform.amphoe = "เขต" + bodyUserform.amphoe;
+                        bodyUserform.province = "จังหวัด" + bodyUserform.province;
+                    }
+                    else
+                    {
+                        bodyUserform.district = "ตำบล" + bodyUserform.district;
+                        bodyUserform.amphoe = "อำเภอ" + bodyUserform.amphoe;
+                        bodyUserform.province = "จังหวัด" + bodyUserform.province;
+                    }
 
 
-                    if (bodyUserform.type == 1)
-                        etaxFile.buyer_branch_code = bodyUserform.branch_code;
-                    etaxFile.buyer_name = bodyUserform.name;
-                    etaxFile.buyer_tax_id = bodyUserform.tax_id;
-                    etaxFile.buyer_address = bodyUserform.address + " " + bodyUserform.district + " " + bodyUserform.amphoe + " " + bodyUserform.province;
-                    etaxFile.buyer_zipcode = bodyUserform.zipcode;
-                    etaxFile.buyer_tel = bodyUserform.tel;
-                    etaxFile.buyer_email = bodyUserform.email;
+                    if (etaxFile == null)
+                    {
 
-                    etaxFile.gen_xml_status = "pending";
-                    etaxFile.gen_pdf_status = "pending";
-                    etaxFile.add_email_status = "pending";
+                        DateTime ref_issue_date = DateTime.ParseExact(bodyUserform.dataQr.bilIDate, "yyyyMMdd", CultureInfo.InvariantCulture);
+                        string running_name = "etax_id_" + ref_issue_date.ToString("MM_yyyy");
 
-                    etaxFile.update_count = etaxFile.update_count + 1;
+                        if (running_name == "etax_id_12_2024")
+                            running_name = "etax_id";
+
+                        RunningNumber runningNumber = await _context.running_number
+                        .Where(x => x.member_id == bodyUserform.member_id && x.type == running_name)
+                        .FirstOrDefaultAsync();
+
+                        int running_number = 0;
+
+                        if (runningNumber == null)
+                        {
+                            RunningNumber newRunningNumber = new RunningNumber()
+                            {
+                                member_id = bodyUserform.member_id,
+                                type = running_name,
+                                number = 1,
+                                update_date = now,
+                                create_date = now,
+                            };
+                            _context.running_number.Add(newRunningNumber);
+                            _context.SaveChanges();
+
+                            running_number = 1;
+                        }
+                        else
+                        {
+                            running_number = runningNumber.number + 1;
+                            runningNumber.number = running_number;
+                            runningNumber.update_date = now;
+                            _context.SaveChanges();
+                        }
 
 
-                    EtaxFile etaxFileRef = await _context.etax_files
-                    .Where(x => x.member_id == bodyUserform.member_id && x.etax_id == bodyUserform.dataQr.billIDRef)
-                    .FirstOrDefaultAsync();
+                        double amountNoVat = double.Parse(bodyUserform.dataQr.amount) * 100 / 107;
+                        double discountNoVat = double.Parse(bodyUserform.dataQr.discount) * 100 / 107;
 
-                    if (etaxFileRef != null)
-                        etaxFileRef.delete_status = 1;
+                        string etax_id = bodyUserform.dataQr.branchCode +
+                            ref_issue_date.ToString("yyyyMMdd", new CultureInfo("th-TH")) + "-" +
+                            running_number.ToString().PadLeft(5, '0');
 
-                    await _context.SaveChangesAsync();
+                        using (var transaction = _context.Database.BeginTransaction())
+                        {
+                            try
+                            {
+                                EtaxFile newEtaxFile = new EtaxFile()
+                                {
+                                    member_id = bodyUserform.member_id,
+                                    branch_id = bodyUserform.branch_id,
+                                    member_user_id = 0,
+                                    document_type_id = 7,
+                                    create_type = "api",
+                                    rawdata_file_id = 0,
+                                    gen_xml_status = "pending",
+                                    gen_pdf_status = "pending",
+                                    add_email_status = "pending",
+                                    add_sms_status = "no",
+                                    add_ebxml_status = "no",
+                                    send_xml_status = "N",
+                                    send_other_status = "N",
+                                    error = "",
+                                    output_path = _config["Path:Output"],
+                                    etax_id = etax_id,
+                                    issue_date = ref_issue_date,
+                                    ref_etax_id = bodyUserform.dataQr.billID,
+                                    ref_issue_date = ref_issue_date,
+                                    buyer_branch_code = "00000",
+                                    buyer_id = "",
+                                    buyer_name = bodyUserform.name,
+                                    buyer_tax_id = bodyUserform.tax_id,
+                                    buyer_tax_type = "",
+                                    buyer_address = bodyUserform.address + " " + bodyUserform.district + " " + bodyUserform.amphoe + " " + bodyUserform.province,
+                                    buyer_zipcode = bodyUserform.zipcode,
+                                    buyer_tel = bodyUserform.tel,
+                                    buyer_fax = "",
+                                    buyer_country_code = "TH",
+                                    buyer_email = bodyUserform.email,
+                                    price = double.Parse(amountNoVat.ToString("0.00")),
+                                    discount = double.Parse(discountNoVat.ToString("0.00")),
+                                    tax_rate = 7,
+                                    tax = double.Parse(bodyUserform.dataQr.vat),
+                                    total = double.Parse(bodyUserform.dataQr.totalAmount),
+                                    remark = "",
+                                    other = bodyUserform.dataQr.branchCode + "|TH|" + bodyUserform.dataQr.url,
+                                    other2 = bodyUserform.dataQr.baseAmount + "|" + bodyUserform.dataQr.noDiscount + "|" + bodyUserform.dataQr.fAndB + "|" + bodyUserform.dataQr.service,
+                                    group_name = "",
+                                    template_pdf = "",
+                                    template_email = "",
+                                    xml_payment_status = "pending",
+                                    pdf_payment_status = "pending",
+                                    mode = "normal",
+                                    update_count = 0,
+                                    update_date = now,
+                                    create_date = now,
+                                };
+
+                                if (bodyUserform.type == 1)
+                                    newEtaxFile.buyer_branch_code = bodyUserform.branch_code;
+
+                                _context.Add(newEtaxFile);
+                                await _context.SaveChangesAsync();
+
+                                double itemPrice1 = double.Parse(bodyUserform.dataQr.fAndB);
+                                double itemTax1 = itemPrice1 * newEtaxFile.tax_rate / 100;
+
+                                string itemName = "อาหารและเครื่องดื่ม";
+                                if (bodyUserform.dataQr.branchCode == "D201")
+                                    itemName = "บัตรสมาชิก";
+
+                                EtaxFileItem newEtaxFileItem = new EtaxFileItem()
+                                {
+                                    etax_file_id = newEtaxFile.id,
+                                    code = "",
+                                    name = itemName,
+                                    qty = 1,
+                                    unit = "",
+                                    price = itemPrice1,
+                                    discount = 0,
+                                    tax = itemTax1,
+                                    tax_rate = newEtaxFile.tax_rate,
+                                    total = (itemPrice1 + itemTax1),
+                                };
+                                _context.Add(newEtaxFileItem);
+
+                                if (bodyUserform.dataQr.service != "0")
+                                {
+                                    double itemPrice2 = double.Parse(bodyUserform.dataQr.service);
+                                    double itemTax2 = itemPrice2 * newEtaxFile.tax_rate / 100;
+                                    EtaxFileItem newEtaxFileItem2 = new EtaxFileItem()
+                                    {
+                                        etax_file_id = newEtaxFile.id,
+                                        code = "",
+                                        name = "ค่าบริการ",
+                                        qty = 1,
+                                        unit = "",
+                                        price = itemPrice2,
+                                        discount = 0,
+                                        tax = itemTax2,
+                                        tax_rate = newEtaxFile.tax_rate,
+                                        total = (itemPrice2 + itemTax2),
+                                    };
+                                    _context.Add(newEtaxFileItem2);
+                                }
+
+
+                                EtaxFile etaxFileRef = await _context.etax_files
+                                .Where(x => x.member_id == bodyUserform.member_id && x.etax_id == bodyUserform.dataQr.billIDRef)
+                                .FirstOrDefaultAsync();
+
+                                if (etaxFileRef != null)
+                                    etaxFileRef.delete_status = 1;
+
+                                await _context.SaveChangesAsync();
+                                transaction.Commit();
+                            }
+                            catch (Exception ex)
+                            {
+                                transaction.Rollback();
+                                return StatusCode(400, new { message = ex.Message });
+                            }
+                        }
+                    }
+                    else
+                    {
+                        //if (etaxFile.update_count >= 2)
+                        //    return StatusCode(404, new { message = "ไม่สามารถแก้ไขข้อมูลได้", });
+
+
+                        if (bodyUserform.type == 1)
+                            etaxFile.buyer_branch_code = bodyUserform.branch_code;
+                        etaxFile.buyer_name = bodyUserform.name;
+                        etaxFile.buyer_tax_id = bodyUserform.tax_id;
+                        etaxFile.buyer_address = bodyUserform.address + " " + bodyUserform.district + " " + bodyUserform.amphoe + " " + bodyUserform.province;
+                        etaxFile.buyer_zipcode = bodyUserform.zipcode;
+                        etaxFile.buyer_tel = bodyUserform.tel;
+                        etaxFile.buyer_email = bodyUserform.email;
+
+                        etaxFile.gen_xml_status = "pending";
+                        etaxFile.gen_pdf_status = "pending";
+                        etaxFile.add_email_status = "pending";
+
+                        etaxFile.update_count = etaxFile.update_count + 1;
+
+
+                        EtaxFile etaxFileRef = await _context.etax_files
+                        .Where(x => x.member_id == bodyUserform.member_id && x.etax_id == bodyUserform.dataQr.billIDRef)
+                        .FirstOrDefaultAsync();
+
+                        if (etaxFileRef != null)
+                            etaxFileRef.delete_status = 1;
+
+                        await _context.SaveChangesAsync();
+                    }
+
+                    return StatusCode(200, new
+                    {
+                        message = "แก้ไขข้อมูลสำเร็จ",
+                    });
                 }
-
-                return StatusCode(200, new
-                {
-                    message = "แก้ไขข้อมูลสำเร็จ",
-                });
             }
             catch (Exception ex)
             {
@@ -950,11 +1198,11 @@ namespace Etax_Api.Controllers
                     if (data.addressDetail.houseNumber != null)
                         address += data.addressDetail.houseNumber + " ";
                     if (data.addressDetail.moo != null)
-                        address += "ม."+data.addressDetail.moo + " ";
+                        address += "ม." + data.addressDetail.moo + " ";
                     if (data.addressDetail.soi != null)
-                        address += "ซอย"+data.addressDetail.soi + " ";
+                        address += "ซอย" + data.addressDetail.soi + " ";
                     if (data.addressDetail.street != null)
-                        address += "ถนน"+data.addressDetail.street + " ";
+                        address += "ถนน" + data.addressDetail.street + " ";
 
 
                     Province province = null;
