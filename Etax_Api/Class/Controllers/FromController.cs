@@ -30,6 +30,7 @@ namespace Etax_Api.Controllers
         private IConfiguration _config;
         private ApplicationDbContext _context;
         private Regex rg = new Regex(@"[0-9]");
+        private Regex rxZipCode = new Regex(@"[0-9]{5}");
         public FromController(IConfiguration config)
         {
             _config = config;
@@ -583,16 +584,25 @@ namespace Etax_Api.Controllers
                          ef.create_date,
                          ef.delete_status,
                          ef.update_count,
+                         ef.other,
                      }).FirstOrDefaultAsync();
 
                 bool already = false;
                 bool expire_edit = false;
                 bool expire_cancel = false;
                 bool cancel = false;
-
+                string lang = "";
+                string type = "";
 
                 if (etaxFile != null)
                 {
+                    string[] otherArray = etaxFile.other.Split('|');
+                    if (otherArray.Length >= 4)
+                    {
+                        lang = otherArray[1];
+                        type = otherArray[2];
+                    }
+
                     already = true;
 
                     expiryDate = now.AddDays(-7).Date;
@@ -644,6 +654,8 @@ namespace Etax_Api.Controllers
                         message = "เรียกดูข้อมูลสำเร็จ",
                         data = new
                         {
+                            lang = lang,
+                            type = type,
                             member = member,
                             branch = new
                             {
@@ -789,7 +801,7 @@ namespace Etax_Api.Controllers
                                     tax = double.Parse(bodyUserform.dataQr.vat),
                                     total = double.Parse(bodyUserform.dataQr.totalAmount),
                                     remark = "",
-                                    other = bodyUserform.dataQr.branchCode + "|EN|" + bodyUserform.dataQr.url,
+                                    other = bodyUserform.dataQr.branchCode + "|EN|" + bodyUserform.type + "|" + bodyUserform.dataQr.url,
                                     other2 = bodyUserform.dataQr.baseAmount + "|" + bodyUserform.dataQr.noDiscount + "|" + bodyUserform.dataQr.fAndB + "|" + bodyUserform.dataQr.service,
                                     group_name = "",
                                     template_pdf = "",
@@ -802,14 +814,15 @@ namespace Etax_Api.Controllers
                                     create_date = now,
                                 };
 
-                                if (bodyUserform.type == 1)
+                                if (bodyUserform.type == "LE")
                                     newEtaxFile.buyer_branch_code = bodyUserform.branch_code;
 
                                 _context.Add(newEtaxFile);
                                 await _context.SaveChangesAsync();
 
-                                double itemPrice1 = double.Parse(bodyUserform.dataQr.fAndB);
-                                double itemTax1 = itemPrice1 * newEtaxFile.tax_rate / 100;
+                                double itemTotal1 = double.Parse(bodyUserform.dataQr.fAndB) + double.Parse(bodyUserform.dataQr.noDiscount);
+                                double itemTax1 = itemTotal1 * 100 / 107;
+                                double itemPrice1 = itemTotal1 - itemTax1;
 
                                 string itemName = "อาหารและเครื่องดื่ม";
                                 if (bodyUserform.dataQr.branchCode == "D201")
@@ -826,14 +839,15 @@ namespace Etax_Api.Controllers
                                     discount = 0,
                                     tax = itemTax1,
                                     tax_rate = newEtaxFile.tax_rate,
-                                    total = (itemPrice1 + itemTax1),
+                                    total = itemTotal1,
                                 };
                                 _context.Add(newEtaxFileItem);
 
                                 if (bodyUserform.dataQr.service != "0")
                                 {
-                                    double itemPrice2 = double.Parse(bodyUserform.dataQr.service);
-                                    double itemTax2 = itemPrice2 * newEtaxFile.tax_rate / 100;
+                                    double itemtotal2 = double.Parse(bodyUserform.dataQr.service);
+                                    double itemTax2 = itemtotal2 * 100 / 107;
+                                    double itemPrice2 = itemtotal2 - itemTax2;
                                     EtaxFileItem newEtaxFileItem2 = new EtaxFileItem()
                                     {
                                         etax_file_id = newEtaxFile.id,
@@ -845,7 +859,7 @@ namespace Etax_Api.Controllers
                                         discount = 0,
                                         tax = itemTax2,
                                         tax_rate = newEtaxFile.tax_rate,
-                                        total = (itemPrice2 + itemTax2),
+                                        total = itemtotal2,
                                     };
                                     _context.Add(newEtaxFileItem2);
                                 }
@@ -874,7 +888,7 @@ namespace Etax_Api.Controllers
                         //    return StatusCode(404, new { message = "ไม่สามารถแก้ไขข้อมูลได้", });
 
 
-                        if (bodyUserform.type == 1)
+                        if (bodyUserform.type == "LE")
                             etaxFile.buyer_branch_code = bodyUserform.branch_code;
                         etaxFile.buyer_name = bodyUserform.name;
                         etaxFile.buyer_tax_id = bodyUserform.tax_id;
@@ -889,6 +903,7 @@ namespace Etax_Api.Controllers
 
                         etaxFile.update_count = etaxFile.update_count + 1;
 
+                        etaxFile.other = bodyUserform.dataQr.branchCode + "|EN|" + bodyUserform.type + "|" + bodyUserform.dataQr.url;
 
                         EtaxFile etaxFileRef = await _context.etax_files
                         .Where(x => x.member_id == bodyUserform.member_id && x.etax_id == bodyUserform.dataQr.billIDRef)
@@ -1009,7 +1024,7 @@ namespace Etax_Api.Controllers
                                     tax = double.Parse(bodyUserform.dataQr.vat),
                                     total = double.Parse(bodyUserform.dataQr.totalAmount),
                                     remark = "",
-                                    other = bodyUserform.dataQr.branchCode + "|TH|" + bodyUserform.dataQr.url,
+                                    other = bodyUserform.dataQr.branchCode + "|TH|" + bodyUserform.type + "|" + bodyUserform.dataQr.url,
                                     other2 = bodyUserform.dataQr.baseAmount + "|" + bodyUserform.dataQr.noDiscount + "|" + bodyUserform.dataQr.fAndB + "|" + bodyUserform.dataQr.service,
                                     group_name = "",
                                     template_pdf = "",
@@ -1022,14 +1037,15 @@ namespace Etax_Api.Controllers
                                     create_date = now,
                                 };
 
-                                if (bodyUserform.type == 1)
+                                if (bodyUserform.type == "LE")
                                     newEtaxFile.buyer_branch_code = bodyUserform.branch_code;
 
                                 _context.Add(newEtaxFile);
                                 await _context.SaveChangesAsync();
 
-                                double itemPrice1 = double.Parse(bodyUserform.dataQr.fAndB);
-                                double itemTax1 = itemPrice1 * newEtaxFile.tax_rate / 100;
+                                double itemTotal1 = double.Parse(bodyUserform.dataQr.fAndB) + double.Parse(bodyUserform.dataQr.noDiscount);
+                                double itemTax1 = itemTotal1 * 100 / 107;
+                                double itemPrice1 = itemTotal1 - itemTax1;
 
                                 string itemName = "อาหารและเครื่องดื่ม";
                                 if (bodyUserform.dataQr.branchCode == "D201")
@@ -1046,14 +1062,15 @@ namespace Etax_Api.Controllers
                                     discount = 0,
                                     tax = itemTax1,
                                     tax_rate = newEtaxFile.tax_rate,
-                                    total = (itemPrice1 + itemTax1),
+                                    total = itemTotal1,
                                 };
                                 _context.Add(newEtaxFileItem);
 
                                 if (bodyUserform.dataQr.service != "0")
                                 {
-                                    double itemPrice2 = double.Parse(bodyUserform.dataQr.service);
-                                    double itemTax2 = itemPrice2 * newEtaxFile.tax_rate / 100;
+                                    double itemtotal2 = double.Parse(bodyUserform.dataQr.service);
+                                    double itemTax2 = itemtotal2 * 100 / 107;
+                                    double itemPrice2 = itemtotal2 - itemTax2;
                                     EtaxFileItem newEtaxFileItem2 = new EtaxFileItem()
                                     {
                                         etax_file_id = newEtaxFile.id,
@@ -1065,7 +1082,7 @@ namespace Etax_Api.Controllers
                                         discount = 0,
                                         tax = itemTax2,
                                         tax_rate = newEtaxFile.tax_rate,
-                                        total = (itemPrice2 + itemTax2),
+                                        total = itemtotal2,
                                     };
                                     _context.Add(newEtaxFileItem2);
                                 }
@@ -1094,7 +1111,7 @@ namespace Etax_Api.Controllers
                         //    return StatusCode(404, new { message = "ไม่สามารถแก้ไขข้อมูลได้", });
 
 
-                        if (bodyUserform.type == 1)
+                        if (bodyUserform.type == "LE")
                             etaxFile.buyer_branch_code = bodyUserform.branch_code;
                         etaxFile.buyer_name = bodyUserform.name;
                         etaxFile.buyer_tax_id = bodyUserform.tax_id;
@@ -1109,6 +1126,7 @@ namespace Etax_Api.Controllers
 
                         etaxFile.update_count = etaxFile.update_count + 1;
 
+                        etaxFile.other = bodyUserform.dataQr.branchCode + "|TH|" + bodyUserform.type + "|" + bodyUserform.dataQr.url;
 
                         EtaxFile etaxFileRef = await _context.etax_files
                         .Where(x => x.member_id == bodyUserform.member_id && x.etax_id == bodyUserform.dataQr.billIDRef)
@@ -1292,6 +1310,248 @@ namespace Etax_Api.Controllers
             catch (Exception ex)
             {
                 return StatusCode(400, new { message = ex.Message });
+            }
+        }
+
+
+        [HttpPost]
+        [Route("get_adjust_address")]
+        public async Task<IActionResult> GetAdjustAddress([FromBody] BodyAdjustAddress bodyAdjustAddress)
+        {
+            try
+            {
+                string address = bodyAdjustAddress.address;
+                string zipcode = "";
+
+            Recheck:
+                if (address.Contains("  "))
+                {
+                    address = address.Replace("  ", " ");
+                    goto Recheck;
+                }
+
+                string district_address = "";
+
+                List<string> listAddress = address.Split(' ').ToList();
+
+                MatchCollection matcheZipCode = rxZipCode.Matches(address);
+                if (matcheZipCode.Count > 0)
+                    zipcode = matcheZipCode[matcheZipCode.Count() - 1].Value;
+
+                foreach (string a in listAddress)
+                {
+                    if (a.Contains("แขวง") || a.Contains("ตำบล") || a.Contains("ต."))
+                        district_address = a.Replace("แขวง", "").Replace("ตำบล", "").Replace("ต.", "");
+                }
+
+                Province province = new Province();
+                Amphoe amphoe = new Amphoe();
+                District district = new District();
+
+
+                List<District> districts = _context.district.Where(x => x.zipcode == zipcode).ToList();
+                if (districts.Count > 1)
+                {
+                    foreach (District dis in districts)
+                    {
+                        if (dis.district_th.Contains(district_address))
+                        {
+                            district = dis;
+                            break;
+                        }
+                    }
+                }
+
+                amphoe = _context.amphoe.Where(x => x.amphoe_code == district.amphoe_code).FirstOrDefault();
+                province = _context.province.Where(x => x.province_code == amphoe.province_code).FirstOrDefault();
+
+
+                string newAddress = "";
+                foreach (string a in listAddress)
+                {
+                    bool status = false;
+                    if (a.Contains(district.district_th_s))
+                        status = true;
+                    else if (a.Contains(amphoe.amphoe_th_s))
+                        status = true;
+                    else if (a.Contains(province.province_th))
+                        status = true;
+                    else if (a.Contains(zipcode))
+                        status = true;
+
+
+                    if (!status)
+                        newAddress += a + " ";
+                }
+
+
+                return StatusCode(200, new
+                {
+                    message = "เรียกดูข้อมูลสำเร็จ",
+                    data = new
+                    {
+                        address = newAddress.Trim(),
+                        district = district,
+                        amphoe = amphoe,
+                        province = province,
+                    },
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(400, new
+                {
+                    message = "ไม่พบข้อมูล",
+                });
+            }
+        }
+
+        [HttpPost]
+        [Route("get_remove_address")]
+        public async Task<IActionResult> GetRemoveAddress([FromBody] BodyAdjustAddress bodyAdjustAddress)
+        {
+            try
+            {
+                string address = bodyAdjustAddress.address;
+
+            Recheck:
+                if (address.Contains("  "))
+                {
+                    address = address.Replace("  ", " ");
+                    goto Recheck;
+                }
+
+                List<string> listAddress = address.Split(' ').ToList();
+
+
+                District district = _context.district.Where(x => x.district_code == bodyAdjustAddress.district_code).FirstOrDefault();
+                Amphoe amphoe = _context.amphoe.Where(x => x.amphoe_code == bodyAdjustAddress.amphoe_code).FirstOrDefault();
+                Province province = _context.province.Where(x => x.province_code == bodyAdjustAddress.province_code).FirstOrDefault();
+
+
+                string newAddress = "";
+                foreach (string a in listAddress)
+                {
+                    bool status = false;
+                    if (district != null && a.Contains(district.district_th_s))
+                        status = true;
+                    else if (amphoe != null && a.Contains(amphoe.amphoe_th_s))
+                        status = true;
+                    else if (province != null && a.Contains(province.province_th))
+                        status = true;
+                    else if (bodyAdjustAddress.zipcode.Length == 5 && a.Contains(bodyAdjustAddress.zipcode))
+                        status = true;
+
+
+                    if (!status)
+                        newAddress += a + " ";
+                }
+
+
+                return StatusCode(200, new
+                {
+                    message = "เรียกดูข้อมูลสำเร็จ",
+                    data = new
+                    {
+                        address = newAddress.Trim(),
+                    },
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(400, new
+                {
+                    message = "ไม่พบข้อมูล",
+                });
+            }
+        }
+
+        [HttpPost]
+        [Route("get_check_address")]
+        public async Task<IActionResult> GetCheckAddress([FromBody] BodyAdjustAddress bodyAdjustAddress)
+        {
+            try
+            {
+                try
+                {
+                    string address = bodyAdjustAddress.address;
+                    List<string> listAddress = address.Split(' ').ToList();
+
+                    string district_name = listAddress[listAddress.Count - 3].Replace("ตำบล", "").Replace("แขวง", "");
+                    string amphoe_name = listAddress[listAddress.Count - 2].Replace("อำเภอ", "").Replace("เขต", "");
+                    string province_name = listAddress[listAddress.Count - 1].Replace("จังหวัด", "");
+
+                    District district = null;
+                    List<District> districts = _context.district.Where(x => x.zipcode == bodyAdjustAddress.zipcode).ToList();
+                    if (districts.Count > 1)
+                    {
+                        foreach (District dis in districts)
+                        {
+                            if (dis.district_th.Contains(district_name))
+                            {
+                                district = dis;
+                                break;
+                            }
+                        }
+                    }
+
+                    Amphoe amphoe = _context.amphoe.Where(x => x.amphoe_code == district.amphoe_code && x.amphoe_th_s == amphoe_name).FirstOrDefault();
+                    Province province = _context.province.Where(x => x.province_code == amphoe.province_code && x.province_th == province_name).FirstOrDefault();
+
+
+                    string newAddress = "";
+                    foreach (string a in listAddress)
+                    {
+                        bool status = false;
+                        if (district != null && a.Contains(district.district_th_s))
+                            status = true;
+                        else if (amphoe != null && a.Contains(amphoe.amphoe_th_s))
+                            status = true;
+                        else if (province != null && a.Contains(province.province_th))
+                            status = true;
+                        else if (bodyAdjustAddress.zipcode.Length == 5 && a.Contains(bodyAdjustAddress.zipcode))
+                            status = true;
+
+
+                        if (!status)
+                            newAddress += a + " ";
+                    }
+
+
+                    return StatusCode(200, new
+                    {
+                        message = "เรียกดูข้อมูลสำเร็จ",
+                        data = new
+                        {
+                            address = newAddress.Trim(),
+                            district = district,
+                            amphoe = amphoe,
+                            province = province,
+                        },
+                    });
+                }
+                catch (Exception ex)
+                {
+                    return StatusCode(200, new
+                    {
+                        message = "เรียกดูข้อมูลสำเร็จ",
+                        data = new
+                        {
+                            address = bodyAdjustAddress.address.Trim(),
+                            district = "",
+                            amphoe = "",
+                            province = "",
+                        },
+                    });
+                }
+
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(400, new
+                {
+                    message = "ไม่พบข้อมูล",
+                });
             }
         }
 

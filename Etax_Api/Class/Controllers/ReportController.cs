@@ -485,7 +485,7 @@ namespace Etax_Api.Controllers
                     orderAscendingDirection = bodyDtParameters.Order[0].Dir.ToString().ToLower() == "asc";
                 }
 
-                var result = _context.view_send_email_list.Where(x => x.member_id == jwtStatus.member_id && x.send_email_status == "success").AsQueryable();
+                var result = _context.view_send_email_list.Where(x => x.member_id == jwtStatus.member_id).AsQueryable();
 
                 bodyDtParameters.dateStart = DateTime.Parse(bodyDtParameters.dateStart.ToString()).Date;
                 bodyDtParameters.dateEnd = bodyDtParameters.dateEnd.AddDays(+1).AddMilliseconds(-1);
@@ -580,7 +580,7 @@ namespace Etax_Api.Controllers
                 result = orderAscendingDirection ? result.OrderByProperty(orderCriteria) : result.OrderByPropertyDescending(orderCriteria);
 
                 var filteredResultsCount = await result.CountAsync();
-                var totalResultsCount = await _context.view_send_email_list.Where(x => x.member_id == jwtStatus.member_id && x.send_email_status == "success" && x.document_type_id == document_id).CountAsync();
+                var totalResultsCount = await _context.view_send_email_list.Where(x => x.member_id == jwtStatus.member_id && x.document_type_id == document_id).CountAsync();
 
                 if (bodyDtParameters.Length == -1)
                 {
@@ -593,7 +593,8 @@ namespace Etax_Api.Controllers
                         x.etax_id,
                         x.buyer_tax_id,
                         x.buyer_name,
-                        buyer_email = x.email,
+                        x.buyer_email,
+                        x.email,
                         x.send_email_status,
                         x.email_status,
                         x.issue_date,
@@ -621,7 +622,8 @@ namespace Etax_Api.Controllers
                         x.etax_id,
                         x.buyer_tax_id,
                         x.buyer_name,
-                        buyer_email = x.email,
+                        x.buyer_email,
+                        x.email,
                         x.send_email_status,
                         x.email_status,
                         x.issue_date,
@@ -1307,6 +1309,7 @@ namespace Etax_Api.Controllers
                     x.id,
                     x.name,
                     x.tax_id,
+                    x.group_name,
                 })
                 .FirstOrDefaultAsync();
 
@@ -1464,6 +1467,10 @@ namespace Etax_Api.Controllers
                 {
                     Report.ThaibmaTaxReport(output + pathExcel, bodyDtParameters, listData, sumOriginalPrice, sumPrice, sumDiscount, sumTax, sumTotal);
                 }
+                else if(member.group_name == "Isuzu")
+                {
+                    Report.IsuzuTexReport(output + pathExcel, bodyDtParameters, listData, sumOriginalPrice, sumPrice, sumDiscount, sumTax, sumTotal);
+                }
                 else
                 {
                     Report.DefaultTexReport(output + pathExcel, bodyDtParameters, listData, sumOriginalPrice, sumPrice, sumDiscount, sumTax, sumTotal);
@@ -1523,7 +1530,7 @@ namespace Etax_Api.Controllers
                     orderAscendingDirection = bodyDtParameters.Order[0].Dir.ToString().ToLower() == "asc";
                 }
 
-                var result = _context.view_send_email_list.Where(x => x.member_id == jwtStatus.member_id && x.send_email_status == "success").AsQueryable();
+                var result = _context.view_send_email_list.Where(x => x.member_id == jwtStatus.member_id).AsQueryable();
 
                 bodyDtParameters.dateStart = DateTime.Parse(bodyDtParameters.dateStart.ToString()).Date;
                 bodyDtParameters.dateEnd = bodyDtParameters.dateEnd.AddDays(+1).AddMilliseconds(-1);
@@ -1618,12 +1625,14 @@ namespace Etax_Api.Controllers
                 result = orderAscendingDirection ? result.OrderByProperty(orderCriteria) : result.OrderByPropertyDescending(orderCriteria);
 
                 var filteredResultsCount = await result.CountAsync();
-                var totalResultsCount = await _context.view_send_email_list.Where(x => x.member_id == jwtStatus.member_id && x.send_email_status == "success" && x.document_type_id == document_id).CountAsync();
+                var totalResultsCount = await _context.view_send_email_list.Where(x => x.member_id == jwtStatus.member_id && x.document_type_id == document_id).CountAsync();
 
                 List<ViewSendEmailList> listData = await result
                     .ToListAsync();
 
-                string output = _config["Path:Share"];
+
+
+               string output = _config["Path:Share"];
                 string pathExcel = "/" + member.id + "/excel/";
                 Directory.CreateDirectory(output + pathExcel);
                 pathExcel += "รายงานการส่งอีเมล_" + member.name + ".csv";
@@ -3065,28 +3074,7 @@ namespace Etax_Api.Controllers
                                                       where td.type == "etax"
                                                       select td.id).ToListAsync();
 
-                var result = _context.view_send_email.Where(x => listDocumentTypeID.Contains(x.document_type_id)).AsQueryable();
-
-
-                if (bodyDtParameters.id != 0)
-                {
-                    var membere = await (from um in _context.user_members
-                                         where um.user_id == jwtStatus.user_id && um.member_id == bodyDtParameters.id
-                                         select um).FirstOrDefaultAsync();
-
-                    if (membere == null)
-                        return StatusCode(401, new { message = "ไม่มีสิทธิในการใช้งานส่วนนี้", });
-
-                    result = result.Where(x => x.member_id == bodyDtParameters.id);
-                }
-                else
-                {
-                    var membereId = await (from um in _context.user_members
-                                           where um.user_id == jwtStatus.user_id
-                                           select um.member_id).ToListAsync();
-
-                    result = result.Where(x => membereId.Contains(x.member_id));
-                }
+                var result = _context.view_send_email_list.Where(x => x.member_id == jwtStatus.member_id).AsQueryable();
 
                 bodyDtParameters.dateStart = DateTime.Parse(bodyDtParameters.dateStart.ToString()).Date;
                 bodyDtParameters.dateEnd = bodyDtParameters.dateEnd.AddDays(+1).AddMilliseconds(-1);

@@ -7,7 +7,7 @@ namespace Etax_Api
     public class BodyMkUserform
     {
         public string lang { get; set; }
-        public int type { get; set; }
+        public string type { get; set; }
         public int member_id { get; set; }
         public int branch_id { get; set; }
         public string tax_id { get; set; }

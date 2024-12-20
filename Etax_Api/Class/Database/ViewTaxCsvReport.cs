@@ -29,6 +29,8 @@ namespace Etax_Api
         public int tax_rate { get; set; }
         public double tax { get; set; }
         public double total { get; set; }
+        public string other { get; set; }
+        public string other2 { get; set; }
         public DateTime create_date { get; set; }
         public int delete_status { get; set; }
         public string send_email_status { get; set; }

@@ -15,6 +15,7 @@ namespace Etax_Api
         public string etax_id { get; set; }
         public string buyer_tax_id { get; set; }
         public string buyer_name { get; set; }
+        public string buyer_email { get; set; }
         public string email { get; set; }
         public string send_email_status { get; set; }
         public string email_status { get; set; }
