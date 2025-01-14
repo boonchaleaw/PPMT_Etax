@@ -9,6 +9,9 @@ namespace Etax_Api
         public int id { get; set; }
         public int etax_file_id { get; set; }
         public string etax_id { get; set; }
+        public DateTime? issue_date { get; set; }
+        public string ref_etax_id { get; set; }
+        public DateTime? ref_issue_date { get; set; }
         public int member_id { get; set; }
         public string member_name { get; set; }
         public int member_user_id { get; set; }
@@ -28,9 +31,7 @@ namespace Etax_Api
         public string error { get; set; }
         public string url_path { get; set; }
         public string payment_status { get; set; }
-        public DateTime? issue_date { get; set; }
         public DateTime? create_date { get; set; }
-        public string ref_etax_id { get; set; }
         public string tax_type_filter { get; set; }
         public string group_name { get; set; }
     }

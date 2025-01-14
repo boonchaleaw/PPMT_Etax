@@ -533,9 +533,9 @@ namespace Etax_Api.Controllers
                             else
                             {
                                 result = result.Where(r =>
-                                    (r.etax_id.Contains(searchBy) && r.create_date >= bodyDtParameters.dateStart && r.create_date <= bodyDtParameters.dateEnd) ||
-                                    (r.raw_name.Contains(searchBy) && r.create_date >= bodyDtParameters.dateStart && r.create_date <= bodyDtParameters.dateEnd) ||
-                                    (r.name.Contains(searchBy) && r.create_date >= bodyDtParameters.dateStart && r.create_date <= bodyDtParameters.dateEnd)
+                                    (r.etax_id.Contains(searchBy) && r.gen_pdf_finish >= bodyDtParameters.dateStart && r.gen_pdf_finish <= bodyDtParameters.dateEnd) ||
+                                    (r.raw_name.Contains(searchBy) && r.gen_pdf_finish >= bodyDtParameters.dateStart && r.gen_pdf_finish <= bodyDtParameters.dateEnd) ||
+                                    (r.name.Contains(searchBy) && r.gen_pdf_finish >= bodyDtParameters.dateStart && r.gen_pdf_finish <= bodyDtParameters.dateEnd)
                                 );
                             }
                         }
@@ -552,9 +552,9 @@ namespace Etax_Api.Controllers
                             else
                             {
                                 result = result.Where(r =>
-                                    (r.gen_pdf_status == bodyDtParameters.statusType1 && r.etax_id.Contains(searchBy) && r.create_date >= bodyDtParameters.dateStart && r.create_date <= bodyDtParameters.dateEnd) ||
-                                    (r.gen_pdf_status == bodyDtParameters.statusType1 && r.raw_name.Contains(searchBy) && r.create_date >= bodyDtParameters.dateStart && r.create_date <= bodyDtParameters.dateEnd) ||
-                                    (r.gen_pdf_status == bodyDtParameters.statusType1 && r.name.Contains(searchBy) && r.create_date >= bodyDtParameters.dateStart && r.create_date <= bodyDtParameters.dateEnd)
+                                    (r.gen_pdf_status == bodyDtParameters.statusType1 && r.etax_id.Contains(searchBy) && r.gen_pdf_finish >= bodyDtParameters.dateStart && r.gen_pdf_finish <= bodyDtParameters.dateEnd) ||
+                                    (r.gen_pdf_status == bodyDtParameters.statusType1 && r.raw_name.Contains(searchBy) && r.gen_pdf_finish >= bodyDtParameters.dateStart && r.gen_pdf_finish <= bodyDtParameters.dateEnd) ||
+                                    (r.gen_pdf_status == bodyDtParameters.statusType1 && r.name.Contains(searchBy) && r.gen_pdf_finish >= bodyDtParameters.dateStart && r.gen_pdf_finish <= bodyDtParameters.dateEnd)
                                 );
                             }
                         }
@@ -574,9 +574,9 @@ namespace Etax_Api.Controllers
                             else
                             {
                                 result = result.Where(r =>
-                                    (r.document_type_id == document_id && r.etax_id.Contains(searchBy) && r.create_date >= bodyDtParameters.dateStart && r.create_date <= bodyDtParameters.dateEnd) ||
-                                    (r.document_type_id == document_id && r.raw_name.Contains(searchBy) && r.create_date >= bodyDtParameters.dateStart && r.create_date <= bodyDtParameters.dateEnd) ||
-                                    (r.document_type_id == document_id && r.name.Contains(searchBy) && r.create_date >= bodyDtParameters.dateStart && r.create_date <= bodyDtParameters.dateEnd)
+                                    (r.document_type_id == document_id && r.etax_id.Contains(searchBy) && r.gen_pdf_finish >= bodyDtParameters.dateStart && r.gen_pdf_finish <= bodyDtParameters.dateEnd) ||
+                                    (r.document_type_id == document_id && r.raw_name.Contains(searchBy) && r.gen_pdf_finish >= bodyDtParameters.dateStart && r.gen_pdf_finish <= bodyDtParameters.dateEnd) ||
+                                    (r.document_type_id == document_id && r.name.Contains(searchBy) && r.gen_pdf_finish >= bodyDtParameters.dateStart && r.gen_pdf_finish <= bodyDtParameters.dateEnd)
                                 );
                             }
                         }
@@ -593,9 +593,9 @@ namespace Etax_Api.Controllers
                             else
                             {
                                 result = result.Where(r =>
-                                    (r.gen_pdf_status == bodyDtParameters.statusType1 && r.document_type_id == document_id && r.etax_id.Contains(searchBy) && r.create_date >= bodyDtParameters.dateStart && r.create_date <= bodyDtParameters.dateEnd) ||
-                                    (r.gen_pdf_status == bodyDtParameters.statusType1 && r.document_type_id == document_id && r.raw_name.Contains(searchBy) && r.create_date >= bodyDtParameters.dateStart && r.create_date <= bodyDtParameters.dateEnd) ||
-                                    (r.gen_pdf_status == bodyDtParameters.statusType1 && r.document_type_id == document_id && r.name.Contains(searchBy) && r.create_date >= bodyDtParameters.dateStart && r.create_date <= bodyDtParameters.dateEnd)
+                                    (r.gen_pdf_status == bodyDtParameters.statusType1 && r.document_type_id == document_id && r.etax_id.Contains(searchBy) && r.gen_pdf_finish >= bodyDtParameters.dateStart && r.gen_pdf_finish <= bodyDtParameters.dateEnd) ||
+                                    (r.gen_pdf_status == bodyDtParameters.statusType1 && r.document_type_id == document_id && r.raw_name.Contains(searchBy) && r.gen_pdf_finish >= bodyDtParameters.dateStart && r.gen_pdf_finish <= bodyDtParameters.dateEnd) ||
+                                    (r.gen_pdf_status == bodyDtParameters.statusType1 && r.document_type_id == document_id && r.name.Contains(searchBy) && r.gen_pdf_finish >= bodyDtParameters.dateStart && r.gen_pdf_finish <= bodyDtParameters.dateEnd)
                                 );
                             }
                         }
@@ -616,7 +616,7 @@ namespace Etax_Api.Controllers
                             else
                             {
                                 result = result.Where(r =>
-                                    (r.create_date >= bodyDtParameters.dateStart && r.create_date <= bodyDtParameters.dateEnd)
+                                    (r.gen_pdf_finish >= bodyDtParameters.dateStart && r.gen_pdf_finish <= bodyDtParameters.dateEnd)
                                 );
                             }
                         }
@@ -631,7 +631,7 @@ namespace Etax_Api.Controllers
                             else
                             {
                                 result = result.Where(r =>
-                                    (r.gen_pdf_status == bodyDtParameters.statusType1 && r.create_date >= bodyDtParameters.dateStart && r.create_date <= bodyDtParameters.dateEnd)
+                                    (r.gen_pdf_status == bodyDtParameters.statusType1 && r.gen_pdf_finish >= bodyDtParameters.dateStart && r.gen_pdf_finish <= bodyDtParameters.dateEnd)
                                 );
                             }
                         }
@@ -649,7 +649,7 @@ namespace Etax_Api.Controllers
                             else
                             {
                                 result = result.Where(r =>
-                                    (r.document_type_id == document_id && r.create_date >= bodyDtParameters.dateStart && r.create_date <= bodyDtParameters.dateEnd)
+                                    (r.document_type_id == document_id && r.gen_pdf_finish >= bodyDtParameters.dateStart && r.gen_pdf_finish <= bodyDtParameters.dateEnd)
                                 );
                             }
                         }
@@ -664,7 +664,7 @@ namespace Etax_Api.Controllers
                             else
                             {
                                 result = result.Where(r =>
-                                    (r.gen_pdf_status == bodyDtParameters.statusType1 && r.document_type_id == document_id && r.create_date >= bodyDtParameters.dateStart && r.create_date <= bodyDtParameters.dateEnd)
+                                    (r.gen_pdf_status == bodyDtParameters.statusType1 && r.document_type_id == document_id && r.gen_pdf_finish >= bodyDtParameters.dateStart && r.gen_pdf_finish <= bodyDtParameters.dateEnd)
                                 );
                             }
                         }
@@ -2105,7 +2105,7 @@ namespace Etax_Api.Controllers
 
         [HttpPost]
         [Route("admin/get_xml_tabel")]
-        public async Task<IActionResult> GetXmlFilesDataTabelAdmin([FromBody] BodyDtParameters bodyDtParameters)
+        public async Task<IActionResult> GetXmlFilesDataTabelAdmin([FromBody] BodyAdminDtParameters bodyDtParameters)
         {
             try
             {
@@ -2151,9 +2151,13 @@ namespace Etax_Api.Controllers
                     result = result.Where(x => membereId.Contains(x.member_id));
                 }
 
-                if (bodyDtParameters.fileGroup != null && bodyDtParameters.fileGroup != "")
+                if (bodyDtParameters.fileGroup.Count > 0)
                 {
-                    result = result.Where(x => x.group_name == bodyDtParameters.fileGroup);
+                    List<string> listfileGroup = new List<string>();
+                    foreach (FileGroup fg in bodyDtParameters.fileGroup)
+                        listfileGroup.Add(fg.text);
+
+                    result = result.Where(x => listfileGroup.Contains(x.group_name));
                 }
 
                 bodyDtParameters.dateStart = DateTime.Parse(bodyDtParameters.dateStart.ToString()).Date;
@@ -2615,7 +2619,7 @@ namespace Etax_Api.Controllers
 
         [HttpPost]
         [Route("admin/get_pdf_tabel")]
-        public async Task<IActionResult> GetPdfFilesDataTabelAdmin([FromBody] BodyDtParameters bodyDtParameters)
+        public async Task<IActionResult> GetPdfFilesDataTabelAdmin([FromBody] BodyAdminDtParameters bodyDtParameters)
         {
             try
             {
@@ -2662,9 +2666,13 @@ namespace Etax_Api.Controllers
                     result = result.Where(x => membereId.Contains(x.member_id));
                 }
 
-                if (bodyDtParameters.fileGroup != null && bodyDtParameters.fileGroup != "")
+                if (bodyDtParameters.fileGroup.Count > 0)
                 {
-                    result = result.Where(x => x.group_name == bodyDtParameters.fileGroup);
+                    List<string> listfileGroup = new List<string>();
+                    foreach (FileGroup fg in bodyDtParameters.fileGroup)
+                        listfileGroup.Add(fg.text);
+
+                    result = result.Where(x => listfileGroup.Contains(x.group_name));
                 }
 
 

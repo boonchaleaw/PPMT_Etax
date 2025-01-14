@@ -88,8 +88,11 @@ namespace Etax_Api.Controllers
                 if (String.IsNullOrEmpty(bodyApiCreateEtax.buyer.name))
                     return StatusCode(400, new { error_code = "2006", message = "กรุณากำหนดชื่อผู้ซื้อ", });
 
-                //if (String.IsNullOrEmpty(bodyApiCreateEtax.buyer.tax_id))
-                //    return StatusCode(400, new { error_code = "2007", message = "กรุณากำหนดเลขประจําตัวผู้เสียภาษี", });
+                if (String.IsNullOrEmpty(bodyApiCreateEtax.buyer.tax_id))
+                    return StatusCode(400, new { error_code = "2007", message = "กรุณากำหนดเลขประจําตัวผู้เสียภาษี", });
+
+                //if (bodyApiCreateEtax.buyer.tax_id.Length > 13)
+                //    return StatusCode(400, new { error_code = "2007", message = "เลขประจําตัวผู้เสียภาษีเกิน 13 หลัก", });
 
                 if (String.IsNullOrEmpty(bodyApiCreateEtax.buyer.tax_id))
                     bodyApiCreateEtax.buyer.tax_id = "";

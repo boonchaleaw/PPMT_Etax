@@ -2008,7 +2008,7 @@ namespace Etax_Api.Controllers
                 Directory.CreateDirectory(output + pathExcel);
                 pathExcel += "รายงานยกเลิกเอกสาร_" + member.name + ".csv";
 
-                Report.DefaultTexReport(output + pathExcel, bodyDtParameters, listData, sumOriginalPrice, sumPrice, sumDiscount, sumTax, sumTotal);
+                Report.DefaultCancelReport(output + pathExcel, bodyDtParameters, listData, sumOriginalPrice, sumPrice, sumDiscount, sumTax, sumTotal);
 
 
                 return StatusCode(200, new

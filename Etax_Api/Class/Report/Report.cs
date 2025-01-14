@@ -193,7 +193,7 @@ namespace Etax_Api
                 //}
                 //else
                 //{
-                outputFile.WriteLine("รหัสไฟล์,ประเภทเอกสาร,หมายเลขเอกสาร,หมายเลขผู้เสียภาษี,ชื่อผู้เสียภาษี,สาขา,ที่อยู่,ออกเอกสาร,วันที่สร้าง,ยอดขาย,ส่วนลด,ยอดขายสุทธิ,ภาษี,รวม,สถานะส่งอีเมล,สถานะส่งสรรพากร,");
+                outputFile.WriteLine("รหัสไฟล์,ประเภทเอกสาร,หมายเลขเอกสาร,วันที่ออกเอกสาร,หมายเลขเอกสารเดิม,วันที่ออกเอกสารเดิม,หมายเลขผู้เสียภาษี,ชื่อผู้เสียภาษี,สาขา,ที่อยู่,วันที่สร้าง,ยอดขาย,ส่วนลด,ยอดขายสุทธิ,ภาษี,รวม,สถานะส่งอีเมล,สถานะส่งสรรพากร,");
 
                 List<string> checkList = new List<string>();
 
@@ -210,6 +210,12 @@ namespace Etax_Api
                         issue_date = ((DateTime)data.issue_date).ToString("dd/MM/yyyy");
                     else
                         issue_date = "";
+
+                    string ref_issue_date = "";
+                    if (data.ref_issue_date != null)
+                        ref_issue_date = ((DateTime)data.ref_issue_date).ToString("dd/MM/yyyy");
+                    else
+                        ref_issue_date = "";
 
                     string gen_xml_finish = "";
                     if (data.gen_xml_finish != null)
@@ -242,11 +248,13 @@ namespace Etax_Api
                         data.id.ToString() + "," +
                         data.document_type_name + "," +
                         data.etax_id + "," +
+                        issue_date + "," +
+                        data.ref_etax_id + "," +
+                        ref_issue_date + "," +
                         "'" + data.buyer_tax_id + "," +
                         data.buyer_name.Replace("\r\n", " ").Replace(",", " ") + "," +
                         "'" + data.buyer_branch_code + "," +
-                        data.buyer_address.Replace("\r\n", " ").Replace(",", " ") + "," +
-                        issue_date + "," +
+                        data.buyer_address.Replace("\r\n", " ").Replace("\n", " ").Replace(",", " ") + "," +
                         gen_xml_finish + "," +
                         data.price.ToString("0.00") + "," +
                         data.discount.ToString("0.00") + "," +
@@ -267,7 +275,7 @@ namespace Etax_Api
         {
             using (StreamWriter outputFile = new StreamWriter(path, false, Encoding.UTF8))
             {
-                outputFile.WriteLine("รหัสไฟล์,หมายเลขเอกสาร,ประเภทเอกสาร,หมายเลขผู้เสียภาษี,ชื่อผู้เสียภาษี,อีเมล,ออกเอกสาร,วันที่ส่ง,");
+                outputFile.WriteLine("รหัสไฟล์,หมายเลขเอกสาร,วันที่ออกเอกสาร,หมายเลขเอกสารเดิม,วันที่ออกเอกสารเดิม,ประเภทเอกสาร,หมายเลขผู้เสียภาษี,ชื่อผู้เสียภาษี,อีเมล,วันที่ส่ง,");
 
                 List<int> checkList = new List<int>();
 
@@ -286,6 +294,12 @@ namespace Etax_Api
                     else
                         issue_date = "";
 
+                    string ref_issue_date = "";
+                    if (data.ref_issue_date != null)
+                        ref_issue_date = ((DateTime)data.ref_issue_date).ToString("dd/MM/yyyy");
+                    else
+                        ref_issue_date = "";
+
                     string send_email_finish = "";
                     if (data.send_email_finish != null)
                         send_email_finish = ((DateTime)data.send_email_finish).ToString("dd/MM/yyyy HH:mm:ss");
@@ -299,11 +313,13 @@ namespace Etax_Api
                     outputFile.WriteLine(
                         data.etax_file_id.ToString() + "," +
                         data.etax_id.ToString() + "," +
+                        issue_date + "," +
+                        data.ref_etax_id.ToString() + "," +
+                        ref_issue_date + "," +
                         data.document_type_name + "," +
                         "'" + data.buyer_tax_id + "," +
-                        data.buyer_name.Replace("\r\n", " ").Replace(",", " ") + "," +
+                        data.buyer_name.Replace("\r\n", " ").Replace("\n", " ").Replace(",", " ") + "," +
                         email.Replace(",", " |") + "," +
-                        issue_date + "," +
                         send_email_finish + "," +
                         duplicate
                         );
@@ -314,7 +330,7 @@ namespace Etax_Api
         {
             using (StreamWriter outputFile = new StreamWriter(path, false, Encoding.UTF8))
             {
-                outputFile.WriteLine("หมายเลขเอกสาร,ประเภทเอกสาร,หมายเลขผู้เสียภาษี,ชื่อผู้เสียภาษี,ออกเอกสาร,วันที่ส่ง");
+                outputFile.WriteLine("หมายเลขเอกสาร,วันที่ออกเอกสาร,หมายเลขเอกสารเดิม,วันที่ออกเอกสารเดิม,ประเภทเอกสาร,หมายเลขผู้เสียภาษี,ชื่อผู้เสียภาษี,วันที่ส่ง");
 
                 foreach (ViewSendEbxml data in listData)
                 {
@@ -324,6 +340,12 @@ namespace Etax_Api
                     else
                         issue_date = "";
 
+                    string ref_issue_date = "";
+                    if (data.ref_issue_date != null)
+                        ref_issue_date = ((DateTime)data.ref_issue_date).ToString("dd/MM/yyyy");
+                    else
+                        ref_issue_date = "";
+
                     string send_ebxml_finish = "";
                     if (data.send_ebxml_finish != null)
                         send_ebxml_finish = ((DateTime)data.send_ebxml_finish).ToString("dd/MM/yyyy HH:mm:ss");
@@ -332,15 +354,99 @@ namespace Etax_Api
 
                     outputFile.WriteLine(
                         data.etax_id.ToString() + "," +
+                        issue_date + "," +
+                        data.ref_etax_id.ToString() + "," +
+                        ref_issue_date + "," +
                         data.document_type_name + "," +
                         "'" + data.buyer_tax_id + "," +
                         data.buyer_name.Replace("\r\n", " ").Replace(",", " ") + "," +
-                        issue_date + "," +
                         send_ebxml_finish
                         );
                 }
             }
         }
+        public static void DefaultCancelReport(string path, BodyDtParameters bodyDtParameters, List<ViewTaxCsvReport> listData, double sumOriginalPrice, double sumPrice, double sumDiscount, double sumTax, double sumTotal)
+        {
+            using (StreamWriter outputFile = new StreamWriter(path, false, Encoding.UTF8))
+            {
+                outputFile.WriteLine("รหัสไฟล์,ประเภทเอกสาร,หมายเลขเอกสาร,วันที่ออกเอกสาร,หมายเลขเอกสารเดิม,วันที่ออกเอกสารเดิม,หมายเลขผู้เสียภาษี,ชื่อผู้เสียภาษี,สาขา,ที่อยู่,วันที่สร้าง,ยอดขาย,ส่วนลด,ยอดขายสุทธิ,ภาษี,รวม,สถานะส่งอีเมล,สถานะส่งสรรพากร,");
+
+                List<string> checkList = new List<string>();
+
+                foreach (ViewTaxCsvReport data in listData)
+                {
+                    string duplicate = "";
+                    if (!checkList.Contains(data.etax_id))
+                        checkList.Add(data.etax_id);
+                    else
+                        duplicate = "duplicate";
+
+                    string issue_date = "";
+                    if (data.issue_date != null)
+                        issue_date = ((DateTime)data.issue_date).ToString("dd/MM/yyyy");
+                    else
+                        issue_date = "";
+
+                    string ref_issue_date = "";
+                    if (data.ref_issue_date != null)
+                        ref_issue_date = ((DateTime)data.ref_issue_date).ToString("dd/MM/yyyy");
+                    else
+                        ref_issue_date = "";
+
+                    string gen_xml_finish = "";
+                    if (data.gen_xml_finish != null)
+                        gen_xml_finish = ((DateTime)data.gen_xml_finish).ToString("dd/MM/yyyy HH:mm:ss");
+                    else
+                        gen_xml_finish = "";
+
+
+                    string status_email = "ยังไม่ส่ง";
+                    if (data.send_email_status == "success")
+                    {
+                        status_email = "ส่งแล้ว";
+                    }
+
+                    string status_ebxml = "ยังไม่ส่ง";
+                    if (data.send_ebxml_status == "success")
+                    {
+                        status_ebxml = "ส่งแล้ว";
+                    }
+
+                    if (data.document_type_id == 3)
+                    {
+                        data.price = -data.price;
+                        data.discount = -data.discount;
+                        data.tax = -data.tax;
+                        data.total = -data.total;
+                    }
+
+                    outputFile.WriteLine(
+                        data.id.ToString() + "," +
+                        data.document_type_name + "," +
+                        data.etax_id + "," +
+                        issue_date + "," +
+                        data.ref_etax_id + "," +
+                        ref_issue_date + "," +
+                        "'" + data.buyer_tax_id + "," +
+                        data.buyer_name.Replace("\r\n", " ").Replace(",", " ") + "," +
+                        "'" + data.buyer_branch_code + "," +
+                        data.buyer_address.Replace("\r\n", " ").Replace(",", " ") + "," +
+                        gen_xml_finish + "," +
+                        data.price.ToString("0.00") + "," +
+                        data.discount.ToString("0.00") + "," +
+                        (data.price - data.discount).ToString("0.00") + "," +
+                        data.tax.ToString("0.00") + "," +
+                    data.total.ToString("0.00") + "," +
+                    status_email + "," +
+                    status_ebxml + "," +
+                    duplicate
+                        );
+                }
+                outputFile.WriteLine("");
+                outputFile.WriteLine(",,,,,,,,,,รวม," + sumPrice.ToString("0.00") + "," + sumDiscount.ToString("0.00") + "," + (sumPrice - sumDiscount).ToString("0.00") + "," + sumTax.ToString("0.00") + "," + sumTotal.ToString("0.00"));
+            }
+        }
+
 
         public static void DefaultTexReportOutsource(string path, BodyDtParameters bodyDtParameters, List<ViewTaxReportOutsource> listData, double sumOriginalPrice, double sumPrice, double sumDiscount, double sumTax, double sumTotal)
         {
@@ -938,17 +1044,18 @@ namespace Etax_Api
                         status_ebxml = "ส่งแล้ว";
                     }
 
+                    string[] other2Array = data.other2.Split('|');
+                    double totalNoVat = double.Parse(other2Array[1]);
+
                     if (data.document_type_id == 3)
                     {
                         data.price = -data.price;
                         data.discount = -data.discount;
                         data.tax = -data.tax;
                         data.total = -data.total;
+                        totalNoVat = -totalNoVat;
                     }
-
-                    string[] other2Array = data.other2.Split('|');
-                    double totalNoVat = double.Parse(other2Array[1]);
-
+                 
                     outputFile.WriteLine(
                         data.id.ToString() + "," +
                         data.document_type_name + "," +

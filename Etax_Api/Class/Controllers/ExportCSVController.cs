@@ -473,7 +473,7 @@ namespace Etax_Api.Class.Controllers
 
         [HttpPost]
         [Route("admin/export_etaxfiles_csv")]
-        public async Task<IActionResult> ExportEtaxFilesCSV([FromBody] BodyDtParameters bodyDtParameters)
+        public async Task<IActionResult> ExportEtaxFilesCSV([FromBody] BodyAdminDtParameters bodyDtParameters)
         {
             try
             {
@@ -522,9 +522,13 @@ namespace Etax_Api.Class.Controllers
                     result = result.Where(x => membereId.Contains(x.member_id));
                 }
 
-                if (bodyDtParameters.fileGroup != null && bodyDtParameters.fileGroup != "")
+                if (bodyDtParameters.fileGroup.Count > 0)
                 {
-                    result = result.Where(x => x.group_name == bodyDtParameters.fileGroup);
+                    List<string> listfileGroup = new List<string>();
+                    foreach (FileGroup fg in bodyDtParameters.fileGroup)
+                        listfileGroup.Add(fg.text);
+
+                    result = result.Where(x => listfileGroup.Contains(x.group_name));
                 }
 
                 bodyDtParameters.dateStart = DateTime.Parse(bodyDtParameters.dateStart.ToString()).Date;
@@ -756,7 +760,7 @@ namespace Etax_Api.Class.Controllers
             }
         }
 
-        public static void ExportxmlFiles(string path, BodyDtParameters bodyDtParameters, List<ViewEtaxFile> listData, ApplicationDbContext _context)
+        public static void ExportxmlFiles(string path, BodyAdminDtParameters bodyDtParameters, List<ViewEtaxFile> listData, ApplicationDbContext _context)
         {
 
             using (StreamWriter outputFile = new StreamWriter(path, false, Encoding.UTF8))
@@ -805,7 +809,7 @@ namespace Etax_Api.Class.Controllers
 
         [HttpPost]
         [Route("admin/export_pdffiles_csv")]
-        public async Task<IActionResult> ExportPdfFilesCSV_Admin([FromBody] BodyDtParameters bodyDtParameters)
+        public async Task<IActionResult> ExportPdfFilesCSV_Admin([FromBody] BodyAdminDtParameters bodyDtParameters)
         {
             try
             {
@@ -852,9 +856,13 @@ namespace Etax_Api.Class.Controllers
                     result = result.Where(x => membereId.Contains(x.member_id));
                 }
 
-                if (bodyDtParameters.fileGroup != null && bodyDtParameters.fileGroup != "")
+                if (bodyDtParameters.fileGroup.Count > 0)
                 {
-                    result = result.Where(x => x.group_name == bodyDtParameters.fileGroup);
+                    List<string> listfileGroup = new List<string>();
+                    foreach (FileGroup fg in bodyDtParameters.fileGroup)
+                        listfileGroup.Add(fg.text);
+
+                    result = result.Where(x => listfileGroup.Contains(x.group_name));
                 }
 
 
@@ -1089,7 +1097,7 @@ namespace Etax_Api.Class.Controllers
             }
         }
 
-        public static void ExportpdfFiles_Admin(string path, BodyDtParameters bodyDtParameters, List<ViewEtaxFile> listData, ApplicationDbContext _context)
+        public static void ExportpdfFiles_Admin(string path, BodyAdminDtParameters bodyDtParameters, List<ViewEtaxFile> listData, ApplicationDbContext _context)
         {
             using (StreamWriter outputFile = new StreamWriter(path, false, Encoding.UTF8))
             {
@@ -1140,7 +1148,7 @@ namespace Etax_Api.Class.Controllers
                 }
             }
         }
-        public static void ExportpdfFilesIsuzu_Admin(string path, BodyDtParameters bodyDtParameters, List<ViewEtaxFile> listData, ApplicationDbContext _context)
+        public static void ExportpdfFilesIsuzu_Admin(string path, BodyAdminDtParameters bodyDtParameters, List<ViewEtaxFile> listData, ApplicationDbContext _context)
         {
             using (StreamWriter outputFile = new StreamWriter(path, false, Encoding.UTF8))
             {
@@ -1248,7 +1256,7 @@ namespace Etax_Api.Class.Controllers
 
         [HttpPost]
         [Route("admin/export_sendemailfiles_csv")]
-        public async Task<IActionResult> ExportSendeMailFilesCSV([FromBody] BodyDtParameters bodyDtParameters)
+        public async Task<IActionResult> ExportSendeMailFilesCSV([FromBody] BodyAdminDtParameters bodyDtParameters)
         {
             try
             {
@@ -1296,9 +1304,13 @@ namespace Etax_Api.Class.Controllers
                     result = result.Where(x => membereId.Contains(x.member_id));
                 }
 
-                if (bodyDtParameters.fileGroup != null && bodyDtParameters.fileGroup != "")
+                if (bodyDtParameters.fileGroup.Count > 0)
                 {
-                    result = result.Where(x => x.group_name == bodyDtParameters.fileGroup);
+                    List<string> listfileGroup = new List<string>();
+                    foreach (FileGroup fg in bodyDtParameters.fileGroup)
+                        listfileGroup.Add(fg.text);
+
+                    result = result.Where(x => listfileGroup.Contains(x.group_name));
                 }
 
                 bodyDtParameters.dateStart = DateTime.Parse(bodyDtParameters.dateStart.ToString()).Date;
@@ -1421,7 +1433,7 @@ namespace Etax_Api.Class.Controllers
             }
         }
 
-        public static void ExportsendmailFiles(string path, BodyDtParameters bodyDtParameters, List<ViewSendEmail> listData, ApplicationDbContext _context)
+        public static void ExportsendmailFiles(string path, BodyAdminDtParameters bodyDtParameters, List<ViewSendEmail> listData, ApplicationDbContext _context)
         {
 
             using (StreamWriter outputFile = new StreamWriter(path, false, Encoding.UTF8))
@@ -1484,7 +1496,7 @@ namespace Etax_Api.Class.Controllers
 
         [HttpPost]
         [Route("admin/export_sendsmsfiles_csv")]
-        public async Task<IActionResult> ExportSendeSMSFilesCSV([FromBody] BodyDtParameters bodyDtParameters)
+        public async Task<IActionResult> ExportSendeSMSFilesCSV([FromBody] BodyAdminDtParameters bodyDtParameters)
         {
             try
             {
@@ -1532,9 +1544,13 @@ namespace Etax_Api.Class.Controllers
                 }
 
 
-                if (bodyDtParameters.fileGroup != null && bodyDtParameters.fileGroup != "")
+                if (bodyDtParameters.fileGroup.Count > 0)
                 {
-                    result = result.Where(x => x.group_name == bodyDtParameters.fileGroup);
+                    List<string> listfileGroup = new List<string>();
+                    foreach (FileGroup fg in bodyDtParameters.fileGroup)
+                        listfileGroup.Add(fg.text);
+
+                    result = result.Where(x => listfileGroup.Contains(x.group_name));
                 }
 
                 bodyDtParameters.dateStart = DateTime.Parse(bodyDtParameters.dateStart.ToString()).Date;
@@ -1657,7 +1673,7 @@ namespace Etax_Api.Class.Controllers
             }
         }
 
-        public static void ExportsendsmsFiles(string path, BodyDtParameters bodyDtParameters, List<ViewSendSms> listData, ApplicationDbContext _context)
+        public static void ExportsendsmsFiles(string path, BodyAdminDtParameters bodyDtParameters, List<ViewSendSms> listData, ApplicationDbContext _context)
         {
 
             using (StreamWriter outputFile = new StreamWriter(path, false, Encoding.UTF8))
@@ -1720,7 +1736,7 @@ namespace Etax_Api.Class.Controllers
 
         [HttpPost]
         [Route("admin/export_sendebxmlfiles_csv")]
-        public async Task<IActionResult> ExportSendeEbxmlFilesCSV([FromBody] BodyDtParameters bodyDtParameters)
+        public async Task<IActionResult> ExportSendeEbxmlFilesCSV([FromBody] BodyAdminDtParameters bodyDtParameters)
         {
             try
             {
@@ -1767,9 +1783,13 @@ namespace Etax_Api.Class.Controllers
                     result = result.Where(x => membereId.Contains(x.member_id));
                 }
 
-                if (bodyDtParameters.fileGroup != null && bodyDtParameters.fileGroup != "")
+                if (bodyDtParameters.fileGroup.Count > 0)
                 {
-                    result = result.Where(x => x.group_name == bodyDtParameters.fileGroup);
+                    List<string> listfileGroup = new List<string>();
+                    foreach (FileGroup fg in bodyDtParameters.fileGroup)
+                        listfileGroup.Add(fg.text);
+
+                    result = result.Where(x => listfileGroup.Contains(x.group_name));
                 }
 
                 bodyDtParameters.dateStart = DateTime.Parse(bodyDtParameters.dateStart.ToString()).Date;
@@ -1893,7 +1913,7 @@ namespace Etax_Api.Class.Controllers
             }
         }
 
-        public static void ExportsendebxmlFiles(string path, BodyDtParameters bodyDtParameters, List<ViewSendEbxml> listData, ApplicationDbContext _context)
+        public static void ExportsendebxmlFiles(string path, BodyAdminDtParameters bodyDtParameters, List<ViewSendEbxml> listData, ApplicationDbContext _context)
         {
 
             using (StreamWriter outputFile = new StreamWriter(path, false, Encoding.UTF8))

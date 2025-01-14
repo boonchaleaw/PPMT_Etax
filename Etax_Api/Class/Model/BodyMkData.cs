@@ -23,5 +23,6 @@ namespace Etax_Api
         public string billIDRef { get; set; }
         public string checkSum { get; set; }
         public string url { get; set; }
+        public string option { get; set; }
     }
 }

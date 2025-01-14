@@ -50,6 +50,32 @@ namespace Etax_Api
         public List<PermissionBranch> branchs { get; set; }
     }
 
+    public class BodyAdminDtParameters
+    {
+        public int Draw { get; set; }
+        public DtColumn[] Columns { get; set; }
+        public DtOrder[] Order { get; set; }
+        public int Start { get; set; }
+        public int Length { get; set; }
+        public DtSearch Search { get; set; }
+        public int id { get; set; }
+        public string docType { get; set; }
+        public List<FileGroup> fileGroup { get; set; }
+        public string docRdType { get; set; }
+        public string statusType1 { get; set; }
+        public string statusType2 { get; set; }
+        public List<TaxType> taxType { get; set; }
+        public List<ProcessType> processType { get; set; }
+        public string dateType { get; set; }
+        public DateTime dateStart { get; set; }
+        public DateTime dateEnd { get; set; }
+        public string searchText { get; set; }
+
+        public bool view_self_only { get; set; }
+        public bool view_branch_only { get; set; }
+        public List<PermissionBranch> branchs { get; set; }
+    }
+
     public class DtColumn
     {
         public string Data { get; set; }
@@ -89,5 +115,11 @@ namespace Etax_Api
         public int member_id { get; set; }
         public int member_user_id { get; set; }
         public int branch_id { get; set; }
+    }
+
+    public class FileGroup
+    {
+        public string id { get; set; }
+        public string text { get; set; }
     }
 }

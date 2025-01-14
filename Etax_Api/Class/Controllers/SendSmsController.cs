@@ -633,7 +633,7 @@ namespace Etax_Api.Controllers
         
         [HttpPost]
         [Route("admin/get_sms_tabel")]
-        public async Task<IActionResult> GetSendSmsDataTabelAdmin([FromBody] BodyDtParameters bodyDtParameters)
+        public async Task<IActionResult> GetSendSmsDataTabelAdmin([FromBody] BodyAdminDtParameters bodyDtParameters)
         {
             try
             {
@@ -680,9 +680,13 @@ namespace Etax_Api.Controllers
                 }
 
 
-                if (bodyDtParameters.fileGroup != null && bodyDtParameters.fileGroup != "")
+                if (bodyDtParameters.fileGroup.Count > 0)
                 {
-                    result = result.Where(x => x.group_name == bodyDtParameters.fileGroup);
+                    List<string> listfileGroup = new List<string>();
+                    foreach (FileGroup fg in bodyDtParameters.fileGroup)
+                        listfileGroup.Add(fg.text);
+
+                    result = result.Where(x => listfileGroup.Contains(x.group_name));
                 }
 
                 bodyDtParameters.dateStart = DateTime.Parse(bodyDtParameters.dateStart.ToString()).Date;

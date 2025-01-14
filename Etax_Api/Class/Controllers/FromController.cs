@@ -31,6 +31,7 @@ namespace Etax_Api.Controllers
         private ApplicationDbContext _context;
         private Regex rg = new Regex(@"[0-9]");
         private Regex rxZipCode = new Regex(@"[0-9]{5}");
+        private Regex rxEmail = new Regex(@"[a-zA-Z0-9@._-]");
         public FromController(IConfiguration config)
         {
             _config = config;
@@ -446,14 +447,6 @@ namespace Etax_Api.Controllers
             try
             {
                 DateTime now = DateTime.Now;
-                DateTime expiryDate = now.AddDays(-7).Date;
-                DateTime bilIDate = DateTime.ParseExact(bodyMkData.bilIDate, "yyyyMMdd", CultureInfo.InvariantCulture);
-
-                if (expiryDate >= bilIDate)
-                    return StatusCode(404, new { message = "รายการซื้อขายเกิน 7 วัน ไม่สามารถออกใบกำกับภาษีอิเล็กทรอนิคได้", });
-
-
-
                 var branch = await (from b in _context.branchs
                                     where b.name.Contains(bodyMkData.branchCode)
                                     select new
@@ -568,7 +561,9 @@ namespace Etax_Api.Controllers
 
                 var etaxFile = await
                     (from ef in _context.etax_files
-                     where ef.member_id == branch.member_id && ef.ref_etax_id == bodyMkData.billID
+                     where ef.member_id == branch.member_id &&
+                     ef.ref_etax_id == bodyMkData.billID &&
+                     ef.other.Contains(bodyMkData.branchCode)
                      select new
                      {
                          ef.etax_id,
@@ -605,10 +600,10 @@ namespace Etax_Api.Controllers
 
                     already = true;
 
-                    expiryDate = now.AddDays(-7).Date;
                     DateTime ref_issue_date = (DateTime)etaxFile.ref_issue_date;
+                    DateTime expiryDate = DateTime.ParseExact(ref_issue_date.AddMonths(1).ToString("yyyy-MM") + "-11", "yyyy-MM-dd", CultureInfo.InvariantCulture);
 
-                    if (expiryDate >= ref_issue_date)
+                    if (bodyMkData.option != "over" && now >= expiryDate)
                         expire_edit = true;
 
                     //if (etaxFile.update_count >= 2)
@@ -627,13 +622,21 @@ namespace Etax_Api.Controllers
                         expiryDate = now.AddDays(-1).Date;
                         ref_issue_date = (DateTime)etaxFile.ref_issue_date;
 
-                        if (expiryDate >= ref_issue_date)
+                        if (bodyMkData.option != "over" && expiryDate >= ref_issue_date)
                             expire_cancel = true;
                     }
 
                     if (etaxFile.delete_status == 1)
                         cancel = true;
 
+                }
+                else
+                {
+                    DateTime bilIDate = DateTime.ParseExact(bodyMkData.bilIDate, "yyyyMMdd", CultureInfo.InvariantCulture);
+                    DateTime expiryDate = DateTime.ParseExact(bilIDate.AddMonths(1).ToString("yyyy-MM") + "-11", "yyyy-MM-dd", CultureInfo.InvariantCulture);
+
+                    if (bodyMkData.option != "over" && now >= expiryDate)
+                        return StatusCode(404, new { message = "รายการซื้อขายเกิน 7 วัน ไม่สามารถออกใบกำกับภาษีอิเล็กทรอนิคได้", });
                 }
 
                 if (member != null && branch != null)
@@ -706,10 +709,28 @@ namespace Etax_Api.Controllers
 
             try
             {
+                if (double.Parse(bodyUserform.dataQr.totalAmount) == 0)
+                    return StatusCode(404, new { message = "ไม่พบข้อมูลยอดชำระเงิน กรุณาลองใหม่ภายหลังหรือติดต่อเจ้าหน้าที่", });
+
+                //Check Email
+                MatchCollection matchEmail= rxEmail.Matches(bodyUserform.email);
+                if (matchEmail.Count > 0)
+                {
+                    string email = "";
+                    foreach (Match match in matchEmail)
+                    {
+                        email += match.Value;
+                    }
+                    bodyUserform.email = email;
+                }
+
                 DateTime now = DateTime.Now;
                 EtaxFile etaxFile = await _context.etax_files
-                .Where(x => x.member_id == bodyUserform.member_id && x.ref_etax_id == bodyUserform.dataQr.billID)
-                .FirstOrDefaultAsync();
+                .Where(x =>
+                x.member_id == bodyUserform.member_id &&
+                x.ref_etax_id == bodyUserform.dataQr.billID &&
+                x.other.Contains(bodyUserform.dataQr.branchCode)
+                ).FirstOrDefaultAsync();
 
                 if (bodyUserform.lang == "EN")
                 {
@@ -745,7 +766,7 @@ namespace Etax_Api.Controllers
                         }
                         else
                         {
-                            running_number = runningNumber.number + 1;
+                            running_number = (runningNumber.number + 1);
                             runningNumber.number = running_number;
                             runningNumber.update_date = now;
                             _context.SaveChanges();
@@ -866,8 +887,10 @@ namespace Etax_Api.Controllers
 
 
                                 EtaxFile etaxFileRef = await _context.etax_files
-                                .Where(x => x.member_id == bodyUserform.member_id && x.etax_id == bodyUserform.dataQr.billIDRef)
-                                .FirstOrDefaultAsync();
+                                .Where(x => x.member_id == bodyUserform.member_id &&
+                                x.etax_id == bodyUserform.dataQr.billIDRef &&
+                                x.other.Contains(bodyUserform.dataQr.branchCode)
+                                ).FirstOrDefaultAsync();
 
                                 if (etaxFileRef != null)
                                     etaxFileRef.delete_status = 1;
@@ -887,6 +910,8 @@ namespace Etax_Api.Controllers
                         //if (etaxFile.update_count >= 2)
                         //    return StatusCode(404, new { message = "ไม่สามารถแก้ไขข้อมูลได้", });
 
+                        double amountNoVat = double.Parse(bodyUserform.dataQr.amount) * 100 / 107;
+                        double discountNoVat = double.Parse(bodyUserform.dataQr.discount) * 100 / 107;
 
                         if (bodyUserform.type == "LE")
                             etaxFile.buyer_branch_code = bodyUserform.branch_code;
@@ -896,14 +921,20 @@ namespace Etax_Api.Controllers
                         etaxFile.buyer_zipcode = "00000";
                         etaxFile.buyer_tel = bodyUserform.tel;
                         etaxFile.buyer_email = bodyUserform.email;
+                        etaxFile.price = double.Parse(amountNoVat.ToString("0.00"));
+                        etaxFile.discount = double.Parse(discountNoVat.ToString("0.00"));
+                        etaxFile.tax_rate = 7;
+                        etaxFile.tax = double.Parse(bodyUserform.dataQr.vat);
+                        etaxFile.total = double.Parse(bodyUserform.dataQr.totalAmount);
+                        etaxFile.remark = "";
+                        etaxFile.other = bodyUserform.dataQr.branchCode + "|TH|" + bodyUserform.type + "|" + bodyUserform.dataQr.url;
+                        etaxFile.other2 = bodyUserform.dataQr.baseAmount + "|" + bodyUserform.dataQr.noDiscount + "|" + bodyUserform.dataQr.fAndB + "|" + bodyUserform.dataQr.service;
 
                         etaxFile.gen_xml_status = "pending";
                         etaxFile.gen_pdf_status = "pending";
                         etaxFile.add_email_status = "pending";
 
                         etaxFile.update_count = etaxFile.update_count + 1;
-
-                        etaxFile.other = bodyUserform.dataQr.branchCode + "|EN|" + bodyUserform.type + "|" + bodyUserform.dataQr.url;
 
                         EtaxFile etaxFileRef = await _context.etax_files
                         .Where(x => x.member_id == bodyUserform.member_id && x.etax_id == bodyUserform.dataQr.billIDRef)
@@ -1110,6 +1141,8 @@ namespace Etax_Api.Controllers
                         //if (etaxFile.update_count >= 2)
                         //    return StatusCode(404, new { message = "ไม่สามารถแก้ไขข้อมูลได้", });
 
+                        double amountNoVat = double.Parse(bodyUserform.dataQr.amount) * 100 / 107;
+                        double discountNoVat = double.Parse(bodyUserform.dataQr.discount) * 100 / 107;
 
                         if (bodyUserform.type == "LE")
                             etaxFile.buyer_branch_code = bodyUserform.branch_code;
@@ -1119,14 +1152,20 @@ namespace Etax_Api.Controllers
                         etaxFile.buyer_zipcode = bodyUserform.zipcode;
                         etaxFile.buyer_tel = bodyUserform.tel;
                         etaxFile.buyer_email = bodyUserform.email;
+                        etaxFile.price = double.Parse(amountNoVat.ToString("0.00"));
+                        etaxFile.discount = double.Parse(discountNoVat.ToString("0.00"));
+                        etaxFile.tax_rate = 7;
+                        etaxFile.tax = double.Parse(bodyUserform.dataQr.vat);
+                        etaxFile.total = double.Parse(bodyUserform.dataQr.totalAmount);
+                        etaxFile.remark = "";
+                        etaxFile.other = bodyUserform.dataQr.branchCode + "|TH|" + bodyUserform.type + "|" + bodyUserform.dataQr.url;
+                        etaxFile.other2 = bodyUserform.dataQr.baseAmount + "|" + bodyUserform.dataQr.noDiscount + "|" + bodyUserform.dataQr.fAndB + "|" + bodyUserform.dataQr.service;
 
                         etaxFile.gen_xml_status = "pending";
                         etaxFile.gen_pdf_status = "pending";
                         etaxFile.add_email_status = "pending";
 
                         etaxFile.update_count = etaxFile.update_count + 1;
-
-                        etaxFile.other = bodyUserform.dataQr.branchCode + "|TH|" + bodyUserform.type + "|" + bodyUserform.dataQr.url;
 
                         EtaxFile etaxFileRef = await _context.etax_files
                         .Where(x => x.member_id == bodyUserform.member_id && x.etax_id == bodyUserform.dataQr.billIDRef)
@@ -1146,7 +1185,7 @@ namespace Etax_Api.Controllers
             }
             catch (Exception ex)
             {
-                return StatusCode(400, new { message = ex.Message });
+                return StatusCode(400, new { message = "ส่งข้อมูลไม่สำเร็จ กรุณาลองใหม่ภายหลังหรือติดต่อเจ้าหน้าที่" });
             }
         }
 
