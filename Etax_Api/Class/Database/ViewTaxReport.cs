@@ -33,5 +33,6 @@ namespace Etax_Api
         public DateTime create_date { get; set; }
         public int delete_status { get; set; }
         public string tax_type_filter { get; set; }
+        public string group_name { get; set; }
     }
 }

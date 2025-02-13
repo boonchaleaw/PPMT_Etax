@@ -27,5 +27,6 @@ namespace Etax_Api
         public DateTime? create_date { get; set; }
         public string tax_type_filter { get; set; }
         public string payment_status { get;set; }
+        public string group_name { get; set; }
     }
 }

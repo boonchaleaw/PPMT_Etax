@@ -294,6 +294,12 @@ namespace Etax_Api
                     else
                         issue_date = "";
 
+                    string ref_etax_id = "";
+                    if (data.ref_etax_id != null)
+                        ref_etax_id = data.ref_etax_id;
+                    else
+                        ref_etax_id = "";
+
                     string ref_issue_date = "";
                     if (data.ref_issue_date != null)
                         ref_issue_date = ((DateTime)data.ref_issue_date).ToString("dd/MM/yyyy");
@@ -314,7 +320,7 @@ namespace Etax_Api
                         data.etax_file_id.ToString() + "," +
                         data.etax_id.ToString() + "," +
                         issue_date + "," +
-                        data.ref_etax_id.ToString() + "," +
+                        ref_etax_id + "," +
                         ref_issue_date + "," +
                         data.document_type_name + "," +
                         "'" + data.buyer_tax_id + "," +
@@ -340,6 +346,12 @@ namespace Etax_Api
                     else
                         issue_date = "";
 
+                    string ref_etax_id = "";
+                    if (data.ref_etax_id != null)
+                        ref_etax_id = data.ref_etax_id;
+                    else
+                        ref_etax_id = "";
+
                     string ref_issue_date = "";
                     if (data.ref_issue_date != null)
                         ref_issue_date = ((DateTime)data.ref_issue_date).ToString("dd/MM/yyyy");
@@ -355,7 +367,7 @@ namespace Etax_Api
                     outputFile.WriteLine(
                         data.etax_id.ToString() + "," +
                         issue_date + "," +
-                        data.ref_etax_id.ToString() + "," +
+                        ref_etax_id + "," +
                         ref_issue_date + "," +
                         data.document_type_name + "," +
                         "'" + data.buyer_tax_id + "," +
@@ -1055,7 +1067,7 @@ namespace Etax_Api
                         data.total = -data.total;
                         totalNoVat = -totalNoVat;
                     }
-                 
+
                     outputFile.WriteLine(
                         data.id.ToString() + "," +
                         data.document_type_name + "," +

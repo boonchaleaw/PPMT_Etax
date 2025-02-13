@@ -66,5 +66,7 @@ namespace Etax_Api
         public int paper { get; set; }
         public int webhook { get; set; }
         public int update_count { get; set; }
+        public int node_id { get; set; }
+
     }
 }

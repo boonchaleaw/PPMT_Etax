@@ -1467,7 +1467,7 @@ namespace Etax_Api.Controllers
                 {
                     Report.ThaibmaTaxReport(output + pathExcel, bodyDtParameters, listData, sumOriginalPrice, sumPrice, sumDiscount, sumTax, sumTotal);
                 }
-                else if(member.group_name == "Isuzu")
+                else if (member.group_name == "Isuzu")
                 {
                     Report.IsuzuTexReport(output + pathExcel, bodyDtParameters, listData, sumOriginalPrice, sumPrice, sumDiscount, sumTax, sumTotal);
                 }
@@ -1632,7 +1632,7 @@ namespace Etax_Api.Controllers
 
 
 
-               string output = _config["Path:Share"];
+                string output = _config["Path:Share"];
                 string pathExcel = "/" + member.id + "/excel/";
                 Directory.CreateDirectory(output + pathExcel);
                 pathExcel += "รายงานการส่งอีเมล_" + member.name + ".csv";
@@ -2840,7 +2840,7 @@ namespace Etax_Api.Controllers
 
         [HttpPost]
         [Route("admin/get_tax_summary_report")]
-        public async Task<IActionResult> GetTaxSummaryReportAdmin([FromBody] BodyDtParameters bodyDtParameters)
+        public async Task<IActionResult> GetTaxSummaryReportAdmin([FromBody] BodyAdminDtParameters bodyDtParameters)
         {
             try
             {
@@ -2876,6 +2876,15 @@ namespace Etax_Api.Controllers
                 }
 
                 var result = _context.view_tex_report.Where(x => x.member_id == bodyDtParameters.id && x.gen_xml_status == "success" && x.delete_status == 0).AsQueryable();
+
+                if (bodyDtParameters.fileGroup.Count > 0)
+                {
+                    List<string> listfileGroup = new List<string>();
+                    foreach (FileGroup fg in bodyDtParameters.fileGroup)
+                        listfileGroup.Add(fg.text);
+
+                    result = result.Where(x => listfileGroup.Contains(x.group_name));
+                }
 
                 bodyDtParameters.dateStart = DateTime.Parse(bodyDtParameters.dateStart.ToString()).Date;
                 bodyDtParameters.dateEnd = bodyDtParameters.dateEnd.AddDays(+1).AddMilliseconds(-1);
@@ -3042,7 +3051,7 @@ namespace Etax_Api.Controllers
 
         [HttpPost]
         [Route("admin/get_email_summary_report")]
-        public async Task<IActionResult> GetEmailSummaryReportAdmin([FromBody] BodyDtParameters bodyDtParameters)
+        public async Task<IActionResult> GetEmailSummaryReportAdmin([FromBody] BodyAdminDtParameters bodyDtParameters)
         {
             try
             {
@@ -3059,7 +3068,6 @@ namespace Etax_Api.Controllers
                 if (permission != "Y")
                     return StatusCode(401, new { message = "ไม่มีสิทธิในการใช้งานส่วนนี้", });
 
-
                 var searchBy = bodyDtParameters.searchText;
                 var orderCriteria = "id";
                 var orderAscendingDirection = true;
@@ -3074,7 +3082,29 @@ namespace Etax_Api.Controllers
                                                       where td.type == "etax"
                                                       select td.id).ToListAsync();
 
-                var result = _context.view_send_email_list.Where(x => x.member_id == jwtStatus.member_id).AsQueryable();
+                var result = _context.view_send_email_list.Where(x => listDocumentTypeID.Contains(x.document_type_id)).AsQueryable();
+
+                if (bodyDtParameters.id != 0)
+                {
+                    result = result.Where(x => x.member_id == bodyDtParameters.id);
+                }
+                else
+                {
+                    var membereId = await (from um in _context.user_members
+                                           where um.user_id == jwtStatus.user_id
+                                           select um.member_id).ToListAsync();
+
+                    result = result.Where(x => membereId.Contains(x.member_id));
+                }
+
+                if (bodyDtParameters.fileGroup.Count > 0)
+                {
+                    List<string> listfileGroup = new List<string>();
+                    foreach (FileGroup fg in bodyDtParameters.fileGroup)
+                        listfileGroup.Add(fg.text);
+
+                    result = result.Where(x => listfileGroup.Contains(x.group_name));
+                }
 
                 bodyDtParameters.dateStart = DateTime.Parse(bodyDtParameters.dateStart.ToString()).Date;
                 bodyDtParameters.dateEnd = bodyDtParameters.dateEnd.AddDays(+1).AddMilliseconds(-1);
@@ -3211,7 +3241,7 @@ namespace Etax_Api.Controllers
 
         [HttpPost]
         [Route("admin/get_ebxml_summary_report")]
-        public async Task<IActionResult> GetEbxmlSummaryReportAdmin([FromBody] BodyDtParameters bodyDtParameters)
+        public async Task<IActionResult> GetEbxmlSummaryReportAdmin([FromBody] BodyAdminDtParameters bodyDtParameters)
         {
             try
             {
@@ -3263,6 +3293,15 @@ namespace Etax_Api.Controllers
                                            select um.member_id).ToListAsync();
 
                     result = result.Where(x => membereId.Contains(x.member_id));
+                }
+
+                if (bodyDtParameters.fileGroup.Count > 0)
+                {
+                    List<string> listfileGroup = new List<string>();
+                    foreach (FileGroup fg in bodyDtParameters.fileGroup)
+                        listfileGroup.Add(fg.text);
+
+                    result = result.Where(x => listfileGroup.Contains(x.group_name));
                 }
 
                 bodyDtParameters.dateStart = DateTime.Parse(bodyDtParameters.dateStart.ToString()).Date;

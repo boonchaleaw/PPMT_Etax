@@ -64,6 +64,53 @@ namespace Etax_Api
             if (statusDelete)
                 File.WriteAllText(logPath, JsonSerializer.Serialize(data));
         }
+        public static bool CheckLogMk(string id, DateTime now)
+        {
+            string logPath = "log/mk_log.json";
+            if (!File.Exists(logPath))
+            {
+                Directory.CreateDirectory("log");
+                string json = JsonSerializer.Serialize(new Dictionary<string, string>());
+                File.WriteAllText(logPath, json);
+            }
+
+            DeleteLogMk(logPath, now);
+
+            string text = File.ReadAllText(logPath);
+            Dictionary<string, string> data = JsonSerializer.Deserialize<Dictionary<string, string>>(text);
+
+            string dataDate = data.GetValueOrDefault(id);
+            if (dataDate == null)
+            {
+                data.Add(id, now.ToString());
+                File.WriteAllText(logPath, JsonSerializer.Serialize(data));
+                return true;
+            }
+            else
+            {
+                return false;
+            }
+
+        }
+        public static void DeleteLogMk(string logPath, DateTime now)
+        {
+            bool statusDelete = false;
+            string text = File.ReadAllText(logPath);
+            Dictionary<string, string> data = JsonSerializer.Deserialize<Dictionary<string, string>>(text);
+            foreach (var item in data)
+            {
+                DateTime date = DateTime.Parse(item.Value);
+                DateTime dateEx = now.AddMinutes(-1);
+                if (date < dateEx)
+                {
+                    data.Remove(item.Key);
+                    statusDelete = true;
+                }
+            }
+
+            if (statusDelete)
+                File.WriteAllText(logPath, JsonSerializer.Serialize(data));
+        }
         public static bool CheckLogSendEmail(string id, DateTime now)
         {
             string logPath = "log/send_email_log.json";

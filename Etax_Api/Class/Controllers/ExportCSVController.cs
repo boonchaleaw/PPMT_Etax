@@ -289,7 +289,7 @@ namespace Etax_Api.Class.Controllers
                 string output = _config["Path:Share"];
                 string pathExcel = "/admin/" + jwtStatus.user_id + "/excel/";
                 Directory.CreateDirectory(output + pathExcel);
-                pathExcel += "PDF_Report_CSV.csv";
+                pathExcel += "Report_CSV.csv";
 
                 if (listData.First().member_group_name == "Isuzu")
                     ExportpdfFilesIsuzu(output + pathExcel, bodyDtParameters, listData, _context);
