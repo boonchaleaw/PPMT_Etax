@@ -28,6 +28,8 @@ namespace Etax_Api
         public string H07_ADDITIONAL_REF_ASSIGN_ID { get; set; }
         public string H08_ADDITIONAL_REF_ISSUE_DTM { get; set; }
         public string H09_ADDITIONAL_REF_TYPE_CODE { get; set; }
+        public string H11_DELIVERY_TYPE_CODE { get; set; }
+        public string H12_BUYER_ORDER_ASSIGN_ID { get; set;}
         public string H26_SEND_MAIL_IND { get; set; }
 
 

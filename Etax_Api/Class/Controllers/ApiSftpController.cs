@@ -403,7 +403,22 @@ namespace Etax_Api.Controllers
                             etaxFile.total = Convert.ToDouble(data.F50_GRAND_TOTAL_AMOUNT.Trim());
                             etaxFile.remark = "";
                             etaxFile.other = "";
-                            etaxFile.other2 = "";
+
+                            //add password pdf
+                            if (document_type_id != 7)
+                            {
+                                etaxFile.password = etaxFile.buyer_tax_id.Substring(etaxFile.buyer_tax_id.Length - 5);
+                            }
+
+                            if (document_type_id == 8)
+                            {
+                                etaxFile.other2 = data.H11_DELIVERY_TYPE_CODE.Trim() + "|" + data.H12_BUYER_ORDER_ASSIGN_ID.Trim();
+                            }
+                            else
+                            {
+                                etaxFile.other2 = "";
+                            }
+
                             etaxFile.group_name = "";
                             etaxFile.template_pdf = bodyApiCreateEtaxFile.PdfTemplateId;
                             etaxFile.template_email = "";
@@ -561,7 +576,7 @@ namespace Etax_Api.Controllers
                             etaxFile.total = Convert.ToDouble(data.F50_GRAND_TOTAL_AMOUNT.Trim());
                             etaxFile.remark = "";
                             etaxFile.other = "";
-                            etaxFile.other2 = data.F06_BASIS_AMOUNT1.Trim() + "|" + data.F12_BASIS_AMOUNT2.Trim();
+                            etaxFile.other2 = data.F06_BASIS_AMOUNT1.Trim() + "|" + data.F12_BASIS_AMOUNT2.Trim() ; 
                             etaxFile.group_name = "";
                             etaxFile.template_pdf = bodyApiCreateEtaxFile.PdfTemplateId;
                             etaxFile.template_email = "";

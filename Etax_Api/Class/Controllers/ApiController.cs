@@ -261,6 +261,7 @@ namespace Etax_Api.Controllers
                             await _context.SaveChangesAsync();
 
                             branch_id = newBranch.id;
+
                         }
                         else if (bodyApiCreateEtax.seller.branch_code != "00000")
                         {
