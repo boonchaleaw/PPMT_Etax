@@ -14,6 +14,7 @@ using System.Net;
 using System.Reflection.PortableExecutable;
 using System.Text;
 using System.Threading.Tasks;
+using static System.Net.WebRequestMethods;
 
 namespace Etax_Api.Class.Controllers
 {
@@ -285,8 +286,7 @@ namespace Etax_Api.Class.Controllers
 
                 List<ViewEtaxFile> listData = await result.ToListAsync();
 
-
-                string output = _config["Path:Share"];
+                string output = _config["Path:share"];
                 string pathExcel = "/admin/" + jwtStatus.user_id + "/excel/";
                 Directory.CreateDirectory(output + pathExcel);
                 pathExcel += "Report_CSV.csv";
@@ -396,15 +396,14 @@ namespace Etax_Api.Class.Controllers
                     else if (data.gen_xml_status == "fail")
                         status = "ดำเนินการล้มเหลว";
 
-                    string price = data.price.ToString("0.00");
-                    string discount = data.discount.ToString("0.00");
-
+                    //string price = data.price.ToString("0.00");
+                    //string discount = data.discount.ToString("0.00");
                     string basisamount = "0";
                     string taxbasis_totalamount = "0";
                     string corrected_tax_inovice_amount = "0";
                     string tax_rate = data.tax_rate.ToString("0.00");
-                    string tax = data.tax.ToString("0.00");
-                    string total = data.total.ToString("0.00");
+                    //string tax = data.tax.ToString("0.00");
+                    //string total = data.total.ToString("0.00");
                     string remark = data.remark;
 
                     if (data.other != null)
@@ -413,11 +412,28 @@ namespace Etax_Api.Class.Controllers
                         corrected_tax_inovice_amount = (double.Parse(otherArray[1])).ToString("0.00");
                     }
 
-                    if (data.other2 != null)
+                    if (data.document_type_id == 3)
                     {
-                        string[] otherArray2 = data.other2.Split('|');
-                        basisamount = (double.Parse(otherArray2[0])).ToString("0.00");
-                        taxbasis_totalamount = (double.Parse(otherArray2[1])).ToString("0.00");
+                        data.price = -data.price;
+                        data.discount = -data.discount;
+                        data.tax = -data.tax;
+                        data.total = -data.total;
+
+                        if (data.other2 != null)
+                        {
+                            string[] otherArray2 = data.other2.Split('|');
+                            basisamount = (-double.Parse(otherArray2[0])).ToString("0.00");
+                            taxbasis_totalamount = (-double.Parse(otherArray2[1])).ToString("0.00");
+                        }
+                    }
+                    else
+                    {
+                        if (data.other2 != null)
+                        {
+                            string[] otherArray2 = data.other2.Split('|');
+                            basisamount = double.Parse(otherArray2[0]).ToString("0.00");
+                            taxbasis_totalamount = double.Parse(otherArray2[1]).ToString("0.00");
+                        }
                     }
 
                     string sendingMethod = "";
@@ -449,15 +465,15 @@ namespace Etax_Api.Class.Controllers
                         formattedIssueDate + "," +
                         formattedGenXmlFinish + "," +
                         data.buyer_tax_id + "," +
-                        data.buyer_name + "," +
+                         "\"" + data.buyer_name + "\"" + "," +
                         sendingMethod + "," +
-                        price + "," +
-                        discount + "," +
+                        data.price.ToString("0.00") + "," +
+                        data.discount.ToString("0.00") + "," +
                         basisamount + "," +
                         taxbasis_totalamount + "," +
                         tax_rate + "," +
-                        tax + "," +
-                        total + "," +
+                        data.tax.ToString("0.00") + "," +
+                        data.total.ToString("0.00") + "," +
                         corrected_tax_inovice_amount
                     );
 
@@ -1182,15 +1198,14 @@ namespace Etax_Api.Class.Controllers
                     else if (data.gen_xml_status == "fail")
                         status = "ดำเนินการล้มเหลว";
 
-                    string price = data.price.ToString("0.00");
-                    string discount = data.discount.ToString("0.00");
-
+                    //string price = data.price.ToString("0.00");
+                    //string discount = data.discount.ToString("0.00");
                     string basisamount = "0";
                     string taxbasis_totalamount = "0";
                     string corrected_tax_inovice_amount = "0";
                     string tax_rate = data.tax_rate.ToString("0.00");
-                    string tax = data.tax.ToString("0.00");
-                    string total = data.total.ToString("0.00");
+                    //string tax = data.tax.ToString("0.00");
+                    //string total = data.total.ToString("0.00");
                     string remark = data.remark;
 
                     if (data.other != null)
@@ -1199,11 +1214,28 @@ namespace Etax_Api.Class.Controllers
                         corrected_tax_inovice_amount = (double.Parse(otherArray[1])).ToString("0.00");
                     }
 
-                    if (data.other2 != null)
+                    if (data.document_type_id == 3)
                     {
-                        string[] otherArray2 = data.other2.Split('|');
-                        basisamount = (double.Parse(otherArray2[0])).ToString("0.00");
-                        taxbasis_totalamount = (double.Parse(otherArray2[1])).ToString("0.00");
+                        data.price = -data.price;
+                        data.discount = -data.discount;
+                        data.tax = -data.tax;
+                        data.total = -data.total;
+
+                        if (data.other2 != null)
+                        {
+                            string[] otherArray2 = data.other2.Split('|');
+                            basisamount = (-double.Parse(otherArray2[0])).ToString("0.00");
+                            taxbasis_totalamount = (-double.Parse(otherArray2[1])).ToString("0.00");
+                        }
+                    }
+                    else
+                    {
+                        if (data.other2 != null)
+                        {
+                            string[] otherArray2 = data.other2.Split('|');
+                            basisamount = double.Parse(otherArray2[0]).ToString("0.00");
+                            taxbasis_totalamount = double.Parse(otherArray2[1]).ToString("0.00");
+                        }
                     }
 
                     string sendingMethod = "";
@@ -1235,13 +1267,13 @@ namespace Etax_Api.Class.Controllers
                         formattedIssueDate + "," +
                         formattedGenXmlFinish + "," +
                         sendingMethod + "," +
-                        price + "," +
-                        discount + "," +
+                        data.price.ToString("0.00") + "," +
+                        data.discount.ToString("0.00") + "," +
                         basisamount + "," +
                         taxbasis_totalamount + "," +
                         tax_rate + "," +
-                        tax + "," +
-                        total + "," +
+                        data.tax.ToString("0.00") + "," +
+                        data.total.ToString("0.00") + "," +
                         corrected_tax_inovice_amount + "," +
                         duplicate
                     );
