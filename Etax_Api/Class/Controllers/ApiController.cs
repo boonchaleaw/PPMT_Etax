@@ -522,6 +522,12 @@ namespace Etax_Api.Controllers
                             etaxFile.original_price = bodyApiCreateEtax.original_price;
                             etaxFile.new_price = bodyApiCreateEtax.original_price - bodyApiCreateEtax.new_price;
                         }
+                        //else if(bodyApiCreateEtax.document_type_code == "9")
+                        //{
+                        //    etaxFile.ref_etax_id = bodyApiCreateEtax.ref_etax_id;
+                        //    etaxFile.ref_issue_date = DateTime.ParseExact(bodyApiCreateEtax.ref_issue_date, "dd-MM-yyyy", CultureInfo.InvariantCulture);
+
+                        //}
 
                         _context.Add(etaxFile);
                         await _context.SaveChangesAsync();

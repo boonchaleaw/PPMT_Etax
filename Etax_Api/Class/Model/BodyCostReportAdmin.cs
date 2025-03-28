@@ -9,6 +9,7 @@ namespace Etax_Api
     public class BodyCostReportAdmin
     {
         public int member_id { get; set; }
+        public string member_group { get; set; }
         public DateTime dateStart { get; set; }
         public DateTime dateEnd { get; set; }
     }
