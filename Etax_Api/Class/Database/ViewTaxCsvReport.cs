@@ -33,8 +33,8 @@ namespace Etax_Api
         public string other2 { get; set; }
         public DateTime create_date { get; set; }
         public int delete_status { get; set; }
-        public string send_email_status { get; set; }
-        public string send_ebxml_status { get; set; }
+        //public string send_email_status { get; set; }
+        //public string send_ebxml_status { get; set; }
         public string tax_type_filter { get; set; }
     }
 }

@@ -193,7 +193,9 @@ namespace Etax_Api
                 //}
                 //else
                 //{
-                outputFile.WriteLine("รหัสไฟล์,ประเภทเอกสาร,หมายเลขเอกสาร,วันที่ออกเอกสาร,หมายเลขเอกสารเดิม,วันที่ออกเอกสารเดิม,หมายเลขผู้เสียภาษี,ชื่อผู้เสียภาษี,สาขา,ที่อยู่,วันที่สร้าง,ยอดขาย,ส่วนลด,ยอดขายสุทธิ,ภาษี,รวม,สถานะส่งอีเมล,สถานะส่งสรรพากร,");
+                //outputFile.WriteLine("รหัสไฟล์,ประเภทเอกสาร,หมายเลขเอกสาร,วันที่ออกเอกสาร,หมายเลขเอกสารเดิม,วันที่ออกเอกสารเดิม,หมายเลขผู้เสียภาษี,ชื่อผู้เสียภาษี,สาขา,ที่อยู่,วันที่สร้าง,ยอดขาย,ส่วนลด,ยอดขายสุทธิ,ภาษี,รวม,สถานะส่งอีเมล,สถานะส่งสรรพากร,");
+                outputFile.WriteLine("รหัสไฟล์,ประเภทเอกสาร,หมายเลขเอกสาร,วันที่ออกเอกสาร,หมายเลขเอกสารเดิม,วันที่ออกเอกสารเดิม,หมายเลขผู้เสียภาษี,ชื่อผู้เสียภาษี,สาขา,ที่อยู่,วันที่สร้าง,ยอดขาย,ส่วนลด,ยอดขายสุทธิ,ภาษี,รวม");
+
 
                 List<string> checkList = new List<string>();
 
@@ -224,17 +226,17 @@ namespace Etax_Api
                         gen_xml_finish = "";
 
 
-                    string status_email = "ยังไม่ส่ง";
-                    if (data.send_email_status == "success")
-                    {
-                        status_email = "ส่งแล้ว";
-                    }
+                    //string status_email = "ยังไม่ส่ง";
+                    //if (data.send_email_status == "success")
+                    //{
+                    //    status_email = "ส่งแล้ว";
+                    //}
 
-                    string status_ebxml = "ยังไม่ส่ง";
-                    if (data.send_ebxml_status == "success")
-                    {
-                        status_ebxml = "ส่งแล้ว";
-                    }
+                    //string status_ebxml = "ยังไม่ส่ง";
+                    //if (data.send_ebxml_status == "success")
+                    //{
+                    //    status_ebxml = "ส่งแล้ว";
+                    //}
 
                     if (data.document_type_id == 3)
                     {
@@ -261,8 +263,8 @@ namespace Etax_Api
                         (data.price - data.discount).ToString("0.00") + "," +
                         data.tax.ToString("0.00") + "," +
                     data.total.ToString("0.00") + "," +
-                    status_email + "," +
-                    status_ebxml + "," +
+                    //status_email + "," +
+                    //status_ebxml + "," +
                     duplicate
                         );
                 }
@@ -412,17 +414,17 @@ namespace Etax_Api
                         gen_xml_finish = "";
 
 
-                    string status_email = "ยังไม่ส่ง";
-                    if (data.send_email_status == "success")
-                    {
-                        status_email = "ส่งแล้ว";
-                    }
+                    //string status_email = "ยังไม่ส่ง";
+                    //if (data.send_email_status == "success")
+                    //{
+                    //    status_email = "ส่งแล้ว";
+                    //}
 
-                    string status_ebxml = "ยังไม่ส่ง";
-                    if (data.send_ebxml_status == "success")
-                    {
-                        status_ebxml = "ส่งแล้ว";
-                    }
+                    //string status_ebxml = "ยังไม่ส่ง";
+                    //if (data.send_ebxml_status == "success")
+                    //{
+                    //    status_ebxml = "ส่งแล้ว";
+                    //}
 
                     if (data.document_type_id == 3)
                     {
@@ -448,9 +450,9 @@ namespace Etax_Api
                         data.discount.ToString("0.00") + "," +
                         (data.price - data.discount).ToString("0.00") + "," +
                         data.tax.ToString("0.00") + "," +
-                    data.total.ToString("0.00") + "," +
-                    status_email + "," +
-                    status_ebxml + "," +
+                    //data.total.ToString("0.00") + "," +
+                    //status_email + "," +
+                    //status_ebxml + "," +
                     duplicate
                         );
                 }
@@ -668,8 +670,9 @@ namespace Etax_Api
                     outputFile.WriteLine("สถานประกอบการ : 900 อาคารต้นสนทาวเวอร์ ห้องเลขที่ 10A D ชั้น 10 ถนนเพลินจิต แขวงลุมพินี เขตปทุมวัน กรุงเทพฯ 10330,,,,,,,,,,,,,สำนักงานใหญ่/สาขาที่ 00000");
                     outputFile.WriteLine(",,,,,,,,,,,,,");
 
+                    //outputFile.WriteLine("รหัสไฟล์,ประเภทเอกสาร,หมายเลขเอกสาร,หมายเลขผู้เสียภาษี,ชื่อผู้เสียภาษี,สาขา,ที่อยู่,ออกเอกสาร,วันที่สร้าง,มูลค่าเดิม,มูลค่าใหม่,ผลต่าง,ภาษี,รวม,สถานะส่งอีเมล,สถานะส่งสรรพากร");
 
-                    outputFile.WriteLine("รหัสไฟล์,ประเภทเอกสาร,หมายเลขเอกสาร,หมายเลขผู้เสียภาษี,ชื่อผู้เสียภาษี,สาขา,ที่อยู่,ออกเอกสาร,วันที่สร้าง,มูลค่าเดิม,มูลค่าใหม่,ผลต่าง,ภาษี,รวม,สถานะส่งอีเมล,สถานะส่งสรรพากร");
+                    outputFile.WriteLine("รหัสไฟล์,ประเภทเอกสาร,หมายเลขเอกสาร,หมายเลขผู้เสียภาษี,ชื่อผู้เสียภาษี,สาขา,ที่อยู่,ออกเอกสาร,วันที่สร้าง,มูลค่าเดิม,มูลค่าใหม่,ผลต่าง,ภาษี,รวม");
 
                     foreach (ViewTaxCsvReport data in listData)
                     {
@@ -685,17 +688,17 @@ namespace Etax_Api
                         else
                             gen_xml_finish = "";
 
-                        string status_email = "ยังไม่ส่ง";
-                        if (data.send_email_status == "success")
-                        {
-                            status_email = "ส่งแล้ว";
-                        }
+                        //string status_email = "ยังไม่ส่ง";
+                        //if (data.send_email_status == "success")
+                        //{
+                        //    status_email = "ส่งแล้ว";
+                        //}
 
-                        string status_ebxml = "ยังไม่ส่ง";
-                        if (data.send_ebxml_status == "success")
-                        {
-                            status_ebxml = "ส่งแล้ว";
-                        }
+                        //string status_ebxml = "ยังไม่ส่ง";
+                        //if (data.send_ebxml_status == "success")
+                        //{
+                        //    status_ebxml = "ส่งแล้ว";
+                        //}
 
                         outputFile.WriteLine(
                         data.id.ToString() + "," +
@@ -711,9 +714,9 @@ namespace Etax_Api
                         data.price.ToString("0.00") + "," +
                         Math.Abs(data.original_price - data.price).ToString("0.00") + "," +
                         data.tax.ToString("0.00") + "," +
-                        data.total.ToString("0.00") + "," +
-                        status_email + "," +
-                        status_ebxml
+                        data.total.ToString("0.00") 
+                        //status_email + "," +
+                        //status_ebxml
                         );
                     }
                     outputFile.WriteLine("");
@@ -729,8 +732,9 @@ namespace Etax_Api
                     outputFile.WriteLine("สถานประกอบการ : 900 อาคารต้นสนทาวเวอร์ ห้องเลขที่ 10A D ชั้น 10 ถนนเพลินจิต แขวงลุมพินี เขตปทุมวัน กรุงเทพฯ 10330,,,,,,,,,,,,,สำนักงานใหญ่/สาขาที่ 00000");
                     outputFile.WriteLine(",,,,,,,,,,,,,");
 
+                    //outputFile.WriteLine("รหัสไฟล์,ประเภทเอกสาร,หมายเลขเอกสาร,หมายเลขผู้เสียภาษี,ชื่อผู้เสียภาษี,สาขา,ที่อยู่,ออกเอกสาร,วันที่สร้าง,มูลค่าเดิม,มูลค่าใหม่,ผลต่าง,ภาษี,รวม,สถานะส่งอีเมล,สถานะส่งสรรพากร");
 
-                    outputFile.WriteLine("รหัสไฟล์,ประเภทเอกสาร,หมายเลขเอกสาร,หมายเลขผู้เสียภาษี,ชื่อผู้เสียภาษี,สาขา,ที่อยู่,ออกเอกสาร,วันที่สร้าง,มูลค่าเดิม,มูลค่าใหม่,ผลต่าง,ภาษี,รวม,สถานะส่งอีเมล,สถานะส่งสรรพากร");
+                    outputFile.WriteLine("รหัสไฟล์,ประเภทเอกสาร,หมายเลขเอกสาร,หมายเลขผู้เสียภาษี,ชื่อผู้เสียภาษี,สาขา,ที่อยู่,ออกเอกสาร,วันที่สร้าง,มูลค่าเดิม,มูลค่าใหม่,ผลต่าง,ภาษี,รวม");
 
                     foreach (ViewTaxCsvReport data in listData)
                     {
@@ -746,17 +750,17 @@ namespace Etax_Api
                         else
                             gen_xml_finish = "";
 
-                        string status_email = "ยังไม่ส่ง";
-                        if (data.send_email_status == "success")
-                        {
-                            status_email = "ส่งแล้ว";
-                        }
+                        //string status_email = "ยังไม่ส่ง";
+                        //if (data.send_email_status == "success")
+                        //{
+                        //    status_email = "ส่งแล้ว";
+                        //}
 
-                        string status_ebxml = "ยังไม่ส่ง";
-                        if (data.send_ebxml_status == "success")
-                        {
-                            status_ebxml = "ส่งแล้ว";
-                        }
+                        //string status_ebxml = "ยังไม่ส่ง";
+                        //if (data.send_ebxml_status == "success")
+                        //{
+                        //    status_ebxml = "ส่งแล้ว";
+                        //}
 
                         outputFile.WriteLine(
                             data.id.ToString() + "," +
@@ -772,9 +776,9 @@ namespace Etax_Api
                             data.price.ToString("0.00") + "," +
                             Math.Abs(data.original_price - data.price).ToString("0.00") + "," +
                             data.tax.ToString("0.00") + "," +
-                            data.total.ToString("0.00") + "," +
-                            status_email + "," +
-                            status_ebxml
+                            data.total.ToString("0.00") 
+                            //status_email + "," +
+                            //status_ebxml
                             );
                     }
                     outputFile.WriteLine("");
@@ -789,8 +793,9 @@ namespace Etax_Api
                     outputFile.WriteLine("สถานประกอบการ : 900 อาคารต้นสนทาวเวอร์ ห้องเลขที่ 10A D ชั้น 10 ถนนเพลินจิต แขวงลุมพินี เขตปทุมวัน กรุงเทพฯ 10330,,,,,,,,,,,,,สำนักงานใหญ่/สาขาที่ 00000");
                     outputFile.WriteLine(",,,,,,,,,,,,,");
 
+                    //outputFile.WriteLine("รหัสไฟล์,ประเภทเอกสาร,หมายเลขเอกสาร,หมายเลขผู้เสียภาษี,ชื่อผู้เสียภาษี,สาขา,ที่อยู่,ออกเอกสาร,วันที่สร้าง,ยอดขาย,ส่วนลด,ยอดขายสุทธิ,ภาษี,รวม,สถานะส่งอีเมล,สถานะส่งสรรพากร");
 
-                    outputFile.WriteLine("รหัสไฟล์,ประเภทเอกสาร,หมายเลขเอกสาร,หมายเลขผู้เสียภาษี,ชื่อผู้เสียภาษี,สาขา,ที่อยู่,ออกเอกสาร,วันที่สร้าง,ยอดขาย,ส่วนลด,ยอดขายสุทธิ,ภาษี,รวม,สถานะส่งอีเมล,สถานะส่งสรรพากร");
+                    outputFile.WriteLine("รหัสไฟล์,ประเภทเอกสาร,หมายเลขเอกสาร,หมายเลขผู้เสียภาษี,ชื่อผู้เสียภาษี,สาขา,ที่อยู่,ออกเอกสาร,วันที่สร้าง,ยอดขาย,ส่วนลด,ยอดขายสุทธิ,ภาษี,รวม");
 
                     foreach (ViewTaxCsvReport data in listData)
                     {
@@ -806,17 +811,17 @@ namespace Etax_Api
                         else
                             gen_xml_finish = "";
 
-                        string status_email = "ยังไม่ส่ง";
-                        if (data.send_email_status == "success")
-                        {
-                            status_email = "ส่งแล้ว";
-                        }
+                        //string status_email = "ยังไม่ส่ง";
+                        //if (data.send_email_status == "success")
+                        //{
+                        //    status_email = "ส่งแล้ว";
+                        //}
 
-                        string status_ebxml = "ยังไม่ส่ง";
-                        if (data.send_ebxml_status == "success")
-                        {
-                            status_ebxml = "ส่งแล้ว";
-                        }
+                        //string status_ebxml = "ยังไม่ส่ง";
+                        //if (data.send_ebxml_status == "success")
+                        //{
+                        //    status_ebxml = "ส่งแล้ว";
+                        //}
 
                         outputFile.WriteLine(
                             data.id.ToString() + "," +
@@ -832,9 +837,9 @@ namespace Etax_Api
                             data.discount.ToString("0.00") + "," +
                             (data.price - data.discount).ToString("0.00") + "," +
                             data.tax.ToString("0.00") + "," +
-                            data.total.ToString("0.00") + "," +
-                            status_email + "," +
-                            status_ebxml
+                            data.total.ToString("0.00") 
+                            //status_email + "," +
+                            //status_ebxml
                             );
                     }
                     outputFile.WriteLine("");
@@ -849,8 +854,9 @@ namespace Etax_Api
                     outputFile.WriteLine("สถานประกอบการ : 900 อาคารต้นสนทาวเวอร์ ห้องเลขที่ 10A D ชั้น 10 ถนนเพลินจิต แขวงลุมพินี เขตปทุมวัน กรุงเทพฯ 10330,,,,,,,,,,,,,สำนักงานใหญ่/สาขาที่ 00000");
                     outputFile.WriteLine(",,,,,,,,,,,,,");
 
+                    //outputFile.WriteLine("รหัสไฟล์,ประเภทเอกสาร,หมายเลขเอกสาร,หมายเลขผู้เสียภาษี,ชื่อผู้เสียภาษี,สาขา,ที่อยู่,ออกเอกสาร,วันที่สร้าง,ยอดขาย,ส่วนลด,ยอดขายสุทธิ,ภาษี,รวม,สถานะส่งอีเมล,สถานะส่งสรรพากร");
 
-                    outputFile.WriteLine("รหัสไฟล์,ประเภทเอกสาร,หมายเลขเอกสาร,หมายเลขผู้เสียภาษี,ชื่อผู้เสียภาษี,สาขา,ที่อยู่,ออกเอกสาร,วันที่สร้าง,ยอดขาย,ส่วนลด,ยอดขายสุทธิ,ภาษี,รวม,สถานะส่งอีเมล,สถานะส่งสรรพากร");
+                    outputFile.WriteLine("รหัสไฟล์,ประเภทเอกสาร,หมายเลขเอกสาร,หมายเลขผู้เสียภาษี,ชื่อผู้เสียภาษี,สาขา,ที่อยู่,ออกเอกสาร,วันที่สร้าง,ยอดขาย,ส่วนลด,ยอดขายสุทธิ,ภาษี,รวม");
 
                     foreach (ViewTaxCsvReport data in listData)
                     {
@@ -866,17 +872,17 @@ namespace Etax_Api
                         else
                             gen_xml_finish = "";
 
-                        string status_email = "ยังไม่ส่ง";
-                        if (data.send_email_status == "success")
-                        {
-                            status_email = "ส่งแล้ว";
-                        }
+                        //string status_email = "ยังไม่ส่ง";
+                        //if (data.send_email_status == "success")
+                        //{
+                        //    status_email = "ส่งแล้ว";
+                        //}
 
-                        string status_ebxml = "ยังไม่ส่ง";
-                        if (data.send_ebxml_status == "success")
-                        {
-                            status_ebxml = "ส่งแล้ว";
-                        }
+                        //string status_ebxml = "ยังไม่ส่ง";
+                        //if (data.send_ebxml_status == "success")
+                        //{
+                        //    status_ebxml = "ส่งแล้ว";
+                        //}
 
                         outputFile.WriteLine(
                             data.id.ToString() + "," +
@@ -892,9 +898,9 @@ namespace Etax_Api
                             data.discount.ToString("0.00") + "," +
                             (data.price - data.discount).ToString("0.00") + "," +
                             data.tax.ToString("0.00") + "," +
-                            data.total.ToString("0.00") + "," +
-                            status_email + "," +
-                            status_ebxml
+                            data.total.ToString("0.00") 
+                            //status_email + "," +
+                            //status_ebxml
                             );
                     }
                     outputFile.WriteLine("");
@@ -1018,7 +1024,8 @@ namespace Etax_Api
         {
             using (StreamWriter outputFile = new StreamWriter(path, false, Encoding.UTF8))
             {
-                outputFile.WriteLine("รหัสไฟล์,ประเภทเอกสาร,หมายเลขเอกสาร,หมายเลขผู้เสียภาษี,ชื่อผู้เสียภาษี,สาขา,ที่อยู่,ออกเอกสาร,วันที่สร้าง,ยอดขาย,ส่วนลด,ยอดขายสุทธิ,ภาษี,รวม,สถานะส่งอีเมล,สถานะส่งสรรพากร,");
+                //outputFile.WriteLine("รหัสไฟล์,ประเภทเอกสาร,หมายเลขเอกสาร,หมายเลขผู้เสียภาษี,ชื่อผู้เสียภาษี,สาขา,ที่อยู่,ออกเอกสาร,วันที่สร้าง,ยอดขาย,ส่วนลด,ยอดขายสุทธิ,ภาษี,รวม,สถานะส่งอีเมล,สถานะส่งสรรพากร,");
+                outputFile.WriteLine("รหัสไฟล์,ประเภทเอกสาร,หมายเลขเอกสาร,หมายเลขผู้เสียภาษี,ชื่อผู้เสียภาษี,สาขา,ที่อยู่,ออกเอกสาร,วันที่สร้าง,ยอดขาย,ส่วนลด,ยอดขายสุทธิ,ภาษี,รวม,");
 
                 List<string> checkList = new List<string>();
                 double sumTotalNoVat = 0;
@@ -1044,17 +1051,17 @@ namespace Etax_Api
                         gen_xml_finish = "";
 
 
-                    string status_email = "ยังไม่ส่ง";
-                    if (data.send_email_status == "success")
-                    {
-                        status_email = "ส่งแล้ว";
-                    }
+                    //string status_email = "ยังไม่ส่ง";
+                    //if (data.send_email_status == "success")
+                    //{
+                    //    status_email = "ส่งแล้ว";
+                    //}
 
-                    string status_ebxml = "ยังไม่ส่ง";
-                    if (data.send_ebxml_status == "success")
-                    {
-                        status_ebxml = "ส่งแล้ว";
-                    }
+                    //string status_ebxml = "ยังไม่ส่ง";
+                    //if (data.send_ebxml_status == "success")
+                    //{
+                    //    status_ebxml = "ส่งแล้ว";
+                    //}
 
                     string[] other2Array = data.other2.Split('|');
                     double totalNoVat = double.Parse(other2Array[1]);
@@ -1083,8 +1090,8 @@ namespace Etax_Api
                         totalNoVat.ToString("0.00") + "," +
                         data.tax.ToString("0.00") + "," +
                     data.total.ToString("0.00") + "," +
-                    status_email + "," +
-                    status_ebxml + "," +
+                    //status_email + "," +
+                    //status_ebxml + "," +
                     duplicate
                         );
 
