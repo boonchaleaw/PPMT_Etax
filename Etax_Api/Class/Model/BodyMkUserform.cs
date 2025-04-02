@@ -23,6 +23,10 @@ namespace Etax_Api
         public string zipcode { get; set; }
         public string email { get; set; }
         public string tel { get; set; }
+
+        public string remark { get; set; }
         public BodyMkData dataQr { get; set; }
+
+
     }
 }
