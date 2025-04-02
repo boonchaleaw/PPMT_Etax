@@ -587,6 +587,15 @@ namespace Etax_Api.Controllers
                          ef.other,
                      }).FirstOrDefaultAsync();
 
+                //หารายการที่มีการทำใบแทน
+                var etaxFile_tir = await _context.etax_files
+                                    .Where(x =>
+                                    x.member_id == branch.member_id &&
+                                    x.etax_id.StartsWith(etaxFile.etax_id) &&
+                                    x.document_type_id == 9 &&
+                                    x.delete_status == 0
+                                    ).OrderByDescending(x => x.etax_id)
+                                    .FirstOrDefaultAsync();
 
                 bool already = false;
                 bool expire_edit = false;
@@ -595,8 +604,28 @@ namespace Etax_Api.Controllers
                 bool cancel = false;
                 string lang = "";
                 string type = "";
+                
 
-                if (etaxFile != null)
+                if (etaxFile_tir != null)
+                {
+                    string[] otherArray = etaxFile_tir.other.Split('|');
+                    if (otherArray.Length >= 4)
+                    {
+                        lang = otherArray[1];
+                        type = otherArray[2];
+                    }
+
+                    if (etaxFile_tir.add_ebxml_status == "success")
+                    {
+                        rd = true;
+                    }
+
+                    if (etaxFile_tir.delete_status == 1)
+                        cancel = true;
+                }
+
+
+                if (etaxFile != null )
                 {
                     string[] otherArray = etaxFile.other.Split('|');
                     if (otherArray.Length >= 4)
@@ -649,7 +678,7 @@ namespace Etax_Api.Controllers
                         return StatusCode(404, new { message = "รายการซื้อขายเกิน 7 วัน ไม่สามารถออกใบกำกับภาษีอิเล็กทรอนิคได้", });
                 }
 
-                if (member != null && branch != null)
+                if (member != null && branch != null && etaxFile_tir == null)
                 {
                     string branch_name = "";
                     string[] branchNameArray = branch.name.Split('|');
@@ -688,6 +717,54 @@ namespace Etax_Api.Controllers
                                 branch.zipcode,
                             },
                             etaxFile = etaxFile,
+                            already = already,
+                            expire_edit = expire_edit,
+                            expire_cancel = expire_cancel,
+                            rd = rd,
+                            cancel = cancel,
+                            totalText = Function.ThBahtText(bodyMkData.totalAmount),
+                        },
+                    });
+                }
+                else if (member != null && branch != null && etaxFile_tir != null)
+                {
+                    string branch_name = "";
+                    string[] branchNameArray = branch.name.Split('|');
+                    foreach (string branchName in branchNameArray)
+                    {
+                        if (branchName.Contains(bodyMkData.branchCode))
+                        {
+                            branch_name = branchName;
+                            break;
+                        }
+                    }
+
+                    return StatusCode(200, new
+                    {
+                        message = "เรียกดูข้อมูลสำเร็จ",
+                        data = new
+                        {
+                            lang = lang,
+                            type = type,
+                            member = member,
+                            branch = new
+                            {
+                                branch.id,
+                                branch.member_id,
+                                name = branch_name,
+                                branch.branch_code,
+                                branch.building_number,
+                                branch.building_name,
+                                branch.street_name,
+                                branch.district_code,
+                                branch.district_name,
+                                branch.amphoe_code,
+                                branch.amphoe_name,
+                                branch.province_code,
+                                branch.province_name,
+                                branch.zipcode,
+                            },
+                            etaxFile = etaxFile_tir,
                             already = already,
                             expire_edit = expire_edit,
                             expire_cancel = expire_cancel,
@@ -1748,346 +1825,699 @@ namespace Etax_Api.Controllers
                 x.other.Contains(bodyUserform.dataQr.branchCode + "|") 
                 ).FirstOrDefaultAsync();
 
+                //หารายการที่มีการทำใบแทน
+                EtaxFile etaxFile_tir = await _context.etax_files
+                                    .Where(x =>
+                                    x.member_id == etaxFile.member_id &&
+                                    x.etax_id.StartsWith(etaxFile.etax_id) &&
+                                    x.document_type_id == 9 &&
+                                    x.delete_status == 0
+                                    ).OrderByDescending(x => x.etax_id)
+                                    .FirstOrDefaultAsync();
 
-                if (bodyUserform.lang == "EN")
+                bool rd_tir = false; //ไว้เช็คว่าใบแทนมีการส่งสรรพากรแล้วหรือยัง
+
+                if (etaxFile_tir != null)
                 {
-                    if (etaxFile != null)
+                    if (etaxFile_tir.add_ebxml_status == "success")
                     {
+                        rd_tir = true;
+                    }
 
-                        string etax_id = bodyUserform.dataQr.billIDRef;
-                        //นับจำนวนใบแทนที่มีในปัจจุบันเพื่อ +1 เลข running 2 หลัก
-                        int count = await _context.etax_files
-                                     .Where(x =>
-                                     x.member_id == bodyUserform.member_id &&
-                                     x.ref_etax_id == bodyUserform.dataQr.billIDRef &&
-                                     x.other.Contains(bodyUserform.dataQr.branchCode + "|") &&
-                                     x.document_type_id == 9
-                                     ).CountAsync();
-
-                        //มีใบแทนอยู่แล้ว 1 ใบขึ้นไป
-                        if (count > 0)
+                    if (rd_tir == false)
+                    {
+                        if (bodyUserform.lang == "EN")
                         {
-                            EtaxFile etaxFile_data = await _context.etax_files
-                                 .Where(x =>
-                                x.member_id == bodyUserform.member_id &&
-                                x.ref_etax_id == bodyUserform.dataQr.billIDRef &&
-                                x.other.Contains(bodyUserform.dataQr.branchCode + "|")
-                                )
-                                .OrderByDescending(x => x.create_date) 
-                                .FirstOrDefaultAsync();
+                            using (var transaction = _context.Database.BeginTransaction())
+                            {
+                                try
+                                {
 
-                            string[] parts = etaxFile_data.etax_id.Split('-');
+                                    etaxFile_tir.gen_xml_status = "pending";
+                                    etaxFile_tir.gen_pdf_status = "pending";
+                                    etaxFile_tir.add_email_status = "pending";
+                                    etaxFile_tir.buyer_name = bodyUserform.name;
+                                    etaxFile_tir.buyer_tax_id = bodyUserform.tax_id;
+                                    etaxFile_tir.buyer_address = $"{bodyUserform.address} {bodyUserform.district} {bodyUserform.amphoe} {bodyUserform.province}";
+                                    etaxFile_tir.buyer_zipcode = bodyUserform.zipcode;
+                                    etaxFile_tir.buyer_tel = bodyUserform.tel;
+                                    etaxFile_tir.buyer_email = bodyUserform.email;
+                                    etaxFile_tir.remark = bodyUserform.remark;
+                                    etaxFile_tir.other = $"{bodyUserform.dataQr.branchCode}|EN|{bodyUserform.type}|{bodyUserform.dataQr.url}";
+                                    etaxFile_tir.other2 = $"{bodyUserform.dataQr.baseAmount}|{bodyUserform.dataQr.noDiscount}|{bodyUserform.dataQr.fAndB}|{bodyUserform.dataQr.service}";
+                                    etaxFile_tir.update_count = etaxFile_tir.update_count + 1;
+                                    etaxFile_tir.update_date = DateTime.Now;
 
-                            int number = int.Parse(parts[2]) + 1;
+                                    if (bodyUserform.type == "LE")
+                                    {
+                                        etaxFile_tir.buyer_branch_code = bodyUserform.branch_code;
+                                    }
 
-                            etax_id = etax_id + "-" + number.ToString("D2");
+                                    await _context.SaveChangesAsync();
+                                    transaction.Commit();
+                                }
+                                catch (Exception ex)
+                                {
+                                    transaction.Rollback();
+                                    return StatusCode(400, new { message = ex.Message });
+                                }
+                            }
+                            
 
+
+                            return StatusCode(200, new
+                            {
+                                message = "แก้ไขข้อมูลสำเร็จ",
+                            });
                         }
                         else
                         {
-                            etax_id = etax_id + "-" + "00";
-                        }
-
-
-                        using (var transaction = _context.Database.BeginTransaction())
-                        {
-                            try
+                            if (bodyUserform.province == "กรุงเทพมหานคร")
                             {
-                                EtaxFile newEtaxFile = new EtaxFile()
+                                bodyUserform.district = "แขวง" + bodyUserform.district;
+                                bodyUserform.amphoe = "เขต" + bodyUserform.amphoe;
+                                bodyUserform.province = "จังหวัด" + bodyUserform.province;
+                            }
+                            else
+                            {
+                                bodyUserform.district = "ตำบล" + bodyUserform.district;
+                                bodyUserform.amphoe = "อำเภอ" + bodyUserform.amphoe;
+                                bodyUserform.province = "จังหวัด" + bodyUserform.province;
+                            }
+
+                            using (var transaction = _context.Database.BeginTransaction())
+                            {
+                                try
                                 {
-                                    member_id = bodyUserform.member_id,
-                                    branch_id = bodyUserform.branch_id,
-                                    member_user_id = 0,
-                                    document_type_id = 9,
-                                    create_type = "api",
-                                    rawdata_file_id = 0,
-                                    gen_xml_status = "pending",
-                                    gen_pdf_status = "pending",
-                                    add_email_status = "pending",
-                                    add_sms_status = "no",
-                                    add_ebxml_status = "no",
-                                    send_xml_status = "N",
-                                    send_other_status = "N",
-                                    error = "",
-                                    output_path = _config["Path:Output"],
-                                    etax_id = etax_id,
-                                    issue_date = now,
-                                    ref_etax_id = etaxFile.etax_id,
-                                    ref_issue_date = etaxFile.issue_date,
-                                    buyer_branch_code = etaxFile.buyer_branch_code,
-                                    buyer_id = "",
-                                    buyer_name = bodyUserform.name,
-                                    buyer_tax_id = bodyUserform.tax_id,
-                                    buyer_tax_type = "",
-                                    buyer_address = bodyUserform.address,
-                                    buyer_zipcode = bodyUserform.zipcode,
-                                    buyer_tel = bodyUserform.tel,
-                                    buyer_fax = "",
-                                    buyer_country_code = "TH",
-                                    buyer_email = bodyUserform.email,
-                                    price = etaxFile.price,
-                                    discount = etaxFile.discount,
-                                    tax_rate = 7,
-                                    tax = etaxFile.tax,
-                                    total = etaxFile.total,
-                                    remark = "ชื่อและที่อยู่ผิด",
-                                    other = bodyUserform.dataQr.branchCode + "|EN|" + bodyUserform.type + "|" + bodyUserform.dataQr.url,
-                                    other2 = bodyUserform.dataQr.baseAmount + "|" + bodyUserform.dataQr.noDiscount + "|" + bodyUserform.dataQr.fAndB + "|" + bodyUserform.dataQr.service,
-                                    group_name = "",
-                                    template_pdf = "",
-                                    template_email = "",
-                                    xml_payment_status = "pending",
-                                    pdf_payment_status = "pending",
-                                    mode = "normal",
-                                    update_count = 0,
-                                    update_date = now,
-                                    create_date = now,
-                                };
+                                    etaxFile_tir.gen_xml_status = "pending";
+                                    etaxFile_tir.gen_pdf_status = "pending";
+                                    etaxFile_tir.add_email_status = "pending";
+                                    etaxFile_tir.buyer_name = bodyUserform.name;
+                                    etaxFile_tir.buyer_tax_id = bodyUserform.tax_id;
+                                    etaxFile_tir.buyer_address = bodyUserform.address + " " + bodyUserform.district + " " + bodyUserform.amphoe + " " + bodyUserform.province;
+                                    etaxFile_tir.buyer_zipcode = bodyUserform.zipcode;
+                                    etaxFile_tir.buyer_tel = bodyUserform.tel;
+                                    etaxFile_tir.buyer_email = bodyUserform.email;
+                                    etaxFile_tir.remark = bodyUserform.remark;
+                                    etaxFile_tir.other = $"{bodyUserform.dataQr.branchCode}|TH|{bodyUserform.type}|{bodyUserform.dataQr.url}";
+                                    etaxFile_tir.other2 = $"{bodyUserform.dataQr.baseAmount}|{bodyUserform.dataQr.noDiscount}|{bodyUserform.dataQr.fAndB}|{bodyUserform.dataQr.service}";
+                                    etaxFile_tir.update_count = etaxFile_tir.update_count + 1; // เพิ่มจากค่าเดิม
+                                    etaxFile_tir.update_date = now;
 
-                                if (bodyUserform.type == "LE")
-                                    newEtaxFile.buyer_branch_code = bodyUserform.branch_code;
 
-                                _context.Add(newEtaxFile);
-                                await _context.SaveChangesAsync();
+                                    if (bodyUserform.type == "LE")
+                                        etaxFile_tir.buyer_branch_code = bodyUserform.branch_code;
 
-                                double itemTotal1 = double.Parse(bodyUserform.dataQr.fAndB) + double.Parse(bodyUserform.dataQr.noDiscount);
-                                double itemTax1 = itemTotal1 * 100 / 107;
-                                double itemPrice1 = itemTotal1 - itemTax1;
-
-                                string itemName = "อาหารและเครื่องดื่ม";
-                                if (bodyUserform.dataQr.branchCode == "D201")
-                                    itemName = "บัตรสมาชิก";
-
-                                EtaxFileItem newEtaxFileItem = new EtaxFileItem()
-                                {
-                                    etax_file_id = newEtaxFile.id,
-                                    code = "",
-                                    name = itemName,
-                                    qty = 1,
-                                    unit = "",
-                                    price = itemPrice1,
-                                    discount = 0,
-                                    tax = itemTax1,
-                                    tax_rate = newEtaxFile.tax_rate,
-                                    total = itemTotal1,
-                                };
-                                _context.Add(newEtaxFileItem);
-
-                                if (bodyUserform.dataQr.service != "0")
-                                {
-                                    double itemtotal2 = double.Parse(bodyUserform.dataQr.service);
-                                    double itemTax2 = itemtotal2 * 100 / 107;
-                                    double itemPrice2 = itemtotal2 - itemTax2;
-                                    EtaxFileItem newEtaxFileItem2 = new EtaxFileItem()
-                                    {
-                                        etax_file_id = newEtaxFile.id,
-                                        code = "",
-                                        name = "ค่าบริการ",
-                                        qty = 1,
-                                        unit = "",
-                                        price = itemPrice2,
-                                        discount = 0,
-                                        tax = itemTax2,
-                                        tax_rate = newEtaxFile.tax_rate,
-                                        total = itemtotal2,
-                                    };
-                                    _context.Add(newEtaxFileItem2);
+                                    await _context.SaveChangesAsync();
+                                    transaction.Commit();
                                 }
-
-                                await _context.SaveChangesAsync();
-                                transaction.Commit();
+                                catch (Exception ex)
+                                {
+                                    transaction.Rollback();
+                                    return StatusCode(400, new { message = ex.Message });
+                                }
                             }
-                            catch (Exception ex)
+                            
+
+                            return StatusCode(200, new
                             {
-                                transaction.Rollback();
-                                return StatusCode(400, new { message = ex.Message });
-                            }
+                                message = "แก้ไขข้อมูลสำเร็จ",
+                            });
                         }
-                    }
-                   
 
-                    return StatusCode(200, new
-                    {
-                        message = "แก้ไขข้อมูลสำเร็จ",
-                    });
-                }
-                else
-                {
-                    if (bodyUserform.province == "กรุงเทพมหานคร")
-                    {
-                        bodyUserform.district = "แขวง" + bodyUserform.district;
-                        bodyUserform.amphoe = "เขต" + bodyUserform.amphoe;
-                        bodyUserform.province = "จังหวัด" + bodyUserform.province;
                     }
                     else
                     {
-                        bodyUserform.district = "ตำบล" + bodyUserform.district;
-                        bodyUserform.amphoe = "อำเภอ" + bodyUserform.amphoe;
-                        bodyUserform.province = "จังหวัด" + bodyUserform.province;
-                    }
+                       
 
-
-                    if (etaxFile != null)
-                    {
-
-                        string etax_id = bodyUserform.dataQr.billIDRef;
-                        //นับจำนวนใบแทนที่มีในปัจจุบันเพื่อ +1 เลข running 2 หลัก
-                        int count = await _context.etax_files
-                                     .Where(x =>
-                                     x.member_id == bodyUserform.member_id &&
-                                     x.ref_etax_id == bodyUserform.dataQr.billIDRef &&
-                                     x.other.Contains(bodyUserform.dataQr.branchCode + "|") &&
-                                     x.document_type_id == 9
-                                     ).CountAsync();
-
-                        //มีใบแทนอยู่แล้ว 1 ใบขึ้นไป
-                        if (count > 0)
+                        if (bodyUserform.lang == "EN")
                         {
-                            EtaxFile etaxFile_data = await _context.etax_files
-                                 .Where(x =>
-                                x.member_id == bodyUserform.member_id &&
-                                x.ref_etax_id == bodyUserform.dataQr.billIDRef &&
-                                x.other.Contains(bodyUserform.dataQr.branchCode + "|")
-                                )
-                                .OrderByDescending(x => x.create_date)
-                                .FirstOrDefaultAsync();
+                            if (etaxFile != null)
+                            {
 
-                            string[] parts = etaxFile_data.etax_id.Split('-');
+                                string[] parts = etaxFile_tir.etax_id.Split('-');
 
-                            int number = int.Parse(parts[2]) + 1;
+                                int number = int.Parse(parts[2]) + 1;
 
-                            etax_id = etax_id + "-" + number.ToString("D2");
+                                var new_etax_id = etaxFile_tir.etax_id + "-" + number.ToString("D2");
 
+
+                                using (var transaction = _context.Database.BeginTransaction())
+                                {
+                                    try
+                                    {
+                                        EtaxFile newEtaxFile = new EtaxFile()
+                                        {
+                                            member_id = bodyUserform.member_id,
+                                            branch_id = bodyUserform.branch_id,
+                                            member_user_id = 0,
+                                            document_type_id = 9,
+                                            create_type = "api",
+                                            rawdata_file_id = 0,
+                                            gen_xml_status = "pending",
+                                            gen_pdf_status = "pending",
+                                            add_email_status = "pending",
+                                            add_sms_status = "no",
+                                            add_ebxml_status = "no",
+                                            send_xml_status = "N",
+                                            send_other_status = "N",
+                                            error = "",
+                                            output_path = _config["Path:Output"],
+                                            etax_id = new_etax_id,
+                                            issue_date = now,
+                                            ref_etax_id = etaxFile_tir.etax_id,
+                                            ref_issue_date = etaxFile_tir.issue_date,
+                                            buyer_branch_code = etaxFile_tir.buyer_branch_code,
+                                            buyer_id = "",
+                                            buyer_name = bodyUserform.name,
+                                            buyer_tax_id = bodyUserform.tax_id,
+                                            buyer_tax_type = "",
+                                            buyer_address = bodyUserform.address + " " + bodyUserform.district + " " + bodyUserform.amphoe + " " + bodyUserform.province,
+                                            buyer_zipcode = bodyUserform.zipcode,
+                                            buyer_tel = bodyUserform.tel,
+                                            buyer_fax = "",
+                                            buyer_country_code = "TH",
+                                            buyer_email = bodyUserform.email,
+                                            price = etaxFile_tir.price,
+                                            discount = etaxFile_tir.discount,
+                                            tax_rate = 7,
+                                            tax = etaxFile_tir.tax,
+                                            total = etaxFile_tir.total,
+                                            remark = bodyUserform.remark,
+                                            other = bodyUserform.dataQr.branchCode + "|EN|" + bodyUserform.type + "|" + bodyUserform.dataQr.url,
+                                            other2 = bodyUserform.dataQr.baseAmount + "|" + bodyUserform.dataQr.noDiscount + "|" + bodyUserform.dataQr.fAndB + "|" + bodyUserform.dataQr.service,
+                                            group_name = "",
+                                            template_pdf = "",
+                                            template_email = "",
+                                            xml_payment_status = "pending",
+                                            pdf_payment_status = "pending",
+                                            mode = "normal",
+                                            update_count = 0,
+                                            update_date = now,
+                                            create_date = now,
+                                        };
+
+                                        if (bodyUserform.type == "LE")
+                                            newEtaxFile.buyer_branch_code = bodyUserform.branch_code;
+
+                                        _context.Add(newEtaxFile);
+                                        await _context.SaveChangesAsync();
+
+                                        double itemTotal1 = double.Parse(bodyUserform.dataQr.fAndB) + double.Parse(bodyUserform.dataQr.noDiscount);
+                                        double itemTax1 = itemTotal1 * 100 / 107;
+                                        double itemPrice1 = itemTotal1 - itemTax1;
+
+                                        string itemName = "อาหารและเครื่องดื่ม";
+                                        if (bodyUserform.dataQr.branchCode == "D201")
+                                            itemName = "บัตรสมาชิก";
+
+                                        EtaxFileItem newEtaxFileItem = new EtaxFileItem()
+                                        {
+                                            etax_file_id = newEtaxFile.id,
+                                            code = "",
+                                            name = itemName,
+                                            qty = 1,
+                                            unit = "",
+                                            price = itemPrice1,
+                                            discount = 0,
+                                            tax = itemTax1,
+                                            tax_rate = newEtaxFile.tax_rate,
+                                            total = itemTotal1,
+                                        };
+                                        _context.Add(newEtaxFileItem);
+
+                                        if (bodyUserform.dataQr.service != "0")
+                                        {
+                                            double itemtotal2 = double.Parse(bodyUserform.dataQr.service);
+                                            double itemTax2 = itemtotal2 * 100 / 107;
+                                            double itemPrice2 = itemtotal2 - itemTax2;
+                                            EtaxFileItem newEtaxFileItem2 = new EtaxFileItem()
+                                            {
+                                                etax_file_id = newEtaxFile.id,
+                                                code = "",
+                                                name = "ค่าบริการ",
+                                                qty = 1,
+                                                unit = "",
+                                                price = itemPrice2,
+                                                discount = 0,
+                                                tax = itemTax2,
+                                                tax_rate = newEtaxFile.tax_rate,
+                                                total = itemtotal2,
+                                            };
+                                            _context.Add(newEtaxFileItem2);
+                                        }
+
+                                        await _context.SaveChangesAsync();
+                                        transaction.Commit();
+                                    }
+                                    catch (Exception ex)
+                                    {
+                                        transaction.Rollback();
+                                        return StatusCode(400, new { message = ex.Message });
+                                    }
+                                }
+                            }
+
+
+                            return StatusCode(200, new
+                            {
+                                message = "แก้ไขข้อมูลสำเร็จ",
+                            });
                         }
                         else
                         {
-                            etax_id = etax_id + "-" + "00";
-                        }
-
-
-                        using (var transaction = _context.Database.BeginTransaction())
-                        {
-                            try
+                            if (bodyUserform.province == "กรุงเทพมหานคร")
                             {
-                                EtaxFile newEtaxFile = new EtaxFile()
+                                bodyUserform.district = "แขวง" + bodyUserform.district;
+                                bodyUserform.amphoe = "เขต" + bodyUserform.amphoe;
+                                bodyUserform.province = "จังหวัด" + bodyUserform.province;
+                            }
+                            else
+                            {
+                                bodyUserform.district = "ตำบล" + bodyUserform.district;
+                                bodyUserform.amphoe = "อำเภอ" + bodyUserform.amphoe;
+                                bodyUserform.province = "จังหวัด" + bodyUserform.province;
+                            }
+
+
+                            string[] parts = etaxFile_tir.etax_id.Split('-');
+
+                            int number = int.Parse(parts[2]) + 1;
+
+                            var new_etax_id = $"{parts[0]}-{parts[1]}" + "-" + number.ToString("D2");
+
+
+                            using (var transaction = _context.Database.BeginTransaction())
                                 {
-                                    member_id = bodyUserform.member_id,
-                                    branch_id = bodyUserform.branch_id,
-                                    member_user_id = 0,
-                                    document_type_id = 9,
-                                    create_type = "api",
-                                    rawdata_file_id = 0,
-                                    gen_xml_status = "pending",
-                                    gen_pdf_status = "pending",
-                                    add_email_status = "pending",
-                                    add_sms_status = "no",
-                                    add_ebxml_status = "no",
-                                    send_xml_status = "N",
-                                    send_other_status = "N",
-                                    error = "",
-                                    output_path = _config["Path:Output"],
-                                    etax_id = etax_id,
-                                    issue_date = now,
-                                    ref_etax_id = etaxFile.etax_id,
-                                    ref_issue_date = etaxFile.issue_date,
-                                    buyer_branch_code = etaxFile.buyer_branch_code,
-                                    buyer_id = "",
-                                    buyer_name = bodyUserform.name,
-                                    buyer_tax_id = bodyUserform.tax_id,
-                                    buyer_tax_type = "",
-                                    buyer_address = bodyUserform.address,
-                                    buyer_zipcode = bodyUserform.zipcode,
-                                    buyer_tel = bodyUserform.tel,
-                                    buyer_fax = "",
-                                    buyer_country_code = "TH",
-                                    buyer_email = bodyUserform.email,
-                                    price = etaxFile.price,
-                                    discount = etaxFile.discount,
-                                    tax_rate = 7,
-                                    tax = etaxFile.tax,
-                                    total = etaxFile.total,
-                                    remark = "ชื่อและที่อยู่ผิด",
-                                    other = bodyUserform.dataQr.branchCode + "|TH|" + bodyUserform.type + "|" + bodyUserform.dataQr.url,
-                                    other2 = bodyUserform.dataQr.baseAmount + "|" + bodyUserform.dataQr.noDiscount + "|" + bodyUserform.dataQr.fAndB + "|" + bodyUserform.dataQr.service,
-                                    group_name = "",
-                                    template_pdf = "",
-                                    template_email = "",
-                                    xml_payment_status = "pending",
-                                    pdf_payment_status = "pending",
-                                    mode = "normal",
-                                    update_count = 0,
-                                    update_date = now,
-                                    create_date = now,
-                                };
-
-                                if (bodyUserform.type == "LE")
-                                    newEtaxFile.buyer_branch_code = bodyUserform.branch_code;
-
-                                _context.Add(newEtaxFile);
-                                await _context.SaveChangesAsync();
-
-                                double itemTotal1 = double.Parse(bodyUserform.dataQr.fAndB) + double.Parse(bodyUserform.dataQr.noDiscount);
-                                double itemTax1 = itemTotal1 * 100 / 107;
-                                double itemPrice1 = itemTotal1 - itemTax1;
-
-                                string itemName = "อาหารและเครื่องดื่ม";
-                                if (bodyUserform.dataQr.branchCode == "D201")
-                                    itemName = "บัตรสมาชิก";
-                                else if (bodyUserform.dataQr.option == "food")
-                                    itemName = "อาหาร";
-
-                                EtaxFileItem newEtaxFileItem = new EtaxFileItem()
-                                {
-                                    etax_file_id = newEtaxFile.id,
-                                    code = "",
-                                    name = itemName,
-                                    qty = 1,
-                                    unit = "",
-                                    price = itemPrice1,
-                                    discount = 0,
-                                    tax = itemTax1,
-                                    tax_rate = newEtaxFile.tax_rate,
-                                    total = itemTotal1,
-                                };
-                                _context.Add(newEtaxFileItem);
-
-                                if (bodyUserform.dataQr.service != "0")
-                                {
-                                    double itemtotal2 = double.Parse(bodyUserform.dataQr.service);
-                                    double itemTax2 = itemtotal2 * 100 / 107;
-                                    double itemPrice2 = itemtotal2 - itemTax2;
-                                    EtaxFileItem newEtaxFileItem2 = new EtaxFileItem()
+                                    try
                                     {
-                                        etax_file_id = newEtaxFile.id,
-                                        code = "",
-                                        name = "ค่าบริการ",
-                                        qty = 1,
-                                        unit = "",
-                                        price = itemPrice2,
-                                        discount = 0,
-                                        tax = itemTax2,
-                                        tax_rate = newEtaxFile.tax_rate,
-                                        total = itemtotal2,
-                                    };
-                                    _context.Add(newEtaxFileItem2);
-                                }
+                                        EtaxFile newEtaxFile = new EtaxFile()
+                                        {
+                                            member_id = etaxFile_tir.member_id,
+                                            branch_id = etaxFile_tir.branch_id,
+                                            member_user_id = 0,
+                                            document_type_id = 9,
+                                            create_type = "api",
+                                            rawdata_file_id = 0,
+                                            gen_xml_status = "pending",
+                                            gen_pdf_status = "pending",
+                                            add_email_status = "pending",
+                                            add_sms_status = "no",
+                                            add_ebxml_status = "no",
+                                            send_xml_status = "N",
+                                            send_other_status = "N",
+                                            error = "",
+                                            output_path = _config["Path:Output"],
+                                            etax_id = new_etax_id,
+                                            issue_date = now,
+                                            ref_etax_id = etaxFile_tir.etax_id,
+                                            ref_issue_date = etaxFile_tir.issue_date,
+                                            buyer_branch_code = etaxFile_tir.buyer_branch_code,
+                                            buyer_id = "",
+                                            buyer_name = bodyUserform.name,
+                                            buyer_tax_id = bodyUserform.tax_id,
+                                            buyer_tax_type = "",
+                                            buyer_address = bodyUserform.address + " " + bodyUserform.district + " " + bodyUserform.amphoe + " " + bodyUserform.province,
+                                            buyer_zipcode = bodyUserform.zipcode,
+                                            buyer_tel = bodyUserform.tel,
+                                            buyer_fax = "",
+                                            buyer_country_code = "TH",
+                                            buyer_email = bodyUserform.email,
+                                            price = etaxFile_tir.price,
+                                            discount = etaxFile_tir.discount,
+                                            tax_rate = 7,
+                                            tax = etaxFile_tir.tax,
+                                            total = etaxFile_tir.total,
+                                            remark = bodyUserform.remark,
+                                            other = bodyUserform.dataQr.branchCode + "|TH|" + bodyUserform.type + "|" + bodyUserform.dataQr.url,
+                                            other2 = bodyUserform.dataQr.baseAmount + "|" + bodyUserform.dataQr.noDiscount + "|" + bodyUserform.dataQr.fAndB + "|" + bodyUserform.dataQr.service,
+                                            group_name = "",
+                                            template_pdf = "",
+                                            template_email = "",
+                                            xml_payment_status = "pending",
+                                            pdf_payment_status = "pending",
+                                            mode = "normal",
+                                            update_count = 0,
+                                            update_date = null,
+                                            create_date = now,
+                                        };
+
+                                        if (bodyUserform.type == "LE")
+                                            newEtaxFile.buyer_branch_code = bodyUserform.branch_code;
+
+                                        _context.Add(newEtaxFile);
+                                        await _context.SaveChangesAsync();
+
+                                        double itemTotal1 = double.Parse(bodyUserform.dataQr.fAndB) + double.Parse(bodyUserform.dataQr.noDiscount);
+                                        double itemTax1 = itemTotal1 * 100 / 107;
+                                        double itemPrice1 = itemTotal1 - itemTax1;
+
+                                        string itemName = "อาหารและเครื่องดื่ม";
+                                        if (bodyUserform.dataQr.branchCode == "D201")
+                                            itemName = "บัตรสมาชิก";
+                                        else if (bodyUserform.dataQr.option == "food")
+                                            itemName = "อาหาร";
+
+                                        EtaxFileItem newEtaxFileItem = new EtaxFileItem()
+                                        {
+                                            etax_file_id = newEtaxFile.id,
+                                            code = "",
+                                            name = itemName,
+                                            qty = 1,
+                                            unit = "",
+                                            price = itemPrice1,
+                                            discount = 0,
+                                            tax = itemTax1,
+                                            tax_rate = newEtaxFile.tax_rate,
+                                            total = itemTotal1,
+                                        };
+                                        _context.Add(newEtaxFileItem);
+
+                                        if (bodyUserform.dataQr.service != "0")
+                                        {
+                                            double itemtotal2 = double.Parse(bodyUserform.dataQr.service);
+                                            double itemTax2 = itemtotal2 * 100 / 107;
+                                            double itemPrice2 = itemtotal2 - itemTax2;
+                                            EtaxFileItem newEtaxFileItem2 = new EtaxFileItem()
+                                            {
+                                                etax_file_id = newEtaxFile.id,
+                                                code = "",
+                                                name = "ค่าบริการ",
+                                                qty = 1,
+                                                unit = "",
+                                                price = itemPrice2,
+                                                discount = 0,
+                                                tax = itemTax2,
+                                                tax_rate = newEtaxFile.tax_rate,
+                                                total = itemtotal2,
+                                            };
+                                            _context.Add(newEtaxFileItem2);
+                                        }
 
 
-                                await _context.SaveChangesAsync();
-                                transaction.Commit();
+                                        await _context.SaveChangesAsync();
+                                        transaction.Commit();
+                                    }
+                                    catch (Exception ex)
+                                    {
+                                        transaction.Rollback();
+                                        return StatusCode(400, new { message = ex.Message });
+                                    }
+                                
                             }
-                            catch (Exception ex)
+
+                            return StatusCode(200, new
                             {
-                                transaction.Rollback();
-                                return StatusCode(400, new { message = ex.Message });
-                            }
+                                message = "แก้ไขข้อมูลสำเร็จ",
+                            });
                         }
                     }
 
-                    return StatusCode(200, new
+                }
+                else
+                {
+
+
+                    if (bodyUserform.lang == "EN")
                     {
-                        message = "แก้ไขข้อมูลสำเร็จ",
-                    });
+                        if (etaxFile != null)
+                        {
+
+
+                            string etax_id = bodyUserform.dataQr.billIDRef;
+                                etax_id = etax_id + "-" + "00";
+                            
+
+                            using (var transaction = _context.Database.BeginTransaction())
+                            {
+                                try
+                                {
+                                    EtaxFile newEtaxFile = new EtaxFile()
+                                    {
+                                        member_id = bodyUserform.member_id,
+                                        branch_id = bodyUserform.branch_id,
+                                        member_user_id = 0,
+                                        document_type_id = 9,
+                                        create_type = "api",
+                                        rawdata_file_id = 0,
+                                        gen_xml_status = "pending",
+                                        gen_pdf_status = "pending",
+                                        add_email_status = "pending",
+                                        add_sms_status = "no",
+                                        add_ebxml_status = "no",
+                                        send_xml_status = "N",
+                                        send_other_status = "N",
+                                        error = "",
+                                        output_path = _config["Path:Output"],
+                                        etax_id = etax_id,
+                                        issue_date = now,
+                                        ref_etax_id = etaxFile.etax_id,
+                                        ref_issue_date = etaxFile.issue_date,
+                                        buyer_branch_code = etaxFile.buyer_branch_code,
+                                        buyer_id = "",
+                                        buyer_name = bodyUserform.name,
+                                        buyer_tax_id = bodyUserform.tax_id,
+                                        buyer_tax_type = "",
+                                        buyer_address = bodyUserform.address + " " + bodyUserform.district + " " + bodyUserform.amphoe + " " + bodyUserform.province,
+                                        buyer_zipcode = bodyUserform.zipcode,
+                                        buyer_tel = bodyUserform.tel,
+                                        buyer_fax = "",
+                                        buyer_country_code = "TH",
+                                        buyer_email = bodyUserform.email,
+                                        price = etaxFile.price,
+                                        discount = etaxFile.discount,
+                                        tax_rate = 7,
+                                        tax = etaxFile.tax,
+                                        total = etaxFile.total,
+                                        remark = bodyUserform.remark,
+                                        other = bodyUserform.dataQr.branchCode + "|EN|" + bodyUserform.type + "|" + bodyUserform.dataQr.url,
+                                        other2 = bodyUserform.dataQr.baseAmount + "|" + bodyUserform.dataQr.noDiscount + "|" + bodyUserform.dataQr.fAndB + "|" + bodyUserform.dataQr.service,
+                                        group_name = "",
+                                        template_pdf = "",
+                                        template_email = "",
+                                        xml_payment_status = "pending",
+                                        pdf_payment_status = "pending",
+                                        mode = "normal",
+                                        update_count = 0,
+                                        update_date = now,
+                                        create_date = now,
+                                    };
+
+                                    if (bodyUserform.type == "LE")
+                                        newEtaxFile.buyer_branch_code = bodyUserform.branch_code;
+
+                                    _context.Add(newEtaxFile);
+                                    await _context.SaveChangesAsync();
+
+                                    double itemTotal1 = double.Parse(bodyUserform.dataQr.fAndB) + double.Parse(bodyUserform.dataQr.noDiscount);
+                                    double itemTax1 = itemTotal1 * 100 / 107;
+                                    double itemPrice1 = itemTotal1 - itemTax1;
+
+                                    string itemName = "อาหารและเครื่องดื่ม";
+                                    if (bodyUserform.dataQr.branchCode == "D201")
+                                        itemName = "บัตรสมาชิก";
+
+                                    EtaxFileItem newEtaxFileItem = new EtaxFileItem()
+                                    {
+                                        etax_file_id = newEtaxFile.id,
+                                        code = "",
+                                        name = itemName,
+                                        qty = 1,
+                                        unit = "",
+                                        price = itemPrice1,
+                                        discount = 0,
+                                        tax = itemTax1,
+                                        tax_rate = newEtaxFile.tax_rate,
+                                        total = itemTotal1,
+                                    };
+                                    _context.Add(newEtaxFileItem);
+
+                                    if (bodyUserform.dataQr.service != "0")
+                                    {
+                                        double itemtotal2 = double.Parse(bodyUserform.dataQr.service);
+                                        double itemTax2 = itemtotal2 * 100 / 107;
+                                        double itemPrice2 = itemtotal2 - itemTax2;
+                                        EtaxFileItem newEtaxFileItem2 = new EtaxFileItem()
+                                        {
+                                            etax_file_id = newEtaxFile.id,
+                                            code = "",
+                                            name = "ค่าบริการ",
+                                            qty = 1,
+                                            unit = "",
+                                            price = itemPrice2,
+                                            discount = 0,
+                                            tax = itemTax2,
+                                            tax_rate = newEtaxFile.tax_rate,
+                                            total = itemtotal2,
+                                        };
+                                        _context.Add(newEtaxFileItem2);
+                                    }
+
+                                    await _context.SaveChangesAsync();
+                                    transaction.Commit();
+                                }
+                                catch (Exception ex)
+                                {
+                                    transaction.Rollback();
+                                    return StatusCode(400, new { message = ex.Message });
+                                }
+                            }
+                        }
+
+
+                        return StatusCode(200, new
+                        {
+                            message = "แก้ไขข้อมูลสำเร็จ",
+                        });
+                    }
+                    else
+                    {
+                        if (bodyUserform.province == "กรุงเทพมหานคร")
+                        {
+                            bodyUserform.district = "แขวง" + bodyUserform.district;
+                            bodyUserform.amphoe = "เขต" + bodyUserform.amphoe;
+                            bodyUserform.province = "จังหวัด" + bodyUserform.province;
+                        }
+                        else
+                        {
+                            bodyUserform.district = "ตำบล" + bodyUserform.district;
+                            bodyUserform.amphoe = "อำเภอ" + bodyUserform.amphoe;
+                            bodyUserform.province = "จังหวัด" + bodyUserform.province;
+                        }
+
+
+                        if (etaxFile != null)
+                        {
+
+                            string etax_id = bodyUserform.dataQr.billIDRef;
+                            etax_id = etax_id + "-" + "00";
+                            
+
+
+                            using (var transaction = _context.Database.BeginTransaction())
+                            {
+                                try
+                                {
+                                    EtaxFile newEtaxFile = new EtaxFile()
+                                    {
+                                        member_id = bodyUserform.member_id,
+                                        branch_id = bodyUserform.branch_id,
+                                        member_user_id = 0,
+                                        document_type_id = 9,
+                                        create_type = "api",
+                                        rawdata_file_id = 0,
+                                        gen_xml_status = "pending",
+                                        gen_pdf_status = "pending",
+                                        add_email_status = "pending",
+                                        add_sms_status = "no",
+                                        add_ebxml_status = "no",
+                                        send_xml_status = "N",
+                                        send_other_status = "N",
+                                        error = "",
+                                        output_path = _config["Path:Output"],
+                                        etax_id = etax_id,
+                                        issue_date = now,
+                                        ref_etax_id = etaxFile.etax_id,
+                                        ref_issue_date = etaxFile.issue_date,
+                                        buyer_branch_code = etaxFile.buyer_branch_code,
+                                        buyer_id = "",
+                                        buyer_name = bodyUserform.name,
+                                        buyer_tax_id = bodyUserform.tax_id,
+                                        buyer_tax_type = "",
+                                        buyer_address = bodyUserform.address + " " + bodyUserform.district + " " + bodyUserform.amphoe + " " + bodyUserform.province,
+                                        buyer_zipcode = bodyUserform.zipcode,
+                                        buyer_tel = bodyUserform.tel,
+                                        buyer_fax = "",
+                                        buyer_country_code = "TH",
+                                        buyer_email = bodyUserform.email,
+                                        price = etaxFile.price,
+                                        discount = etaxFile.discount,
+                                        tax_rate = 7,
+                                        tax = etaxFile.tax,
+                                        total = etaxFile.total,
+                                        remark = bodyUserform.remark,
+                                        other = bodyUserform.dataQr.branchCode + "|TH|" + bodyUserform.type + "|" + bodyUserform.dataQr.url,
+                                        other2 = bodyUserform.dataQr.baseAmount + "|" + bodyUserform.dataQr.noDiscount + "|" + bodyUserform.dataQr.fAndB + "|" + bodyUserform.dataQr.service,
+                                        group_name = "",
+                                        template_pdf = "",
+                                        template_email = "",
+                                        xml_payment_status = "pending",
+                                        pdf_payment_status = "pending",
+                                        mode = "normal",
+                                        update_count = 0,
+                                        update_date = now,
+                                        create_date = now,
+                                    };
+
+                                    if (bodyUserform.type == "LE")
+                                        newEtaxFile.buyer_branch_code = bodyUserform.branch_code;
+
+                                    _context.Add(newEtaxFile);
+                                    await _context.SaveChangesAsync();
+
+                                    double itemTotal1 = double.Parse(bodyUserform.dataQr.fAndB) + double.Parse(bodyUserform.dataQr.noDiscount);
+                                    double itemTax1 = itemTotal1 * 100 / 107;
+                                    double itemPrice1 = itemTotal1 - itemTax1;
+
+                                    string itemName = "อาหารและเครื่องดื่ม";
+                                    if (bodyUserform.dataQr.branchCode == "D201")
+                                        itemName = "บัตรสมาชิก";
+                                    else if (bodyUserform.dataQr.option == "food")
+                                        itemName = "อาหาร";
+
+                                    EtaxFileItem newEtaxFileItem = new EtaxFileItem()
+                                    {
+                                        etax_file_id = newEtaxFile.id,
+                                        code = "",
+                                        name = itemName,
+                                        qty = 1,
+                                        unit = "",
+                                        price = itemPrice1,
+                                        discount = 0,
+                                        tax = itemTax1,
+                                        tax_rate = newEtaxFile.tax_rate,
+                                        total = itemTotal1,
+                                    };
+                                    _context.Add(newEtaxFileItem);
+
+                                    if (bodyUserform.dataQr.service != "0")
+                                    {
+                                        double itemtotal2 = double.Parse(bodyUserform.dataQr.service);
+                                        double itemTax2 = itemtotal2 * 100 / 107;
+                                        double itemPrice2 = itemtotal2 - itemTax2;
+                                        EtaxFileItem newEtaxFileItem2 = new EtaxFileItem()
+                                        {
+                                            etax_file_id = newEtaxFile.id,
+                                            code = "",
+                                            name = "ค่าบริการ",
+                                            qty = 1,
+                                            unit = "",
+                                            price = itemPrice2,
+                                            discount = 0,
+                                            tax = itemTax2,
+                                            tax_rate = newEtaxFile.tax_rate,
+                                            total = itemtotal2,
+                                        };
+                                        _context.Add(newEtaxFileItem2);
+                                    }
+
+
+                                    await _context.SaveChangesAsync();
+                                    transaction.Commit();
+                                }
+                                catch (Exception ex)
+                                {
+                                    transaction.Rollback();
+                                    return StatusCode(400, new { message = ex.Message });
+                                }
+                            }
+                        }
+
+                        return StatusCode(200, new
+                        {
+                            message = "แก้ไขข้อมูลสำเร็จ",
+                        });
+                    }
                 }
             }
             catch (Exception ex)
