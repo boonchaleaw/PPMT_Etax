@@ -570,6 +570,7 @@ namespace Etax_Api.Controllers
                      ef.other.Contains(bodyMkData.branchCode + "|")
                      select new
                      {
+                         ef.id,
                          ef.etax_id,
                          ef.buyer_branch_code,
                          ef.buyer_name,
@@ -587,46 +588,66 @@ namespace Etax_Api.Controllers
                          ef.other,
                      }).FirstOrDefaultAsync();
 
-                //หารายการที่มีการทำใบแทน
-                var etaxFile_tir = await _context.etax_files
-                                    .Where(x =>
-                                    x.member_id == branch.member_id &&
-                                    x.etax_id.StartsWith(etaxFile.etax_id) &&
-                                    x.document_type_id == 9 &&
-                                    x.delete_status == 0
-                                    ).OrderByDescending(x => x.etax_id)
-                                    .FirstOrDefaultAsync();
 
+
+                EtaxFile etaxFile_tir = null;
+
+                if (bodyMkData.option == "TIR")
+                {
+                    //หารายการที่มีการทำใบแทน
+                     etaxFile_tir = await _context.etax_files
+                                            .Where(x =>
+                                            x.member_id == branch.member_id &&
+                                            x.etax_id.StartsWith(etaxFile.etax_id) &&
+                                            x.document_type_id == 9 &&
+                                            x.delete_status == 0
+                                            ).OrderByDescending(x => x.etax_id)
+                                            .FirstOrDefaultAsync();
+                }
                 bool already = false;
                 bool expire_edit = false;
                 bool expire_cancel = false;
+                bool food_edit = false;
                 bool rd = false;
                 bool cancel = false;
                 string lang = "";
                 string type = "";
-                
 
-                if (etaxFile_tir != null)
+                if (bodyMkData.option == "TIR")
                 {
-                    string[] otherArray = etaxFile_tir.other.Split('|');
-                    if (otherArray.Length >= 4)
+                    if (etaxFile_tir != null)
                     {
-                        lang = otherArray[1];
-                        type = otherArray[2];
-                    }
+                        string[] otherArray = etaxFile_tir.other.Split('|');
+                        if (otherArray.Length >= 4)
+                        {
+                            lang = otherArray[1];
+                            type = otherArray[2];
+                        }
 
-                    if (etaxFile_tir.add_ebxml_status == "success")
-                    {
-                        rd = true;
-                    }
+                        if (etaxFile_tir.add_ebxml_status == "success")
+                        {
+                            rd = true;
+                        }
 
-                    if (etaxFile_tir.delete_status == 1)
-                        cancel = true;
+                        if (etaxFile_tir.delete_status == 1)
+                            cancel = true;
+                    }
                 }
 
+              
 
-                if (etaxFile != null )
+                var item = new { name = "อาหารและเครื่องดื่ม" };
+
+                if (bodyMkData.option == "food")
                 {
+                    food_edit = true;
+
+                    
+                }
+
+                if (etaxFile != null)
+                {
+
                     string[] otherArray = etaxFile.other.Split('|');
                     if (otherArray.Length >= 4)
                     {
@@ -652,7 +673,8 @@ namespace Etax_Api.Controllers
 
                         if (expiryDate > ref_issue_date)
                             expire_cancel = true;
-                    }
+                    } 
+                   
                     else
                     {
                         expiryDate = now.AddDays(-1).Date;
@@ -660,13 +682,25 @@ namespace Etax_Api.Controllers
 
                         if (bodyMkData.option != "over" && expiryDate >= ref_issue_date)
                             expire_cancel = true;
+
+
                     }
+
+                   
 
                     if (etaxFile.delete_status == 1)
                         cancel = true;
 
                     if (etaxFile.add_ebxml_status == "success")
                         rd = true;
+
+                    item = _context.etax_file_items
+                                   .Where(i => i.etax_file_id == etaxFile.id)
+                                   .AsEnumerable()
+                                   .Where(i => i.name != "ค่าบริการ")
+                                   .Select(i => new { i.name })
+                                   .FirstOrDefault();
+
 
                 }
                 else
@@ -676,10 +710,15 @@ namespace Etax_Api.Controllers
 
                     if (bodyMkData.option != "over" && now >= expiryDate)
                         return StatusCode(404, new { message = "รายการซื้อขายเกิน 7 วัน ไม่สามารถออกใบกำกับภาษีอิเล็กทรอนิคได้", });
+
+                   
+
                 }
 
-                if (member != null && branch != null && etaxFile_tir == null)
+
+                if (member != null && branch != null && etaxFile_tir == null )
                 {
+                    
                     string branch_name = "";
                     string[] branchNameArray = branch.name.Split('|');
                     foreach (string branchName in branchNameArray)
@@ -720,6 +759,8 @@ namespace Etax_Api.Controllers
                             already = already,
                             expire_edit = expire_edit,
                             expire_cancel = expire_cancel,
+                            food_edit = food_edit,
+                            item_name = item.name,
                             rd = rd,
                             cancel = cancel,
                             totalText = Function.ThBahtText(bodyMkData.totalAmount),
@@ -728,6 +769,7 @@ namespace Etax_Api.Controllers
                 }
                 else if (member != null && branch != null && etaxFile_tir != null)
                 {
+                   
                     string branch_name = "";
                     string[] branchNameArray = branch.name.Split('|');
                     foreach (string branchName in branchNameArray)
@@ -768,6 +810,8 @@ namespace Etax_Api.Controllers
                             already = already,
                             expire_edit = expire_edit,
                             expire_cancel = expire_cancel,
+                            food_edit = food_edit,
+                            item_name = item.name,
                             rd = rd,
                             cancel = cancel,
                             totalText = Function.ThBahtText(bodyMkData.totalAmount),
@@ -866,6 +910,7 @@ namespace Etax_Api.Controllers
                 bool already = false;
                 bool expire_edit = false;
                 bool expire_cancel = false;
+                bool food_edit = false;
                 bool rd = false;
                 bool cancel = false;
                 string lang = "";
@@ -888,6 +933,9 @@ namespace Etax_Api.Controllers
 
                         DateTime issue_date = (DateTime)etaxFile.issue_date;
                         DateTime expiryDate = DateTime.ParseExact(issue_date.AddMonths(1).ToString("yyyy-MM") + "-11", "yyyy-MM-dd", CultureInfo.InvariantCulture);
+
+                        if (bodyMkData.option == "food")
+                            food_edit = true;
 
                         if (bodyMkData.option != "over" && now >= expiryDate)
                             expire_edit = true;
@@ -1024,6 +1072,7 @@ namespace Etax_Api.Controllers
                             already = already,
                             expire_edit = expire_edit,
                             expire_cancel = expire_cancel,
+                            food_edit = food_edit,
                             rd = rd,
                             cancel = cancel,
                             totalText = Function.ThBahtText(bodyMkData.totalAmount),
@@ -1208,9 +1257,12 @@ namespace Etax_Api.Controllers
                                 double itemTax1 = itemTotal1 * 100 / 107;
                                 double itemPrice1 = itemTotal1 - itemTax1;
 
-                                string itemName = "อาหารและเครื่องดื่ม";
+                                //string itemName = "อาหารและเครื่องดื่ม";
+                                string itemName = "";
                                 if (bodyUserform.dataQr.branchCode == "D201")
                                     itemName = "บัตรสมาชิก";
+                                if (bodyUserform.dataQr.item != "")
+                                    itemName = bodyUserform.dataQr.item;
 
                                 EtaxFileItem newEtaxFileItem = new EtaxFileItem()
                                 {
@@ -1270,6 +1322,23 @@ namespace Etax_Api.Controllers
                     }
                     else
                     {
+
+                        string itemName = "";
+                        if (bodyUserform.dataQr.option == "food")
+                        {
+                            EtaxFileItem item = _context.etax_file_items
+                                                .Where(i => i.etax_file_id == etaxFile.id)
+                                                .AsEnumerable() // ดึงข้อมูลเข้ามาในหน่วยความจำ
+                                                .FirstOrDefault(i => i.name != "ค่าบริการ"); // ทำการกรองที่นี่
+
+                            if (bodyUserform.dataQr.item != "")
+                            {
+                                item.name = bodyUserform.dataQr.item;
+                            }
+
+                            await _context.SaveChangesAsync();
+
+                        }
                         //if (etaxFile.update_count >= 2)
                         //    return StatusCode(404, new { message = "ไม่สามารถแก้ไขข้อมูลได้", });
 
@@ -1446,11 +1515,12 @@ namespace Etax_Api.Controllers
                                 double itemTax1 = itemTotal1 * 100 / 107;
                                 double itemPrice1 = itemTotal1 - itemTax1;
 
-                                string itemName = "อาหารและเครื่องดื่ม";
+                                //string itemName = "อาหารและเครื่องดื่ม";
+                                string itemName = "";
                                 if (bodyUserform.dataQr.branchCode == "D201")
                                     itemName = "บัตรสมาชิก";
-                                else if (bodyUserform.dataQr.option == "food")
-                                    itemName = "อาหาร";
+                                if (bodyUserform.dataQr.item != "")
+                                    itemName = bodyUserform.dataQr.item;
 
                                 EtaxFileItem newEtaxFileItem = new EtaxFileItem()
                                 {
@@ -1508,8 +1578,28 @@ namespace Etax_Api.Controllers
                     }
                     else
                     {
+                        string itemName = "";
+                        if (bodyUserform.dataQr.option == "food")
+                        {
+                            EtaxFileItem item =  _context.etax_file_items
+                                                .Where(i => i.etax_file_id == etaxFile.id)
+                                                .AsEnumerable() // ดึงข้อมูลเข้ามาในหน่วยความจำ
+                                                .FirstOrDefault(i => i.name != "ค่าบริการ"); // ทำการกรองที่นี่
+
+                            if (bodyUserform.dataQr.item != "")
+                            {
+                                item.name = bodyUserform.dataQr.item;
+                            }
+
+                            await _context.SaveChangesAsync();
+
+                        }
+
                         //if (etaxFile.update_count >= 2)
                         //    return StatusCode(404, new { message = "ไม่สามารถแก้ไขข้อมูลได้", });
+
+
+                       
 
                         double amountNoVat = double.Parse(bodyUserform.dataQr.amount) * 100 / 107;
                         double discountNoVat = double.Parse(bodyUserform.dataQr.discount) * 100 / 107;

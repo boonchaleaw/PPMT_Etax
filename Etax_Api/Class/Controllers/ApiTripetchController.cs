@@ -298,7 +298,7 @@ namespace Etax_Api.Controllers
 
                         if (etax_file != null)
                         {
-                            LogToFile($"Error code 400 : 1003 ข้อมูลซ้ำในระบบ | Etax id: {bodyApiCreateEtax.etax_id}");
+                            //LogToFile($"Error code 400 : 1003 ข้อมูลซ้ำในระบบ | Etax id: {bodyApiCreateEtax.etax_id}");
                             return StatusCode(400, new { error_code = "1003", message = "ข้อมูลซ้ำในระบบ", });
                         }
 
@@ -313,7 +313,7 @@ namespace Etax_Api.Controllers
                             gen_pdf_status = "pending";
                             if (String.IsNullOrEmpty(bodyApiCreateEtax.pdf_base64))
                             {
-                                LogToFile($"Error code 400 : 3001 ไม่พบข้อมูลไฟล์ PDF | Etax id: {bodyApiCreateEtax.etax_id}");
+                                //LogToFile($"Error code 400 : 3001 ไม่พบข้อมูลไฟล์ PDF | Etax id: {bodyApiCreateEtax.etax_id}");
                                 return StatusCode(400, new { error_code = "3001", message = "ไม่พบข้อมูลไฟล์ PDF", });
                             }
                         }
@@ -443,7 +443,7 @@ namespace Etax_Api.Controllers
 
                                 if (document_type == null)
 
-                                    LogToFile($"Error code 400 : 1009 ไม่พบเลขที่อ้างอิงเอกสารที่ต้องการ | Etax id: {bodyApiCreateEtax.etax_id}");
+                                    //LogToFile($"Error code 400 : 1009 ไม่พบเลขที่อ้างอิงเอกสารที่ต้องการ | Etax id: {bodyApiCreateEtax.etax_id}");
                                 return StatusCode(400, new { error_code = "1009", message = "ไม่พบเลขที่อ้างอิงเอกสารที่ต้องการ", });
 
                                 etaxFile.ref_etax_id = bodyApiCreateEtax.ref_etax_id;
@@ -489,7 +489,7 @@ namespace Etax_Api.Controllers
                             await _context.SaveChangesAsync();
                             transaction.Commit();
 
-                            LogToFile($"Sucess code 200: อัพโหลดไฟล์ข้อมูลสำเร็จ | Etax id: {bodyApiCreateEtax.etax_id}");
+                            //LogToFile($"Sucess code 200: อัพโหลดไฟล์ข้อมูลสำเร็จ | Etax id: {bodyApiCreateEtax.etax_id}");
 
                             return StatusCode(200, new
                             {
@@ -502,7 +502,7 @@ namespace Etax_Api.Controllers
                         }
                         else
                         {
-                            LogToFile($"Error code 400: 3002 อัพโหลดไฟล์ PDF ไม่สำเร็จ | Etax id: {bodyApiCreateEtax.etax_id}");
+                            //LogToFile($"Error code 400: 3002 อัพโหลดไฟล์ PDF ไม่สำเร็จ | Etax id: {bodyApiCreateEtax.etax_id}");
 
                             return StatusCode(400, new { error_code = "3002", error_message = "อัพโหลดไฟล์ PDF ไม่สำเร็จ" });
                         }
@@ -511,7 +511,7 @@ namespace Etax_Api.Controllers
                     {
                         transaction.Rollback();
 
-                        LogToFile($"Error code 400 / 9000 กรุณาแจ้งเจ้าหน้าที่เพื่อตรวจสอบ: {ex.Message}| Exception Details: {ex.InnerException} | Etax id: {bodyApiCreateEtax.etax_id}");
+                        //LogToFile($"Error code 400 / 9000 กรุณาแจ้งเจ้าหน้าที่เพื่อตรวจสอบ: {ex.Message}| Exception Details: {ex.InnerException} | Etax id: {bodyApiCreateEtax.etax_id}");
                         
                         return StatusCode(400, new { error_code = "9000", error_message = "กรุณาแจ้งเจ้าหน้าที่เพื่อตรวจสอบ" });
 
@@ -520,7 +520,7 @@ namespace Etax_Api.Controllers
             }
             catch (Exception ex)
             {
-                LogToFile($"Error code 400 / 9000 กรุณาแจ้งเจ้าหน้าที่เพื่อตรวจสอบ: {ex.Message}| Exception Details: {ex.InnerException} | Etax id: {bodyApiCreateEtax.etax_id}");
+                //LogToFile($"Error code 400 / 9000 กรุณาแจ้งเจ้าหน้าที่เพื่อตรวจสอบ: {ex.Message}| Exception Details: {ex.InnerException} | Etax id: {bodyApiCreateEtax.etax_id}");
 
                 return StatusCode(400, new { error_code = "9000", message = "กรุณาแจ้งเจ้าหน้าที่เพื่อตรวจสอบ" });
             }

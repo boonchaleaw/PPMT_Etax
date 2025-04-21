@@ -24,5 +24,7 @@ namespace Etax_Api
         public string checkSum { get; set; }
         public string url { get; set; }
         public string option { get; set; }
+        public string item { get; set; }
+
     }
 }
