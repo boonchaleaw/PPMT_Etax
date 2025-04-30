@@ -592,7 +592,7 @@ namespace Etax_Api.Controllers
 
                 EtaxFile etaxFile_tir = null;
 
-                if (bodyMkData.option == "TIR")
+                if (bodyMkData.option.ToUpper() == "TIR")
                 {
                     //หารายการที่มีการทำใบแทน
                      etaxFile_tir = await _context.etax_files
@@ -613,7 +613,7 @@ namespace Etax_Api.Controllers
                 string lang = "";
                 string type = "";
 
-                if (bodyMkData.option == "TIR")
+                if (bodyMkData.option.ToUpper() == "TIR")
                 {
                     if (etaxFile_tir != null)
                     {
@@ -710,8 +710,6 @@ namespace Etax_Api.Controllers
 
                     if (bodyMkData.option != "over" && now >= expiryDate)
                         return StatusCode(404, new { message = "รายการซื้อขายเกิน 7 วัน ไม่สามารถออกใบกำกับภาษีอิเล็กทรอนิคได้", });
-
-                   
 
                 }
 
@@ -1583,8 +1581,8 @@ namespace Etax_Api.Controllers
                         {
                             EtaxFileItem item =  _context.etax_file_items
                                                 .Where(i => i.etax_file_id == etaxFile.id)
-                                                .AsEnumerable() // ดึงข้อมูลเข้ามาในหน่วยความจำ
-                                                .FirstOrDefault(i => i.name != "ค่าบริการ"); // ทำการกรองที่นี่
+                                                .AsEnumerable() 
+                                                .FirstOrDefault(i => i.name != "ค่าบริการ"); 
 
                             if (bodyUserform.dataQr.item != "")
                             {
@@ -2011,7 +2009,7 @@ namespace Etax_Api.Controllers
                                     etaxFile_tir.remark = bodyUserform.remark;
                                     etaxFile_tir.other = $"{bodyUserform.dataQr.branchCode}|TH|{bodyUserform.type}|{bodyUserform.dataQr.url}";
                                     etaxFile_tir.other2 = $"{bodyUserform.dataQr.baseAmount}|{bodyUserform.dataQr.noDiscount}|{bodyUserform.dataQr.fAndB}|{bodyUserform.dataQr.service}";
-                                    etaxFile_tir.update_count = etaxFile_tir.update_count + 1; // เพิ่มจากค่าเดิม
+                                    etaxFile_tir.update_count = etaxFile_tir.update_count + 1; 
                                     etaxFile_tir.update_date = now;
 
 
@@ -2049,7 +2047,7 @@ namespace Etax_Api.Controllers
 
                                 int number = int.Parse(parts[2]) + 1;
 
-                                var new_etax_id = etaxFile_tir.etax_id + "-" + number.ToString("D2");
+                                var new_etax_id = parts[1]+ "-" + number.ToString("D2");
 
 
                                 using (var transaction = _context.Database.BeginTransaction())
@@ -2117,9 +2115,16 @@ namespace Etax_Api.Controllers
                                         double itemTax1 = itemTotal1 * 100 / 107;
                                         double itemPrice1 = itemTotal1 - itemTax1;
 
-                                        string itemName = "อาหารและเครื่องดื่ม";
+                                        //string itemName = "อาหารและเครื่องดื่ม";
+                                        string itemName = "";
                                         if (bodyUserform.dataQr.branchCode == "D201")
+                                        {
                                             itemName = "บัตรสมาชิก";
+                                        }
+                                        if (bodyUserform.dataQr.item != "")
+                                        {
+                                            itemName = bodyUserform.dataQr.item;
+                                        }
 
                                         EtaxFileItem newEtaxFileItem = new EtaxFileItem()
                                         {
@@ -2194,7 +2199,7 @@ namespace Etax_Api.Controllers
 
                             int number = int.Parse(parts[2]) + 1;
 
-                            var new_etax_id = $"{parts[0]}-{parts[1]}" + "-" + number.ToString("D2");
+                            var new_etax_id = $"{parts[0]}-{parts[1]}-" + number.ToString("D2");
 
 
                             using (var transaction = _context.Database.BeginTransaction())
@@ -2262,13 +2267,18 @@ namespace Etax_Api.Controllers
                                         double itemTax1 = itemTotal1 * 100 / 107;
                                         double itemPrice1 = itemTotal1 - itemTax1;
 
-                                        string itemName = "อาหารและเครื่องดื่ม";
-                                        if (bodyUserform.dataQr.branchCode == "D201")
-                                            itemName = "บัตรสมาชิก";
-                                        else if (bodyUserform.dataQr.option == "food")
-                                            itemName = "อาหาร";
+                                    //string itemName = "อาหารและเครื่องดื่ม";
+                                    string itemName = "";
+                                    if (bodyUserform.dataQr.branchCode == "D201")
+                                    {
+                                        itemName = "บัตรสมาชิก";
+                                    }
+                                    if (bodyUserform.dataQr.item != "")
+                                    {
+                                        itemName = bodyUserform.dataQr.item;
+                                    }
 
-                                        EtaxFileItem newEtaxFileItem = new EtaxFileItem()
+                                    EtaxFileItem newEtaxFileItem = new EtaxFileItem()
                                         {
                                             etax_file_id = newEtaxFile.id,
                                             code = "",
@@ -2403,9 +2413,16 @@ namespace Etax_Api.Controllers
                                     double itemTax1 = itemTotal1 * 100 / 107;
                                     double itemPrice1 = itemTotal1 - itemTax1;
 
-                                    string itemName = "อาหารและเครื่องดื่ม";
+                                    //string itemName = "อาหารและเครื่องดื่ม";
+                                    string itemName = "";
                                     if (bodyUserform.dataQr.branchCode == "D201")
+                                    {
                                         itemName = "บัตรสมาชิก";
+                                    }
+                                    if (bodyUserform.dataQr.item != "")
+                                    {
+                                        itemName = bodyUserform.dataQr.item;
+                                    }
 
                                     EtaxFileItem newEtaxFileItem = new EtaxFileItem()
                                     {
@@ -2549,11 +2566,16 @@ namespace Etax_Api.Controllers
                                     double itemTax1 = itemTotal1 * 100 / 107;
                                     double itemPrice1 = itemTotal1 - itemTax1;
 
-                                    string itemName = "อาหารและเครื่องดื่ม";
+                                    //string itemName = "อาหารและเครื่องดื่ม";
+                                    string itemName = "";
                                     if (bodyUserform.dataQr.branchCode == "D201")
+                                    {
                                         itemName = "บัตรสมาชิก";
-                                    else if (bodyUserform.dataQr.option == "food")
-                                        itemName = "อาหาร";
+                                    }
+                                    if (bodyUserform.dataQr.item != "")
+                                    {
+                                        itemName = bodyUserform.dataQr.item;
+                                    }
 
                                     EtaxFileItem newEtaxFileItem = new EtaxFileItem()
                                     {
