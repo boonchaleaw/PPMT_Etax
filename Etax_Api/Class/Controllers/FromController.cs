@@ -2655,12 +2655,27 @@ namespace Etax_Api.Controllers
                         .Where(x => x.member_id == bodyCancel.member_id && x.ref_etax_id == bodyCancel.billID)
                         .FirstOrDefaultAsync();
 
-
                         if (etaxFile != null)
+                        {
                             etaxFile.delete_status = 1;
 
+                            var logEtax = new LogEtaxFile
+                            {
+                                member_id = etaxFile.member_id,
+                                user_modify_id = 0,
+                                etax_id = etaxFile.id,
+                                create_type = "api_mk_cancle",
+                                action_type = "delete",
+                                create_date = DateTime.Now,
+                                
+                            };
+
+                            _context.log_etax_files.Add(logEtax);
+
+                        }
 
                         await _context.SaveChangesAsync();
+
                         transaction.Commit();
                     }
                     catch (Exception ex)
