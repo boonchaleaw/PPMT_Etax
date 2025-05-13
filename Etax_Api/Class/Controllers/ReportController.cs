@@ -223,6 +223,16 @@ namespace Etax_Api.Controllers
                 if (permission != "Y")
                     return StatusCode(401, new { message = "ไม่มีสิทธิในการใช้งานส่วนนี้", });
 
+                var member = await _context.members
+                .Where(x => x.id == jwtStatus.member_id)
+                .Select(x => new
+                {
+                    x.id,
+                    x.name,
+                    x.tax_id,
+                    x.group_name,
+                })
+                .FirstOrDefaultAsync();
 
                 var searchBy = bodyDtParameters.searchText;
                 var orderCriteria = "id";
@@ -344,6 +354,7 @@ namespace Etax_Api.Controllers
                 }
 
                 //double sumOriginalPrice = result.Sum(s => s.original_price);
+               
 
                 double sumPrice = result.Where(x => x.document_type_id != 3).Sum(s => s.price);
                 double sumPriceCN = result.Where(x => x.document_type_id == 3).Sum(s => s.price);
@@ -356,6 +367,29 @@ namespace Etax_Api.Controllers
 
                 double sumTotal = result.Where(x => x.document_type_id != 3).Sum(s => s.total);
                 double sumTotalCN = result.Where(x => x.document_type_id == 3).Sum(s => s.total);
+
+                double sumTotalNoVat = 0;
+                if (member.group_name == "Isuzu")
+                {
+                    foreach (ViewTaxReport data in result)
+                    {
+                        string[] other2Array = data.other2.Split('|');
+                        double totalNoVat = double.Parse(other2Array[1]);
+
+                        if (data.document_type_id == 3)
+                        {
+                            totalNoVat = -totalNoVat;
+                        }
+
+
+                        sumTotalNoVat += totalNoVat;
+
+                    }
+                }
+                else
+                {
+                    sumTotalNoVat = sumPrice - sumDiscount; 
+                }
 
                 result = orderAscendingDirection ? result.OrderByProperty(orderCriteria) : result.OrderByPropertyDescending(orderCriteria);
 
@@ -393,6 +427,7 @@ namespace Etax_Api.Controllers
                         recordsFiltered = filteredResultsCount,
                         countTotal = filteredResultsCount,
                         //sumOriginalPrice = sumOriginalPrice,
+                        sumTotalNoVat = sumTotalNoVat.ToString("0.00"),
                         sumPrice = (sumPrice - sumPriceCN),
                         sumDiscount = (sumDiscount - sumDiscountCN),
                         sumTax = (sumTax - sumTaxCN),
@@ -432,6 +467,7 @@ namespace Etax_Api.Controllers
                         recordsFiltered = filteredResultsCount,
                         countTotal = filteredResultsCount,
                         //sumOriginalPrice = sumOriginalPrice,
+                        sumTotalNoVat = sumTotalNoVat.ToString("0.00"),
                         sumPrice = (sumPrice - sumPriceCN),
                         sumDiscount = (sumDiscount - sumDiscountCN),
                         sumTax = (sumTax - sumTaxCN),
