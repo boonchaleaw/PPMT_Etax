@@ -17,6 +17,9 @@ namespace Etax_Api
         public int total_ebxml_count { get; set; }
         public int total_sms_count { get; set; }
 
+        public int member_id { get; set; }
+        public DateTime fromDate { get; set; }
+        public DateTime toDate { get; set; }
         public List<ReturnCostReportData> listReturnCostReportData { get; set; }
     }
     public class ReturnCostReportData
