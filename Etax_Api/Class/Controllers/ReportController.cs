@@ -2615,7 +2615,6 @@ namespace Etax_Api.Controllers
                 if (membere == null)
                     return StatusCode(401, new { message = "ไม่มีสิทธิในการใช้งานส่วนนี้", });
 
-
                 //Check Datetime Range
 				if(bodyCostReportAdmin.dateStart < bodyCostReportAdmin.dateEnd)
 				{
@@ -2631,10 +2630,10 @@ namespace Etax_Api.Controllers
 					});
 				}
 				
-				ReturnCostReport returnCostReport = await CountAllTransaction(jwtStatus.member_id,bodyCostReportAdmin.dateStart,bodyCostReportAdmin.dateEnd);
+				ReturnCostReport returnCostReport = await CountAllTransaction(bodyCostReportAdmin.member_id,bodyCostReportAdmin.dateStart,bodyCostReportAdmin.dateEnd);
 				if(returnCostReport.total_xml_count > 0) //If no XML is generated yet, no need to calculate
 				{
-					returnCostReport = await CalculateTransactionCost(returnCostReport,jwtStatus.member_id,bodyCostReportAdmin.dateStart,bodyCostReportAdmin.dateEnd);
+					returnCostReport = await CalculateTransactionCost(returnCostReport,bodyCostReportAdmin.member_id,bodyCostReportAdmin.dateStart,bodyCostReportAdmin.dateEnd);
 				}
 
                 return StatusCode(200, new
@@ -2695,10 +2694,10 @@ namespace Etax_Api.Controllers
 					});
 				}
 				
-				ReturnCostReport returnCostReport = await CountAllTransaction(jwtStatus.member_id,bodyCostReportAdmin.dateStart,bodyCostReportAdmin.dateEnd);
+				ReturnCostReport returnCostReport = await CountAllTransaction(bodyCostReportAdmin.member_id,bodyCostReportAdmin.dateStart,bodyCostReportAdmin.dateEnd);
 				if(returnCostReport.total_xml_count > 0) //If no XML is generated yet, no need to calculate
 				{
-					returnCostReport = await CalculateTransactionCost(returnCostReport,jwtStatus.member_id,bodyCostReportAdmin.dateStart,bodyCostReportAdmin.dateEnd);
+					returnCostReport = await CalculateTransactionCost(returnCostReport,bodyCostReportAdmin.member_id,bodyCostReportAdmin.dateStart,bodyCostReportAdmin.dateEnd);
 				}
 
 				Member member = await _context.members
