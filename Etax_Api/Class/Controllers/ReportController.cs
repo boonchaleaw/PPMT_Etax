@@ -44,7 +44,7 @@ namespace Etax_Api.Controllers
                     return StatusCode(401, new { message = "ไม่มีสิทธิในการใช้งานส่วนนี้", });
 				
 				//Check Datetime Range
-				if(bodyCostReport.dateStart < bodyCostReport.dateEnd)
+				if(bodyCostReport.dateStart <= bodyCostReport.dateEnd)
 				{
 					bodyCostReport.dateStart = DateTime.Parse(bodyCostReport.dateStart.ToString()).Date;
 					bodyCostReport.dateEnd = bodyCostReport.dateEnd.AddDays(+1).AddMilliseconds(-1);
@@ -1374,7 +1374,7 @@ namespace Etax_Api.Controllers
                // .Where(x => x.member_id == jwtStatus.member_id)
                // .ToListAsync();
 			   
-                if(bodyCostReport.dateStart < bodyCostReport.dateEnd)
+                if(bodyCostReport.dateStart <= bodyCostReport.dateEnd)
 				{
 					bodyCostReport.dateStart = DateTime.Parse(bodyCostReport.dateStart.ToString()).Date;
 					bodyCostReport.dateEnd = bodyCostReport.dateEnd.AddDays(+1).AddMilliseconds(-1);
@@ -2616,7 +2616,7 @@ namespace Etax_Api.Controllers
                     return StatusCode(401, new { message = "ไม่มีสิทธิในการใช้งานส่วนนี้", });
 
                 //Check Datetime Range
-				if(bodyCostReportAdmin.dateStart < bodyCostReportAdmin.dateEnd)
+				if(bodyCostReportAdmin.dateStart <= bodyCostReportAdmin.dateEnd)
 				{
 					bodyCostReportAdmin.dateStart = DateTime.Parse(bodyCostReportAdmin.dateStart.ToString()).Date;
 					bodyCostReportAdmin.dateEnd = bodyCostReportAdmin.dateEnd.AddDays(+1).AddMilliseconds(-1);
@@ -2680,7 +2680,7 @@ namespace Etax_Api.Controllers
                     return StatusCode(400, new { message = "กรุณากำหนดลูกค้า", });
 
                 //Check Datetime Range
-				if(bodyCostReportAdmin.dateStart < bodyCostReportAdmin.dateEnd)
+				if(bodyCostReportAdmin.dateStart <= bodyCostReportAdmin.dateEnd)
 				{
 					bodyCostReportAdmin.dateStart = DateTime.Parse(bodyCostReportAdmin.dateStart.ToString()).Date;
 					bodyCostReportAdmin.dateEnd = bodyCostReportAdmin.dateEnd.AddDays(+1).AddMilliseconds(-1);
