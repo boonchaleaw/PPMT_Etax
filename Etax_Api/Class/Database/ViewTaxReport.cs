@@ -34,5 +34,7 @@ namespace Etax_Api
         public int delete_status { get; set; }
         public string tax_type_filter { get; set; }
         public string group_name { get; set; }
+        public string other { get; set; }
+        public string other2 { get; set; }
     }
 }
