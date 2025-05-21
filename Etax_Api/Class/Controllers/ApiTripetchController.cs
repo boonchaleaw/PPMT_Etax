@@ -4,10 +4,13 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Net.Http.Headers;
+using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+using RestSharp;
 using System;
 using System.Buffers.Text;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.DirectoryServices;
 using System.Globalization;
 using System.IO;
@@ -298,7 +301,7 @@ namespace Etax_Api.Controllers
 
                         if (etax_file != null)
                         {
-                            //LogToFile($"Error code 400 : 1003 ข้อมูลซ้ำในระบบ | Etax id: {bodyApiCreateEtax.etax_id}");
+                            LogToFile($"Error code 400 : 1003 ข้อมูลซ้ำในระบบ | Etax id: {bodyApiCreateEtax.etax_id}");
                             return StatusCode(400, new { error_code = "1003", message = "ข้อมูลซ้ำในระบบ", });
                         }
 
@@ -313,7 +316,7 @@ namespace Etax_Api.Controllers
                             gen_pdf_status = "pending";
                             if (String.IsNullOrEmpty(bodyApiCreateEtax.pdf_base64))
                             {
-                                //LogToFile($"Error code 400 : 3001 ไม่พบข้อมูลไฟล์ PDF | Etax id: {bodyApiCreateEtax.etax_id}");
+                                LogToFile($"Error code 400 : 3001 ไม่พบข้อมูลไฟล์ PDF | Etax id: {bodyApiCreateEtax.etax_id}");
                                 return StatusCode(400, new { error_code = "3001", message = "ไม่พบข้อมูลไฟล์ PDF", });
                             }
                         }
@@ -367,6 +370,8 @@ namespace Etax_Api.Controllers
                         string url = "/" + member.id + "/" + now.ToString("yyyyMM") + "/" + now.ToString("dd");
                         string file_path = url + "/" + bodyApiCreateEtax.etax_id + ".pdf";
                         string output = _config["Path:Output"];
+
+                       
 
                         if (ApiFileTransfer.UploadFile(_config["Path:FileTransfer"], file_path, bodyApiCreateEtax.pdf_base64, _config["Path:Mode"]))
                         {
@@ -442,9 +447,18 @@ namespace Etax_Api.Controllers
                                                            select dt).FirstOrDefaultAsync();
 
                                 if (document_type == null)
+                                {
+                                    try
+                                    {
 
-                                    //LogToFile($"Error code 400 : 1009 ไม่พบเลขที่อ้างอิงเอกสารที่ต้องการ | Etax id: {bodyApiCreateEtax.etax_id}");
-                                return StatusCode(400, new { error_code = "1009", message = "ไม่พบเลขที่อ้างอิงเอกสารที่ต้องการ", });
+                                        LogToFile($"Error code 400 : 1009 ไม่พบเลขที่อ้างอิงเอกสารที่ต้องการ | Etax id: {bodyApiCreateEtax.etax_id}");
+                                    }
+                                    catch (Exception ex)
+                                    {
+                                        return BadRequest("เขียน log ไม่สำเร็จ: " + ex.Message);
+                                    }
+                                    return StatusCode(400, new { error_code = "1009", message = "ไม่พบเลขที่อ้างอิงเอกสารที่ต้องการ", });
+                                }
 
                                 etaxFile.ref_etax_id = bodyApiCreateEtax.ref_etax_id;
                                 etaxFile.ref_issue_date = DateTime.ParseExact(bodyApiCreateEtax.ref_issue_date, "dd-MM-yyyy", CultureInfo.InvariantCulture);
@@ -489,7 +503,7 @@ namespace Etax_Api.Controllers
                             await _context.SaveChangesAsync();
                             transaction.Commit();
 
-                            //LogToFile($"Sucess code 200: อัพโหลดไฟล์ข้อมูลสำเร็จ | Etax id: {bodyApiCreateEtax.etax_id}");
+                            LogToFile($"Sucess code 200: อัพโหลดไฟล์ข้อมูลสำเร็จ | Etax id: {bodyApiCreateEtax.etax_id}");
 
                             return StatusCode(200, new
                             {
@@ -499,10 +513,12 @@ namespace Etax_Api.Controllers
                                 },
                                 message = "อัพโหลดไฟล์ข้อมูลสำเร็จ",
                             });
+
+
                         }
                         else
                         {
-                            //LogToFile($"Error code 400: 3002 อัพโหลดไฟล์ PDF ไม่สำเร็จ | Etax id: {bodyApiCreateEtax.etax_id}");
+                            LogToFile($"Error code 400: 3002 อัพโหลดไฟล์ PDF ไม่สำเร็จ | Etax id: {bodyApiCreateEtax.etax_id}");
 
                             return StatusCode(400, new { error_code = "3002", error_message = "อัพโหลดไฟล์ PDF ไม่สำเร็จ" });
                         }
@@ -511,28 +527,52 @@ namespace Etax_Api.Controllers
                     {
                         transaction.Rollback();
 
-                        //LogToFile($"Error code 400 / 9000 กรุณาแจ้งเจ้าหน้าที่เพื่อตรวจสอบ: {ex.Message}| Exception Details: {ex.InnerException} | Etax id: {bodyApiCreateEtax.etax_id}");
-                        
-                        return StatusCode(400, new { error_code = "9000", error_message = "กรุณาแจ้งเจ้าหน้าที่เพื่อตรวจสอบ" });
+                        LogToFile($"Error code 400 / 9000 เกิดข้อผิดพลาดจากระบบ: {ex.Message}| Exception Details: {ex.InnerException} | Etax id: {bodyApiCreateEtax.etax_id}");
+
+                        return StatusCode(400, new { error_code = "9000", error_message = "เกิดข้อผิดพลาดจากระบบ : " + ex.Message + ex.InnerException });
 
                     }
                 }
             }
             catch (Exception ex)
             {
-                //LogToFile($"Error code 400 / 9000 กรุณาแจ้งเจ้าหน้าที่เพื่อตรวจสอบ: {ex.Message}| Exception Details: {ex.InnerException} | Etax id: {bodyApiCreateEtax.etax_id}");
+                LogToFile($"Error code 400 / 9000 เกิดข้อผิดพลาดจากระบบ: {ex.Message}| Exception Details: {ex.InnerException} | Etax id: {bodyApiCreateEtax.etax_id}");
 
-                return StatusCode(400, new { error_code = "9000", message = "กรุณาแจ้งเจ้าหน้าที่เพื่อตรวจสอบ" });
+                return StatusCode(400, new { error_code = "9000", error_message = "เกิดข้อผิดพลาดจากระบบ : " + ex.Message + ex.InnerException });
             }
         }
         public void LogToFile(string message)
         {
-            var datePart = DateTime.Now.ToString("yyyy-MM-dd");
-            var _logFilePath = Path.Combine(@"C:\inetpub\logs\LogTripech", $"apiTripech_Log_{datePart}.txt");
-            using (StreamWriter writer = new StreamWriter(_logFilePath, true, System.Text.Encoding.UTF8))
+
+            string appPath = AppDomain.CurrentDomain.BaseDirectory;
+            string logDirectory = Path.Combine(appPath, "Logs");
+
+            // สร้างโฟลเดอร์ Logs ถ้ายังไม่มี
+            if (!Directory.Exists(logDirectory))
             {
-                writer.WriteLine($"{DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss.fff")}: {message}");
+                Directory.CreateDirectory(logDirectory);
             }
+
+            // สร้างชื่อไฟล์ log ตามวันที่
+            string logFileName = $"Tripech_ErrorLog_{DateTime.Now:yyyyMMdd}.txt";
+            string logFilePath = Path.Combine(logDirectory, logFileName);
+
+            using (StreamWriter writer = new StreamWriter(logFilePath, true)) 
+            {
+                writer.WriteLine($"{DateTime.Now:yyyy-MM-dd HH:mm:ss} : {message}");
+            }
+
+            //IRestResponse response = client.Execute(request);
+            //stopwatch.Stop();
+
+            //ReturnEmail retuenEmail = JsonConvert.DeserializeObject<ReturnEmail>(response.Content);
+
+            //var datePart = DateTime.Now.ToString("yyyyMMdd");
+            //var _logFilePath = Path.Combine(@"C:\inetpub\logs\LogTripech", $"Isuzu_PPMTMailLog_{DateTime.Now:yyyyMMdd}.txt");
+            //using (StreamWriter writer = new StreamWriter(_logFilePath, true, System.Text.Encoding.UTF8))
+            //{
+            //    writer.WriteLine($"{DateTime.Now.ToString("yyyyMMdd HH:mm:ss.fff")}: {message}");
+            //}
         }
 
         [HttpPost]
