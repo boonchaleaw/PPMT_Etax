@@ -619,7 +619,7 @@ namespace Etax_Api.Controllers
             }
             catch (Exception ex)
             {
-                BodyError_log error_Log = new BodyError_log();
+                ErrorLog error_Log = new ErrorLog();
                 string jsonData = JsonConvert.SerializeObject(bodyApiCreateEtax);
                 String MsgErrorId = $"<Msg-{Guid.NewGuid():N}-{DateTime.Now:yyyyMMddHHmmssffff}>";
 

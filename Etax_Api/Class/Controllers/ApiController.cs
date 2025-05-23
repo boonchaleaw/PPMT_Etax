@@ -45,7 +45,7 @@ namespace Etax_Api.Controllers
 
                 string token = Request.Headers[HeaderNames.Authorization].ToString();
                 JwtStatus jwtStatus = Jwt.ValidateJwtToken(token);
-                BodyError_log error_Log = new BodyError_log();
+                ErrorLog error_Log = new ErrorLog();
                 string jsonData = JsonConvert.SerializeObject(bodyApiCreateEtax);
                 String MsgErrorId = $"<Msg-{Guid.NewGuid():N}-{DateTime.Now:yyyyMMddHHmmssffff}>";
 
@@ -627,7 +627,7 @@ namespace Etax_Api.Controllers
             }
             catch (Exception ex)
             {
-                BodyError_log error_Log = new BodyError_log();
+                ErrorLog error_Log = new ErrorLog();
                 string jsonData = JsonConvert.SerializeObject(bodyApiCreateEtax);
                 String MsgErrorId = $"<Msg-{Guid.NewGuid():N}-{DateTime.Now:yyyyMMddHHmmssffff}>";
                 LogToFile($"Error code 400 / 9000 เกิดข้อผิดพลาดจากระบบ: {ex.Message}| Exception Details: {ex.InnerException} | Etax id: {bodyApiCreateEtax.etax_id} | MsgErrorID: {MsgErrorId}" );
