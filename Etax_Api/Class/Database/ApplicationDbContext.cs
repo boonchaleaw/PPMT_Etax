@@ -90,7 +90,7 @@ namespace Etax_Api
         public DbSet<LogRawFile> log_rawdata_files { get; set; }
         public DbSet<LogEtaxFile> log_etax_files { get; set; }
         public DbSet<LogSendEmail> log_send_email { get; set; }
-
+        public DbSet<ErrorLog> error_log {  get; set; }
 
         public DbSet<Setting> setting { get; set; }
 

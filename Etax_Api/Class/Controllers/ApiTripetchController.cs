@@ -49,7 +49,7 @@ namespace Etax_Api.Controllers
                 int user_id = 0;
                 DateTime now = DateTime.Now;
                 string token = Request.Headers[HeaderNames.Authorization].ToString();
-                BodyError_log error_Log = new BodyError_log();
+                ErrorLog error_Log = new ErrorLog();
                 string jsonData = JsonConvert.SerializeObject(bodyApiCreateEtax);
                 String MsgErrorId = $"<Msg-{Guid.NewGuid():N}-{DateTime.Now:yyyyMMddHHmmssffff}>";
 

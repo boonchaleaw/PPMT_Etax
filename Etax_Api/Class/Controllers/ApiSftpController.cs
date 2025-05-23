@@ -414,6 +414,10 @@ namespace Etax_Api.Controllers
                             {
                                 etaxFile.other2 = data.H11_DELIVERY_TYPE_CODE.Trim() + "|" + data.H12_BUYER_ORDER_ASSIGN_ID.Trim();
                             }
+                            else if(document_type_id == 3)
+                            {
+                                etaxFile.other2 = data.H29_RETURN_MERCHANDISE_AUTHORIZATION_ID.Trim();
+                            }
                             else
                             {
                                 etaxFile.other2 = "";
