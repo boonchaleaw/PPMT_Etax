@@ -12,6 +12,7 @@ using System;
 using System.Buffers.Text;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Diagnostics.Metrics;
 using System.DirectoryServices;
 using System.Globalization;
 using System.IO;
@@ -50,6 +51,7 @@ namespace Etax_Api.Controllers
                 string token = Request.Headers[HeaderNames.Authorization].ToString();
                 BodyError_log error_Log = new BodyError_log();
                 string jsonData = JsonConvert.SerializeObject(bodyApiCreateEtax);
+                String MsgErrorId = $"<Msg-{Guid.NewGuid():N}-{DateTime.Now:yyyyMMddHHmmssffff}>";
 
                 if (_config["Path:Mode"] == "test")
                 {
@@ -304,7 +306,8 @@ namespace Etax_Api.Controllers
 
                         if (etax_file != null)
                         {
-                            LogToFile($"Error code 400 : 1003 ข้อมูลซ้ำในระบบ | Etax id: {bodyApiCreateEtax.etax_id}");
+                            
+                            LogToFile($"Error code 400 : 1003 ข้อมูลซ้ำในระบบ | Etax id: {bodyApiCreateEtax.etax_id} | MsgErrorID: {MsgErrorId}");
 
                             error_Log.member_id = member.id;
                             error_Log.etax_id = bodyApiCreateEtax.etax_id;
@@ -315,7 +318,10 @@ namespace Etax_Api.Controllers
                             error_Log.class_name = "ApiTripetchController";
                             error_Log.service = "Etax_Api";
                             error_Log.admin_email_status = "Pending";
-                           
+                            error_Log.error_id = MsgErrorId;
+
+
+
                             _context.Add(error_Log);
                             await _context.SaveChangesAsync();
 
@@ -333,7 +339,8 @@ namespace Etax_Api.Controllers
                             gen_pdf_status = "pending";
                             if (String.IsNullOrEmpty(bodyApiCreateEtax.pdf_base64))
                             {
-                                LogToFile($"Error code 400 : 3001 ไม่พบข้อมูลไฟล์ PDF | Etax id: {bodyApiCreateEtax.etax_id}");
+
+                                LogToFile($"Error code 400 : 3001 ไม่พบข้อมูลไฟล์ PDF | Etax id: {bodyApiCreateEtax.etax_id}| MsgErrorID: {MsgErrorId}");
 
                                 error_Log.member_id = member.id;
                                 error_Log.etax_id = bodyApiCreateEtax.etax_id;
@@ -344,6 +351,7 @@ namespace Etax_Api.Controllers
                                 error_Log.class_name = "ApiTripetchController";
                                 error_Log.service = "Etax_Api";
                                 error_Log.admin_email_status = "Pending";
+                                error_Log.error_id = MsgErrorId;
 
                                 _context.Add(error_Log);
                                 await _context.SaveChangesAsync();
@@ -482,8 +490,7 @@ namespace Etax_Api.Controllers
                                     try
                                     {
 
-                                        LogToFile($"Error code 400 : 1009 ไม่พบเลขที่อ้างอิงเอกสารที่ต้องการ | Etax id: {bodyApiCreateEtax.etax_id}");
-
+                                        LogToFile($"Error code 400 : 1009 ไม่พบเลขที่อ้างอิงเอกสารที่ต้องการ | Etax id: {bodyApiCreateEtax.etax_id} | MsgErrorID: {MsgErrorId}");
 
                                         error_Log.member_id = member.id;
                                         error_Log.etax_id = bodyApiCreateEtax.etax_id;
@@ -494,6 +501,7 @@ namespace Etax_Api.Controllers
                                         error_Log.class_name = "ApiTripetchController";
                                         error_Log.service = "Etax_Api";
                                         error_Log.admin_email_status = "Pending";
+                                        error_Log.error_id = MsgErrorId;
 
                                         _context.Add(error_Log);
                                         await _context.SaveChangesAsync();
@@ -565,7 +573,7 @@ namespace Etax_Api.Controllers
                         }
                         else
                         {
-                            LogToFile($"Error code 400: 3002 อัพโหลดไฟล์ PDF ไม่สำเร็จ | Etax id: {bodyApiCreateEtax.etax_id}");
+                            LogToFile($"Error code 400: 3002 อัพโหลดไฟล์ PDF ไม่สำเร็จ | Etax id: {bodyApiCreateEtax.etax_id}  | MsgErrorID: {MsgErrorId}");
 
                             error_Log.member_id = member.id;
                             error_Log.etax_id = bodyApiCreateEtax.etax_id;
@@ -576,6 +584,7 @@ namespace Etax_Api.Controllers
                             error_Log.class_name = "ApiTripetchController";
                             error_Log.service = "Etax_Api";
                             error_Log.admin_email_status = "Pending";
+                            error_Log.error_id = MsgErrorId;
 
                             _context.Add(error_Log);
                             await _context.SaveChangesAsync();
@@ -587,7 +596,7 @@ namespace Etax_Api.Controllers
                     {
                         transaction.Rollback();
 
-                        LogToFile($"Error code 400 / 9000 เกิดข้อผิดพลาดจากระบบ: {ex.Message}| Exception Details: {ex.InnerException} | Etax id: {bodyApiCreateEtax.etax_id}");
+                        LogToFile($"Error code 400 / 9000 เกิดข้อผิดพลาดจากระบบ: {ex.Message}| Exception Details: {ex.InnerException} | Etax id: {bodyApiCreateEtax.etax_id} | MsgErrorID: {MsgErrorId}");
 
                         error_Log.member_id = member.id;
                         error_Log.etax_id = bodyApiCreateEtax.etax_id;
@@ -598,6 +607,7 @@ namespace Etax_Api.Controllers
                         error_Log.class_name = "ApiTripetchController";
                         error_Log.service = "Etax_Api";
                         error_Log.admin_email_status = "Pending";
+                        error_Log.error_id = MsgErrorId;
 
                         _context.Add(error_Log);
                         await _context.SaveChangesAsync();
@@ -609,7 +619,25 @@ namespace Etax_Api.Controllers
             }
             catch (Exception ex)
             {
-                LogToFile($"Error code 400 / 9000 เกิดข้อผิดพลาดจากระบบ: {ex.Message}| Exception Details: {ex.InnerException} | Etax id: {bodyApiCreateEtax.etax_id}");
+                BodyError_log error_Log = new BodyError_log();
+                string jsonData = JsonConvert.SerializeObject(bodyApiCreateEtax);
+                String MsgErrorId = $"<Msg-{Guid.NewGuid():N}-{DateTime.Now:yyyyMMddHHmmssffff}>";
+
+                LogToFile($"Error code 400 / 9000 เกิดข้อผิดพลาดจากระบบ: {ex.Message}| Exception Details: {ex.InnerException} | Etax id: {bodyApiCreateEtax.etax_id} | MsgErrorID: {MsgErrorId}");
+
+                error_Log.member_id = 0;
+                error_Log.etax_id = bodyApiCreateEtax.etax_id;
+                error_Log.error = $"Error code 9000 เกิดข้อผิดพลาดจากระบบ: {ex.Message}| Exception Details: {ex.InnerException}";
+                error_Log.error_time = DateTime.Now;
+                error_Log.method_name = "tripetch/create_etax";
+                error_Log.input_data = jsonData;
+                error_Log.class_name = "ApiTripetchController";
+                error_Log.service = "Etax_Api";
+                error_Log.admin_email_status = "Pending";
+                error_Log.error_id = MsgErrorId;
+
+                _context.Add(error_Log);
+                await _context.SaveChangesAsync();
 
                 return StatusCode(400, new { error_code = "9000", error_message = "เกิดข้อผิดพลาดจากระบบ : " + ex.Message + ex.InnerException });
             }

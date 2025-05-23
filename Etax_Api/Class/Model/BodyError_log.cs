@@ -19,6 +19,7 @@ namespace Etax_Api.Class.Model
 
         public string admin_email_status { get; set; }
 
+        public string error_id { get; set; }
         public string etax_id { get; set; }
     }
 }
