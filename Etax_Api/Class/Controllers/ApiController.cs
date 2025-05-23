@@ -1,12 +1,15 @@
 ﻿
+using Etax_Api.Class.Model;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Storage.ValueConversion.Internal;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Net.Http.Headers;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.Metrics;
 using System.Drawing.Drawing2D;
 using System.Drawing.Imaging;
 using System.Globalization;
@@ -42,6 +45,9 @@ namespace Etax_Api.Controllers
 
                 string token = Request.Headers[HeaderNames.Authorization].ToString();
                 JwtStatus jwtStatus = Jwt.ValidateJwtToken(token);
+                BodyError_log error_Log = new BodyError_log();
+                string jsonData = JsonConvert.SerializeObject(bodyApiCreateEtax);
+                String MsgErrorId = $"<Msg-{Guid.NewGuid():N}-{DateTime.Now:yyyyMMddHHmmssffff}>";
 
                 if (!jwtStatus.status)
                     return StatusCode(401, new { error_code = "1001", message = "token ไม่ถูกต้องหรือหมดอายุ", });
@@ -394,8 +400,30 @@ namespace Etax_Api.Controllers
                         }
                         else
                             branch_id = branch.id;
+                        etax_file = _context.etax_files
+                      .Where(x => x.member_id == jwtStatus.member_id && x.branch_id == branch_id && x.etax_id == bodyApiCreateEtax.etax_id && x.delete_status == 0)
+                      .FirstOrDefault();
 
                         string gen_xml_status = "pending";
+                        if (etax_file != null)
+                        {
+                            LogToFile($"Error code 400 : 1003 ข้อมูลซ้ำในระบบ | Etax id: {bodyApiCreateEtax.etax_id} | MsgErrorID: {MsgErrorId}");
+                            error_Log.member_id = jwtStatus.member_id;
+                            error_Log.etax_id = bodyApiCreateEtax.etax_id;
+                            error_Log.error = "Error code 400 : 1003 ข้อมูลซ้ำในระบบ ";
+                            error_Log.error_time = DateTime.Now;
+                            error_Log.method_name = "ApiCreateEtaxNew/create_etax";
+                            error_Log.input_data = jsonData;
+                            error_Log.class_name = "ApiController";
+                            error_Log.service = "Etax_Api";
+                            error_Log.admin_email_status = "Pending";
+                            error_Log.error_id = MsgErrorId;
+                            _context.Add(error_Log);
+                            await _context.SaveChangesAsync();
+
+                            return StatusCode(400, new { error_code = "1003", message = "ข้อมูลซ้ำในระบบ", });
+                        }
+
                         string gen_pdf_status = "no";
                         string send_email_status = "no";
                         string send_sms_status = "no";
@@ -510,6 +538,7 @@ namespace Etax_Api.Controllers
 
                         if (bodyApiCreateEtax.document_type_code == "2")
                         {
+
                             etaxFile.ref_etax_id = bodyApiCreateEtax.ref_etax_id;
                             etaxFile.ref_issue_date = DateTime.ParseExact(bodyApiCreateEtax.ref_issue_date, "dd-MM-yyyy", CultureInfo.InvariantCulture);
                             etaxFile.original_price = bodyApiCreateEtax.original_price;
@@ -577,12 +606,46 @@ namespace Etax_Api.Controllers
                     catch (Exception ex)
                     {
                         transaction.Rollback();
+                        LogToFile($"Error code 400 / 9000 เกิดข้อผิดพลาดจากระบบ: {ex.Message}| Exception Details: {ex.InnerException} | Etax id: {bodyApiCreateEtax.etax_id} | MsgErrorID: {MsgErrorId}");
+
+                        error_Log.member_id = jwtStatus.member_id;
+                        error_Log.etax_id = bodyApiCreateEtax.etax_id;
+                        error_Log.error = "Error code 400 : 3002 อัพโหลดไฟล์ PDF ไม่สำเร็จ ";
+                        error_Log.error_time = DateTime.Now;
+                        error_Log.method_name = "CreateEtaxNew/create_etax";
+                        error_Log.input_data = jsonData;
+                        error_Log.class_name = "ApiController";
+                        error_Log.service = "Etax_Api";
+                        error_Log.admin_email_status = "Pending";
+                        error_Log.error_id = MsgErrorId;
+                        _context.Add(error_Log);
+                        await _context.SaveChangesAsync();
+
                         return StatusCode(400, new { error_code = "9000", error_message = "กรุณาแจ้งเจ้าหน้าที่เพื่อตรวจสอบ" });
                     }
                 }
             }
             catch (Exception ex)
             {
+                BodyError_log error_Log = new BodyError_log();
+                string jsonData = JsonConvert.SerializeObject(bodyApiCreateEtax);
+                String MsgErrorId = $"<Msg-{Guid.NewGuid():N}-{DateTime.Now:yyyyMMddHHmmssffff}>";
+                LogToFile($"Error code 400 / 9000 เกิดข้อผิดพลาดจากระบบ: {ex.Message}| Exception Details: {ex.InnerException} | Etax id: {bodyApiCreateEtax.etax_id} | MsgErrorID: {MsgErrorId}" );
+             
+                error_Log.member_id = 0;
+                error_Log.etax_id = bodyApiCreateEtax.etax_id;
+                error_Log.error = "Error code 400 : 3002 อัพโหลดไฟล์ PDF ไม่สำเร็จ ";
+                error_Log.error_time = DateTime.Now;
+                error_Log.method_name = "CreateEtaxNew/create_etax";
+                error_Log.input_data = jsonData;
+                error_Log.class_name = "ApiController";
+                error_Log.service = "Etax_Api";
+                error_Log.admin_email_status = "Pending";
+                error_Log.error_id = MsgErrorId;
+
+                _context.Add(error_Log);
+                await _context.SaveChangesAsync();
+
                 return StatusCode(400, new { error_code = "9000", message = "กรุณาแจ้งเจ้าหน้าที่เพื่อตรวจสอบ" });
             }
         }
@@ -2155,6 +2218,38 @@ namespace Etax_Api.Controllers
                 return StatusCode(400, new { message = ex.Message });
             }
         }
+        public void LogToFile(string message)
+        {
 
+            string appPath = AppDomain.CurrentDomain.BaseDirectory;
+            string logDirectory = Path.Combine(appPath, "Logs");
+
+            // สร้างโฟลเดอร์ Logs ถ้ายังไม่มี
+            if (!Directory.Exists(logDirectory))
+            {
+                Directory.CreateDirectory(logDirectory);
+            }
+
+            // สร้างชื่อไฟล์ log ตามวันที่
+            string logFileName = $"CreateEtax_ErrorLog_{DateTime.Now:yyyyMMdd}.txt";
+            string logFilePath = Path.Combine(logDirectory, logFileName);
+
+            using (StreamWriter writer = new StreamWriter(logFilePath, true))
+            {
+                writer.WriteLine($"{DateTime.Now:yyyy-MM-dd HH:mm:ss} : {message}");
+            }
+
+            //IRestResponse response = client.Execute(request);
+            //stopwatch.Stop();
+
+            //ReturnEmail retuenEmail = JsonConvert.DeserializeObject<ReturnEmail>(response.Content);
+
+            //var datePart = DateTime.Now.ToString("yyyyMMdd");
+            //var _logFilePath = Path.Combine(@"C:\inetpub\logs\LogTripech", $"Isuzu_PPMTMailLog_{DateTime.Now:yyyyMMdd}.txt");
+            //using (StreamWriter writer = new StreamWriter(_logFilePath, true, System.Text.Encoding.UTF8))
+            //{
+            //    writer.WriteLine($"{DateTime.Now.ToString("yyyyMMdd HH:mm:ss.fff")}: {message}");
+            //}
+        }
     }
 }
