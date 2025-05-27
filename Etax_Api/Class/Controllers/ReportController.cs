@@ -771,9 +771,19 @@ namespace Etax_Api.Controllers
                 var permission = await (from mup in _context.member_user_permission
                                         where mup.member_user_id == jwtStatus.user_id
                                         select mup.per_report_view).FirstOrDefaultAsync();
+
                 if (permission != "Y")
                     return StatusCode(401, new { message = "ไม่มีสิทธิในการใช้งานส่วนนี้", });
 
+
+                var permission_branch = await _context.member_user_branch
+                                        .Where(x => x.member_user_id == jwtStatus.user_id && x.member_id == jwtStatus.member_id)
+                                        .Select(x => new
+                                        {
+                                            x.branch_id,
+                                        }).ToListAsync();
+
+                
 
                 var member = await _context.members
                 .Where(x => x.id == jwtStatus.member_id)
@@ -795,7 +805,15 @@ namespace Etax_Api.Controllers
                     orderAscendingDirection = bodyDtParameters.Order[0].Dir.ToString().ToLower() == "asc";
                 }
 
-                var result = _context.view_send_email_list.Where(x => x.member_id == jwtStatus.member_id).AsQueryable();
+                var result =  _context.view_send_email_list.Where(x => x.member_id == jwtStatus.member_id).AsQueryable();
+
+                if(permission_branch.Count > 0)
+                {
+                    var permission_branch_ids = permission_branch.Select(pb => pb.branch_id).ToList();
+
+                     result = result.Where(x => permission_branch_ids.Contains(x.branch_id));
+
+                }
 
                 bodyDtParameters.dateStart = DateTime.Parse(bodyDtParameters.dateStart.ToString()).Date;
                 bodyDtParameters.dateEnd = bodyDtParameters.dateEnd.AddDays(+1).AddMilliseconds(-1);
