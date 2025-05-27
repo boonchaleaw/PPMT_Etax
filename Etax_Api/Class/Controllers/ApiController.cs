@@ -129,7 +129,14 @@ namespace Etax_Api.Controllers
                        .FirstOrDefault();
 
                         if (etax_file != null)
+                        {
+                            LogToFile($"Error code 400 : 1003 ข้อมูลซ้ำในระบบ | Etax id: {bodyApiCreateEtax.etax_id} | MsgErrorID: {MsgErrorId}");
+                            LogToDb($"Error code 400: 1003 ข้อมูลซ้ำในระบบ", jsonData, bodyApiCreateEtax.etax_id, jwtStatus.member_id, MsgErrorId);
                             return StatusCode(400, new { error_code = "1003", message = "ข้อมูลซ้ำในระบบ", });
+                        }
+                           
+
+                        
 
                         int branch_id = 0;
                         Branch branch = _context.branchs
@@ -408,18 +415,7 @@ namespace Etax_Api.Controllers
                         if (etax_file != null)
                         {
                             LogToFile($"Error code 400 : 1003 ข้อมูลซ้ำในระบบ | Etax id: {bodyApiCreateEtax.etax_id} | MsgErrorID: {MsgErrorId}");
-                            error_Log.member_id = jwtStatus.member_id;
-                            error_Log.etax_id = bodyApiCreateEtax.etax_id;
-                            error_Log.error = "Error code 400 : 1003 ข้อมูลซ้ำในระบบ ";
-                            error_Log.error_time = DateTime.Now;
-                            error_Log.method_name = "ApiCreateEtaxNew/create_etax";
-                            error_Log.input_data = jsonData;
-                            error_Log.class_name = "ApiController";
-                            error_Log.service = "Etax_Api";
-                            error_Log.admin_email_status = "Pending";
-                            error_Log.error_id = MsgErrorId;
-                            _context.Add(error_Log);
-                            await _context.SaveChangesAsync();
+                            LogToDb($"Error code 400: 1003 ข้อมูลซ้ำในระบบ", jsonData, bodyApiCreateEtax.etax_id, jwtStatus.member_id, MsgErrorId);
 
                             return StatusCode(400, new { error_code = "1003", message = "ข้อมูลซ้ำในระบบ", });
                         }
@@ -440,8 +436,14 @@ namespace Etax_Api.Controllers
                         else if (bodyApiCreateEtax.pdf_service == "S2")
                         {
                             gen_pdf_status = "pending";
+
                             if (String.IsNullOrEmpty(bodyApiCreateEtax.pdf_base64))
+                            {
+                                LogToFile($"Error code 400 : 3001 ไม่พบข้อมูลไฟล์ PDF | Etax id: {bodyApiCreateEtax.etax_id}| MsgErrorID: {MsgErrorId}");
+                                LogToDb($"Error code 400: 3001 ไม่พบข้อมูลไฟล์ PDF", jsonData, bodyApiCreateEtax.etax_id, jwtStatus.member_id, MsgErrorId);
                                 return StatusCode(400, new { error_code = "2015", message = "ไม่พบข้อมูลไฟล์ PDF", });
+                            }
+                                
                         }
                         else
                         {
@@ -649,6 +651,26 @@ namespace Etax_Api.Controllers
                 return StatusCode(400, new { error_code = "9000", message = "กรุณาแจ้งเจ้าหน้าที่เพื่อตรวจสอบ" });
             }
         }
+
+        public void LogToDb(string message, string jsonData, string etax_id, int member_id, string MsgErrorId)
+        {
+            ErrorLog error_Log = new ErrorLog();
+
+            error_Log.member_id = member_id;
+            error_Log.etax_id = etax_id;
+            error_Log.error = message;
+            error_Log.error_time = DateTime.Now;
+            error_Log.method_name = "tripetch/create_etax";
+            error_Log.input_data = jsonData;
+            error_Log.class_name = "ApiTripetchController";
+            error_Log.service = "Etax_Api";
+            error_Log.admin_email_status = "Pending";
+            error_Log.error_id = MsgErrorId;
+
+            _context.Add(error_Log);
+            _context.SaveChanges();
+        }
+
 
         [HttpPost]
         [Route("create_etax_file")]
