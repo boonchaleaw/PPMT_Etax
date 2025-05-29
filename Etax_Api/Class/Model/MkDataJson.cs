@@ -31,8 +31,7 @@ namespace Etax_Api
         public string H11_DELIVERY_TYPE_CODE { get; set; }
         public string H12_BUYER_ORDER_ASSIGN_ID { get; set;}
         public string H26_SEND_MAIL_IND { get; set; }
-
-        public string H29_RETURN_MERCHANDISE_AUTHORIZATION_ID { get; set; }
+        public string H28_RETURN_ORDER_NUMBER { get; set; }
         
 
 

@@ -416,7 +416,7 @@ namespace Etax_Api.Controllers
                             }
                             else if(document_type_id == 3)
                             {
-                                etaxFile.other2 = data.H29_RETURN_MERCHANDISE_AUTHORIZATION_ID.Trim();
+                                etaxFile.other2 = data.H28_RETURN_ORDER_NUMBER.Trim();
                             }
                             else
                             {
