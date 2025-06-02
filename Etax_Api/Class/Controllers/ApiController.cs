@@ -609,46 +609,20 @@ namespace Etax_Api.Controllers
                     {
                         transaction.Rollback();
                         LogToFile($"Error code 400 / 9000 เกิดข้อผิดพลาดจากระบบ: {ex.Message}| Exception Details: {ex.InnerException} | Etax id: {bodyApiCreateEtax.etax_id} | MsgErrorID: {MsgErrorId}");
+                        return StatusCode(400, new { error_code = "9000", error_message = "MsgErrorID: " + MsgErrorId + " | เกิดข้อผิดพลาดจากระบบ : " + ex.Message + ex.InnerException });
 
-                        error_Log.member_id = jwtStatus.member_id;
-                        error_Log.etax_id = bodyApiCreateEtax.etax_id;
-                        error_Log.error = "Error code 400 : 3002 อัพโหลดไฟล์ PDF ไม่สำเร็จ ";
-                        error_Log.error_time = DateTime.Now;
-                        error_Log.method_name = "CreateEtaxNew/create_etax";
-                        error_Log.input_data = jsonData;
-                        error_Log.class_name = "ApiController";
-                        error_Log.service = "Etax_Api";
-                        error_Log.admin_email_status = "Pending";
-                        error_Log.error_id = MsgErrorId;
-                        _context.Add(error_Log);
-                        await _context.SaveChangesAsync();
-
-                        return StatusCode(400, new { error_code = "9000", error_message = "กรุณาแจ้งเจ้าหน้าที่เพื่อตรวจสอบ" });
                     }
                 }
             }
             catch (Exception ex)
             {
-                ErrorLog error_Log = new ErrorLog();
+
                 string jsonData = JsonConvert.SerializeObject(bodyApiCreateEtax);
                 String MsgErrorId = $"<Msg-{Guid.NewGuid():N}-{DateTime.Now:yyyyMMddHHmmssffff}>";
-                LogToFile($"Error code 400 / 9000 เกิดข้อผิดพลาดจากระบบ: {ex.Message}| Exception Details: {ex.InnerException} | Etax id: {bodyApiCreateEtax.etax_id} | MsgErrorID: {MsgErrorId}" );
-             
-                error_Log.member_id = 0;
-                error_Log.etax_id = bodyApiCreateEtax.etax_id;
-                error_Log.error = "Error code 400 : 3002 อัพโหลดไฟล์ PDF ไม่สำเร็จ ";
-                error_Log.error_time = DateTime.Now;
-                error_Log.method_name = "CreateEtaxNew/create_etax";
-                error_Log.input_data = jsonData;
-                error_Log.class_name = "ApiController";
-                error_Log.service = "Etax_Api";
-                error_Log.admin_email_status = "Pending";
-                error_Log.error_id = MsgErrorId;
+                LogToFile($"Error code 400 / 9000 เกิดข้อผิดพลาดจากระบบ: {ex.Message}| Exception Details: {ex.InnerException} | Etax id: {bodyApiCreateEtax.etax_id} | MsgErrorID: {MsgErrorId}");
+                LogToDb($"Error code 400 / 9000 เกิดข้อผิดพลาดจากระบบ: {ex.Message}| Exception Details: {ex.InnerException} ", jsonData, bodyApiCreateEtax.etax_id, 0, MsgErrorId);
 
-                _context.Add(error_Log);
-                await _context.SaveChangesAsync();
-
-                return StatusCode(400, new { error_code = "9000", message = "กรุณาแจ้งเจ้าหน้าที่เพื่อตรวจสอบ" });
+                return StatusCode(400, new { error_code = "9000", error_message = "MsgErrorID: " + MsgErrorId + " | เกิดข้อผิดพลาดจากระบบ : " + ex.Message + ex.InnerException });
             }
         }
 

@@ -306,7 +306,7 @@ namespace Etax_Api.Controllers
 
                         if (etax_file != null)
                         {
-                            
+
                             LogToFile($"Error code 400 : 1003 ข้อมูลซ้ำในระบบ | Etax id: {bodyApiCreateEtax.etax_id} | MsgErrorID: {MsgErrorId}");
                             LogToDb($"Error code 400: 1003 ข้อมูลซ้ำในระบบ", jsonData, bodyApiCreateEtax.etax_id, member.id, MsgErrorId);
 
@@ -382,7 +382,7 @@ namespace Etax_Api.Controllers
                         string file_path = url + "/" + bodyApiCreateEtax.etax_id + ".pdf";
                         string output = _config["Path:Output"];
 
-                       
+
 
                         if (ApiFileTransfer.UploadFile(_config["Path:FileTransfer"], file_path, bodyApiCreateEtax.pdf_base64, _config["Path:Mode"]))
                         {
@@ -443,7 +443,7 @@ namespace Etax_Api.Controllers
                                                            select dt).FirstOrDefaultAsync();
 
                                 if (document_type == null)
-                                return StatusCode(400, new { error_code = "1009", message = "ไม่พบเลขที่อ้างอิงเอกสารที่ต้องการ", });
+                                    return StatusCode(400, new { error_code = "1009", message = "ไม่พบเลขที่อ้างอิงเอกสารที่ต้องการ", });
 
                                 etaxFile.ref_etax_id = bodyApiCreateEtax.ref_etax_id;
                                 etaxFile.ref_issue_date = DateTime.ParseExact(bodyApiCreateEtax.ref_issue_date, "dd-MM-yyyy", CultureInfo.InvariantCulture);
@@ -459,7 +459,7 @@ namespace Etax_Api.Controllers
 
                                 if (document_type == null)
                                 {
-                                    
+
                                     LogToFile($"Error code 400 : 1009 ไม่พบเลขที่อ้างอิงเอกสารที่ต้องการ | Etax id: {bodyApiCreateEtax.etax_id} | MsgErrorID: {MsgErrorId}");
                                     LogToDb($"Error code 400: 1009 ไม่พบเลขที่อ้างอิงเอกสารที่ต้องการ", jsonData, bodyApiCreateEtax.etax_id, member.id, MsgErrorId);
 
@@ -527,7 +527,7 @@ namespace Etax_Api.Controllers
                         else
                         {
                             LogToFile($"Error code 400: 3002 อัพโหลดไฟล์ PDF ไม่สำเร็จ | Etax id: {bodyApiCreateEtax.etax_id}  | MsgErrorID: {MsgErrorId}");
-                            
+
                             LogToDb($"Error code 400: 3002 อัพโหลดไฟล์ PDF ไม่สำเร็จ", jsonData, bodyApiCreateEtax.etax_id, member.id, MsgErrorId);
 
                             return StatusCode(400, new { error_code = "3002", error_message = "อัพโหลดไฟล์ PDF ไม่สำเร็จ" });
@@ -536,47 +536,43 @@ namespace Etax_Api.Controllers
                     catch (Exception ex)
                     {
                         transaction.Rollback();
-
                         LogToFile($"Error code 400 / 9000 เกิดข้อผิดพลาดจากระบบ: {ex.Message}| Exception Details: {ex.InnerException} | Etax id: {bodyApiCreateEtax.etax_id} | MsgErrorID: {MsgErrorId}");
-                        
-                        LogToDb($"Error code 400 / 9000 เกิดข้อผิดพลาดจากระบบ: {ex.Message}| Exception Details: {ex.InnerException}", jsonData, bodyApiCreateEtax.etax_id, member.id, MsgErrorId);
-
-                        return StatusCode(400, new { error_code = "9000", error_message = "เกิดข้อผิดพลาดจากระบบ : " + ex.Message + ex.InnerException });
-
+                        return StatusCode(400, new { error_code = "9000", error_message = "MsgErrorID: " + MsgErrorId +" | เกิดข้อผิดพลาดจากระบบ : " + ex.Message + ex.InnerException  });
                     }
                 }
+               
             }
             catch (Exception ex)
             {
 
                 string jsonData = JsonConvert.SerializeObject(bodyApiCreateEtax);
                 String MsgErrorId = $"<Msg-{Guid.NewGuid():N}-{DateTime.Now:yyyyMMddHHmmssffff}>";
-
                 LogToFile($"Error code 400 / 9000 เกิดข้อผิดพลาดจากระบบ: {ex.Message}| Exception Details: {ex.InnerException} | Etax id: {bodyApiCreateEtax.etax_id} | MsgErrorID: {MsgErrorId}");
-
                 LogToDb($"Error code 400 / 9000 เกิดข้อผิดพลาดจากระบบ: {ex.Message}| Exception Details: {ex.InnerException} ",jsonData, bodyApiCreateEtax.etax_id,0, MsgErrorId);
 
-                return StatusCode(400, new { error_code = "9000", error_message = "เกิดข้อผิดพลาดจากระบบ : " + ex.Message + ex.InnerException });
+                return StatusCode(400, new { error_code = "9000", error_message = "MsgErrorID: " + MsgErrorId + " | เกิดข้อผิดพลาดจากระบบ : " + ex.Message + ex.InnerException });
             }
         }
 
         public void LogToDb(string message,string jsonData,string etax_id,int member_id,string MsgErrorId)
         {
-            ErrorLog error_Log = new ErrorLog();
+                ErrorLog error_Log = new ErrorLog
+                {
+                    member_id = member_id,
+                    etax_id = etax_id,
+                    error = message,
+                    error_time = DateTime.Now,
+                    method_name = "tripetch/create_etax",
+                    input_data = jsonData,
+                    class_name = "ApiTripetchController",
+                    service = "Etax_Api",
+                    admin_email_status = "Pending",
+                    error_id = MsgErrorId
+                };
 
-            error_Log.member_id = member_id;
-            error_Log.etax_id = etax_id;
-            error_Log.error = message;
-            error_Log.error_time = DateTime.Now;
-            error_Log.method_name = "tripetch/create_etax";
-            error_Log.input_data = jsonData;
-            error_Log.class_name = "ApiTripetchController";
-            error_Log.service = "Etax_Api";
-            error_Log.admin_email_status = "Pending";
-            error_Log.error_id = MsgErrorId;
-
-            _context.Add(error_Log);
-            _context.SaveChanges();
+                _context.Add(error_Log);
+                _context.SaveChanges();
+               
         }
 
         public void LogToFile(string message)
