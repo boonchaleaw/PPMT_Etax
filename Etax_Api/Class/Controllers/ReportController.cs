@@ -642,6 +642,8 @@ namespace Etax_Api.Controllers
                 double sumTotal = result.Where(x => x.document_type_id != 3).Sum(s => s.total);
                 double sumTotalCN = result.Where(x => x.document_type_id == 3).Sum(s => s.total);
 
+                
+
                 double sumTotalNoVat = 0;
                 if (member.group_name == "Isuzu")
                 {
@@ -673,27 +675,44 @@ namespace Etax_Api.Controllers
 
                 if (bodyDtParameters.Length == -1)
                 {
-                    var data = await result
-                    .Select(x => new
+                    var data = await result.Select(x => new ViewTaxReport
                     {
-                        x.id,
-                        x.etax_id,
-                        x.document_type_id,
-                        x.document_type_name,
-                        x.buyer_tax_id,
-                        x.buyer_name,
-                        x.original_price,
-                        x.new_price,
-                        x.price,
-                        x.discount,
-                        x.tax,
-                        x.total,
-                        x.issue_date,
-                        x.gen_xml_finish,
-                    })
-                    .ToListAsync();
+                        id = x.id,
+                        etax_id = x.etax_id,
+                        document_type_id = x.document_type_id,
+                        document_type_name = x.document_type_name,
+                        buyer_tax_id = x.buyer_tax_id,
+                        buyer_name = x.buyer_name,
+                        original_price = x.original_price,
+                        new_price = x.new_price,
+                        price = x.price,
+                        discount = x.discount,
+                        tax = x.tax,
+                        total = x.total,
+                        issue_date = x.issue_date,
+                        gen_xml_finish = x.gen_xml_finish,
+                        other = x.other,
+                    }).ToListAsync();
 
+                    if (member.id == 5)
+                    {
 
+                        foreach (var item in data)
+                        {
+                            if (item.document_type_id == 1)
+                            {
+                                var otherParts = item.other?.Split("<&&>");
+                                if (otherParts != null && otherParts.Length > 6 && double.TryParse(otherParts[6], out double fine))
+                                {
+                                    if (fine > 0)
+                                    {
+                                        sumTotal -= fine;
+                                        item.total -= fine; // ลบค่าปรับออกจาก total
+                                    }
+                                }
+                            }
+                        }
+                    }
                     return StatusCode(200, new
                     {
                         draw = bodyDtParameters.Draw,
@@ -711,28 +730,48 @@ namespace Etax_Api.Controllers
                 }
                 else
                 {
-                    var data = await result
-                    .Select(x => new
+                    
+                    var data = await result.Select(x => new ViewTaxReport
                     {
-                        x.id,
-                        x.etax_id,
-                        x.document_type_id,
-                        x.document_type_name,
-                        x.buyer_tax_id,
-                        x.buyer_name,
-                        x.original_price,
-                        x.new_price,
-                        x.price,
-                        x.discount,
-                        x.tax,
-                        x.total,
-                        x.issue_date,
-                        x.gen_xml_finish,
+                        id = x.id,
+                        etax_id = x.etax_id,
+                        document_type_id = x.document_type_id,
+                        document_type_name = x.document_type_name,
+                        buyer_tax_id = x.buyer_tax_id,
+                        buyer_name = x.buyer_name,
+                        original_price = x.original_price,
+                        new_price = x.new_price,
+                        price = x.price,
+                        discount = x.discount,
+                        tax = x.tax,
+                        total = x.total,
+                        issue_date = x.issue_date,
+                        gen_xml_finish = x.gen_xml_finish,
+                        other = x.other,
                     })
                     .Skip(bodyDtParameters.Start)
                     .Take(bodyDtParameters.Length)
                     .ToListAsync();
 
+                    if (member.id == 5)
+                    {
+
+                        foreach (var item in data)
+                        {
+                            if (item.document_type_id == 1)
+                            {
+                                var otherParts = item.other?.Split("<&&>");
+                                if (otherParts != null && otherParts.Length > 6 && double.TryParse(otherParts[6], out double fine))
+                                {
+                                    if (fine > 0)
+                                    {
+                                        sumTotal -= fine;
+                                        item.total -= fine;  // ลบค่าปรับออกจาก total
+                                    }
+                                }
+                            }
+                        }
+                    }
 
                     return StatusCode(200, new
                     {
@@ -1646,6 +1685,26 @@ namespace Etax_Api.Controllers
 
                 double sumTotal = result.Where(x => x.document_type_id != 3).Sum(s => s.total);
                 double sumTotalCN = result.Where(x => x.document_type_id == 3).Sum(s => s.total);
+                
+                
+                if (member.id == 5)
+                {
+
+                    foreach (ViewTaxCsvReport data in result)
+                    {
+                        if (data.document_type_id == 1)
+                        {
+                            string[] otherArray = data.other.Split("<&&>");
+                            if (otherArray != null && otherArray.Length > 6 && double.TryParse(otherArray[6], out double fine))
+                            {
+                                if (fine > 0)
+                                {
+                                    sumTotal -= fine;
+                                }
+                            }
+                        }
+                    }
+                }
 
                 sumPrice = sumPrice - sumPriceCN;
                 sumDiscount = sumDiscount - sumDiscountCN;
@@ -1828,8 +1887,6 @@ namespace Etax_Api.Controllers
 
                 List<ViewSendEmailList> listData = await result
                     .ToListAsync();
-
-
 
                 string output = _config["Path:Share"];
                 string pathExcel = "/" + member.id + "/excel/";

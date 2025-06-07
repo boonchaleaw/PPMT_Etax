@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics.Metrics;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -676,6 +677,7 @@ namespace Etax_Api
 
                     foreach (ViewTaxCsvReport data in listData)
                     {
+
                         string issue_date = "";
                         if (data.issue_date != null)
                             issue_date = ((DateTime)data.issue_date).ToString("dd/MM/yyyy");
@@ -700,6 +702,7 @@ namespace Etax_Api
                         //    status_ebxml = "ส่งแล้ว";
                         //}
 
+                        
                         outputFile.WriteLine(
                         data.id.ToString() + "," +
                         data.document_type_name + "," +
@@ -714,7 +717,8 @@ namespace Etax_Api
                         data.price.ToString("0.00") + "," +
                         Math.Abs(data.original_price - data.price).ToString("0.00") + "," +
                         data.tax.ToString("0.00") + "," +
-                        data.total.ToString("0.00") 
+                        data.total.ToString("0.00")
+                        
                         //status_email + "," +
                         //status_ebxml
                         );
@@ -883,6 +887,19 @@ namespace Etax_Api
                         //{
                         //    status_ebxml = "ส่งแล้ว";
                         //}
+
+                        if (data.document_type_id == 1)
+                        {
+                            string[] otherArray = data.other.Split("<&&>");
+
+                            if (otherArray != null && otherArray.Length > 6 && double.TryParse(otherArray[6], out double fine))
+                            {
+                                if (fine > 0)
+                                {
+                                    data.total -= fine;
+                                }
+                            }
+                        }
 
                         outputFile.WriteLine(
                             data.id.ToString() + "," +
