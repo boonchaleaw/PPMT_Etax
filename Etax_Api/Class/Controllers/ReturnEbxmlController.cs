@@ -19,11 +19,13 @@ namespace Etax_Api.Controllers
     {
         private IConfiguration _config;
         private ApplicationDbContext _context;
-        public ReturnEbxmlController(IConfiguration config)
+        private readonly IExceptionLogger _exceptionLogger;
+        public ReturnEbxmlController(ApplicationDbContext context, IConfiguration config, IExceptionLogger exceptionLogger)
         {
             _config = config;
-            _context = new ApplicationDbContext(_config);
+            _context = context;
             _context.Database.SetCommandTimeout(180);
+            _exceptionLogger = exceptionLogger;
         }
 
         [HttpGet]

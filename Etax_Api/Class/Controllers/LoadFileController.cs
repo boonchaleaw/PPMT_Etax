@@ -17,13 +17,14 @@ namespace Etax_Api.Controllers
     {
         private IConfiguration _config;
         private ApplicationDbContext _context;
-        public LoadFileController(IConfiguration config)
+        private readonly IExceptionLogger _exceptionLogger;
+        public LoadFileController(ApplicationDbContext context, IConfiguration config, IExceptionLogger exceptionLogger)
         {
             _config = config;
-            _context = new ApplicationDbContext(_config);
+            _context = context;
             _context.Database.SetCommandTimeout(180);
+            _exceptionLogger = exceptionLogger;
         }
-
         [HttpPost]
         [Route("loadfile_link/{no}")]
         public async Task<IActionResult> LoadfileLink(string no)

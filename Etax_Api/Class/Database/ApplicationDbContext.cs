@@ -15,10 +15,10 @@ namespace Etax_Api
       : base(options)
         {
         }
-        public ApplicationDbContext(IConfiguration _config)
-        {
-            _connectionString = _config["ConnectionStrings:Default"];
-        }
+        //public ApplicationDbContext(IConfiguration _config)
+        //{
+        //    _connectionString = _config["ConnectionStrings:Default"];
+        //}
 
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {

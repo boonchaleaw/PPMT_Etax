@@ -22,11 +22,13 @@ namespace Etax_Api.Controllersท
     {
         private IConfiguration _config;
         private ApplicationDbContext _context;
-        public ApiMwaController(IConfiguration config)
+        private readonly IExceptionLogger _exceptionLogger;
+        public ApiMwaController(ApplicationDbContext context, IConfiguration config, IExceptionLogger exceptionLogger)
         {
             _config = config;
-            _context = new ApplicationDbContext(_config);
+            _context = context;
             _context.Database.SetCommandTimeout(180);
+            _exceptionLogger = exceptionLogger;
         }
 
         [HttpPost]

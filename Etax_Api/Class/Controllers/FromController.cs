@@ -34,11 +34,15 @@ namespace Etax_Api.Controllers
         private Regex rxZipCode = new Regex(@"[0-9]{5}");
         private Regex rxBranchCode = new Regex(@"[0-9]{5}");
         private Regex rxEmail = new Regex(@"[a-zA-Z0-9@._-]");
-        public FromController(IConfiguration config)
+        private readonly IExceptionLogger _exceptionLogger;
+        private readonly IJwtService _jwtService;
+        public FromController(ApplicationDbContext context, IConfiguration config, IExceptionLogger exceptionLogger, IJwtService jwtService)
         {
             _config = config;
-            _context = new ApplicationDbContext(_config);
+            _context = context;
             _context.Database.SetCommandTimeout(180);
+            _exceptionLogger = exceptionLogger;
+            _jwtService = jwtService;
         }
 
         [HttpPost]
@@ -48,7 +52,7 @@ namespace Etax_Api.Controllers
             try
             {
                 string token = Request.Headers[HeaderNames.Authorization].ToString();
-                JwtStatus jwtStatus = Jwt.ValidateJwtTokenMember(token, _config);
+                JwtStatus jwtStatus = _jwtService.ValidateJwtTokenMember(token);
 
                 if (!jwtStatus.status)
                     return StatusCode(401, new { message = "token ไม่ถูกต้องหรือหมดอายุ", });

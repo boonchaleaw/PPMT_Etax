@@ -17,11 +17,15 @@ namespace Etax_Api.Controllers
     {
         private IConfiguration _config;
         private ApplicationDbContext _context;
-        public LoginController(IConfiguration config)
+        private readonly IExceptionLogger _exceptionLogger;
+        private readonly IJwtService _jwtService;
+        public LoginController(ApplicationDbContext context, IConfiguration config, IExceptionLogger exceptionLogger, IJwtService jwtService)
         {
             _config = config;
-            _context = new ApplicationDbContext(_config);
+            _context = context;
             _context.Database.SetCommandTimeout(180);
+            _exceptionLogger = exceptionLogger;
+            _jwtService = jwtService;
         }
 
         [HttpGet]
@@ -161,7 +165,7 @@ namespace Etax_Api.Controllers
                         user_name = user.first_name,
                         member_name = user.member_name,
                     },
-                    token = Jwt.GenerateJwtToken(user.id, user.member_id, session_key),
+                    token = _jwtService.GenerateJwtToken(user.id, user.member_id, session_key),
                 });
             }
             else
@@ -205,7 +209,7 @@ namespace Etax_Api.Controllers
         public async Task<IActionResult> Logout()
         {
             string token = Request.Headers[HeaderNames.Authorization].ToString();
-            JwtStatus jwtStatus = Jwt.ValidateJwtTokenMember(token, _config);
+            JwtStatus jwtStatus = _jwtService.ValidateJwtTokenMember(token);
 
             if (!jwtStatus.status)
                 return StatusCode(401, new { message = "token ไม่ถูกต้องหรือหมดอายุ", });
@@ -235,7 +239,7 @@ namespace Etax_Api.Controllers
             try
             {
                 string token = Request.Headers[HeaderNames.Authorization].ToString();
-                JwtStatus jwtStatus = Jwt.ValidateJwtTokenMember(token, _config);
+                JwtStatus jwtStatus = _jwtService.ValidateJwtTokenMember(token);
 
                 if (!jwtStatus.status)
                     return StatusCode(401, new { message = "token ไม่ถูกต้องหรือหมดอายุ", });
@@ -422,7 +426,7 @@ namespace Etax_Api.Controllers
                                 id = checkUser.id,
                                 username = checkUser.username,
                             },
-                            token = Jwt.GenerateJwtToken(checkUser.id, checkUser.id, session_key),
+                            token = _jwtService.GenerateJwtToken(checkUser.id, checkUser.id, session_key),
                         });
                     }
                     else
@@ -506,7 +510,7 @@ namespace Etax_Api.Controllers
                                 id = user.id,
                                 username = user.username,
                             },
-                            token = Jwt.GenerateJwtToken(user.id, user.id, session_key),
+                            token = _jwtService.GenerateJwtToken(user.id, user.id, session_key),
                         });
                     }
                     else
@@ -556,7 +560,7 @@ namespace Etax_Api.Controllers
         public async Task<IActionResult> LogoutUser()
         {
             string token = Request.Headers[HeaderNames.Authorization].ToString();
-            JwtStatus jwtStatus = Jwt.ValidateJwtTokenUser(token, _config);
+            JwtStatus jwtStatus = _jwtService.ValidateJwtTokenUser(token);
 
             if (!jwtStatus.status)
                 return StatusCode(401, new { message = "token ไม่ถูกต้องหรือหมดอายุ", });
@@ -586,7 +590,7 @@ namespace Etax_Api.Controllers
             try
             {
                 string token = Request.Headers[HeaderNames.Authorization].ToString();
-                JwtStatus jwtStatus = Jwt.ValidateJwtTokenUser(token, _config);
+                JwtStatus jwtStatus = _jwtService.ValidateJwtTokenUser(token);
 
                 if (!jwtStatus.status)
                     return StatusCode(401, new { message = "token ไม่ถูกต้องหรือหมดอายุ", });

@@ -1,5 +1,6 @@
 ﻿
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using System;
 using System.IO;
@@ -14,12 +15,14 @@ namespace Etax_Api.Controllers
     {
         private IConfiguration _config;
         private ApplicationDbContext _context;
-        public ContactController(IConfiguration config)
+        private readonly IExceptionLogger _exceptionLogger;
+        public ContactController(ApplicationDbContext context, IConfiguration config, IExceptionLogger exceptionLogger)
         {
             _config = config;
-            _context = new ApplicationDbContext(_config);
+            _context = context;
+            _context.Database.SetCommandTimeout(180);
+            _exceptionLogger = exceptionLogger;
         }
-
         [HttpPost]
         [Route("create_contact")]
         public async Task<IActionResult> CreateBranch([FromBody] BodyContact bodyContact)

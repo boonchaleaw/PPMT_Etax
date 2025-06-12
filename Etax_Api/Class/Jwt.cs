@@ -20,12 +20,29 @@ namespace Etax_Api
         public bool status;
         public string message;
     }
-    public static class Jwt
+    public interface IJwtService
     {
-        private static string key = "401b09eab3c013d4ca54922bb802bec8fd5318192b0a75";
-        private static string issure = "papermate_etax";
+        public string GenerateJwtToken(int user_id, int member_id, string session_key);
+        public JwtStatus ValidateJwtToken(string token);
+        public  JwtStatus ValidateJwtTokenUser(string token);
+        public JwtStatus ValidateJwtTokenMember(string token);
+       
+    }
+    public class Jwt : IJwtService
 
-        public static string GenerateJwtToken(int user_id, int member_id, string session_key)
+    {
+        private readonly ApplicationDbContext _context;
+
+        private string key = "401b09eab3c013d4ca54922bb802bec8fd5318192b0a75";
+        private string issure = "papermate_etax";
+
+        public Jwt(ApplicationDbContext context)
+        {
+
+            _context = context;
+        }
+     
+        public string GenerateJwtToken(int user_id, int member_id, string session_key)
         {
             var securityKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(key));
             var credentials = new SigningCredentials(securityKey, SecurityAlgorithms.HmacSha512);
@@ -43,7 +60,7 @@ namespace Etax_Api
 
             return new JwtSecurityTokenHandler().WriteToken(token);
         }
-        public static JwtStatus ValidateJwtToken(string token)
+        public JwtStatus ValidateJwtToken(string token)
         {
             try
             {
@@ -91,11 +108,11 @@ namespace Etax_Api
             }
         }
 
-        public static JwtStatus ValidateJwtTokenUser(string token, IConfiguration _config)
+        public JwtStatus ValidateJwtTokenUser(string token)
         {
             try
             {
-                ApplicationDbContext _context = new ApplicationDbContext(_config);
+                //ApplicationDbContext _context = new ApplicationDbContext(_config);
 
                 token = token.Replace("Bearer ", "");
 
@@ -157,11 +174,11 @@ namespace Etax_Api
                 };
             }
         }
-        public static JwtStatus ValidateJwtTokenMember(string token, IConfiguration _config)
+        public JwtStatus ValidateJwtTokenMember(string token)
         {
             try
             {
-                ApplicationDbContext _context = new ApplicationDbContext(_config);
+                //ApplicationDbContext _context = new ApplicationDbContext(_config);
 
                 token = token.Replace("Bearer ", "");
 
@@ -225,7 +242,7 @@ namespace Etax_Api
             }
         }
 
-        private static bool LifetimeValidator(DateTime? notBefore, DateTime? expires, SecurityToken token, TokenValidationParameters @params)
+        private static  bool LifetimeValidator(DateTime? notBefore, DateTime? expires, SecurityToken token, TokenValidationParameters @params)
         {
             if (expires != null)
             {

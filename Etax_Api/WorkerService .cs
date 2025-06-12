@@ -23,8 +23,8 @@ namespace Etax_Api
             .AddJsonFile($"appsettings.json");
             _config = builder.Build();
 
-            _context = new ApplicationDbContext(_config);
-            _context.Database.SetCommandTimeout(180);
+            //_context = new ApplicationDbContext(_config);
+            //_context.Database.SetCommandTimeout(180);
 
             while (!stoppingToken.IsCancellationRequested)
             {

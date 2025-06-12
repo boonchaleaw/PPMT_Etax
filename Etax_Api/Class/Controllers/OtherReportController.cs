@@ -16,11 +16,15 @@ namespace Etax_Api.Controllers
     {
         private IConfiguration _config;
         private ApplicationDbContext _context;
-        public OtherReportController(IConfiguration config)
+        private readonly IExceptionLogger _exceptionLogger;
+        private readonly IJwtService _jwtService;
+        public OtherReportController(ApplicationDbContext context, IConfiguration config, IExceptionLogger exceptionLogger, IJwtService jwtService)
         {
             _config = config;
-            _context = new ApplicationDbContext(_config);
+            _context = context;
             _context.Database.SetCommandTimeout(180);
+            _exceptionLogger = exceptionLogger;
+            _jwtService = jwtService;
         }
 
         [HttpPost]
@@ -30,7 +34,7 @@ namespace Etax_Api.Controllers
             try
             {
                 string token = Request.Headers[HeaderNames.Authorization].ToString();
-                JwtStatus jwtStatus = Jwt.ValidateJwtTokenMember(token, _config);
+                JwtStatus jwtStatus = _jwtService.ValidateJwtTokenMember(token);
 
                 if (!jwtStatus.status)
                     return StatusCode(401, new { message = "token ไม่ถูกต้องหรือหมดอายุ", });

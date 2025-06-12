@@ -24,11 +24,13 @@ namespace Etax_Api.Controllers
         private IConfiguration _config;
         private ApplicationDbContext _context;
         private Regex rxField = new Regex(@"[A-Z]{1}[0-9]{2}-");
-        public ApiSftpController(IConfiguration config)
+        private readonly IExceptionLogger _exceptionLogger;
+        public ApiSftpController(ApplicationDbContext context, IConfiguration config, IExceptionLogger exceptionLogger)
         {
             _config = config;
-            _context = new ApplicationDbContext(_config);
+            _context = context;
             _context.Database.SetCommandTimeout(180);
+            _exceptionLogger = exceptionLogger;
         }
 
         [HttpPost]
