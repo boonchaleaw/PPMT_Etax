@@ -10,6 +10,11 @@ namespace Etax_Api
     public class ApplicationDbContext : DbContext
     {
         private readonly string _connectionString;
+
+        public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options)
+      : base(options)
+        {
+        }
         public ApplicationDbContext(IConfiguration _config)
         {
             _connectionString = _config["ConnectionStrings:Default"];

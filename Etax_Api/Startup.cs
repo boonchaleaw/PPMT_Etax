@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.HttpsPolicy;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -39,6 +40,13 @@ namespace Etax_Api
                 c.SwaggerDoc("v1", new OpenApiInfo { Title = "Etax_Api", Version = "v1" });
             });
 
+            services.AddDbContext<ApplicationDbContext>(options =>
+       options.UseSqlServer(Configuration.GetConnectionString("Default"))
+              .EnableSensitiveDataLogging()
+            );
+
+            services.AddScoped<IExceptionLogger, ExceptionLogger>();
+
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
@@ -63,6 +71,8 @@ namespace Etax_Api
             {
                 endpoints.MapControllers();
             });
+
+            //app.UseHttpLogging();
         }
     }
 }
