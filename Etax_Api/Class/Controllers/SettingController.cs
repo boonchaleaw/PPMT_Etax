@@ -104,9 +104,9 @@ namespace Etax_Api.Controllers
                 if (permission != "Y")
                     return StatusCode(401, new { message = "ไม่มีสิทธิในการใช้งานส่วนนี้", });
 
-                var setting = _context.setting
+                var setting =await _context.setting
                     .Where(x => x.member_id == jwtStatus.member_id)
-                    .FirstOrDefault();
+                    .FirstOrDefaultAsync();
 
                 if (setting == null)
                     return StatusCode(400, new { message = "ไม่พบข้อมูลที่ต้องการ", });
