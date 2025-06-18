@@ -620,6 +620,7 @@ namespace Etax_Api.Controllers
                                                 per_xml_file = (up.per_xml_file == "Y") ? true : false,
                                                 per_pdf_file = (up.per_pdf_file == "Y") ? true : false,
                                                 per_etax_delete = (up.per_etax_delete == "Y") ? true : false,
+                                                job_order = (up.per_etax_delete == "Y") ? true : false,
                                             }).ToListAsync();
 
 

@@ -53,9 +53,9 @@ namespace Etax_Api.Controllers
                     string referenceNo = xn["ReferenceNo"].InnerText;
                     if (referenceNo != "")
                     {
-                        var sendEbxml = _context.send_ebxml
+                        var sendEbxml =await _context.send_ebxml
                         .Where(x => x.conversation_id == referenceNo)
-                        .FirstOrDefault();
+                        .FirstOrDefaultAsync();
 
                         if (sendEbxml != null)
                         {

@@ -58,7 +58,7 @@ namespace Etax_Api.Controllers
                     orderAscendingDirection = bodyDtParameters.Order[0].Dir.ToString().ToLower() == "asc";
                 }
 
-                var result = _context.view_member_users.Where(x => x.member_id == jwtStatus.member_id && x.type != "admin" && x.delete_status==0).AsQueryable();
+                var result = _context.view_member_users.Where(x => x.member_id == jwtStatus.member_id && x.type != "admin" && x.delete_status == 0).AsQueryable();
 
                 if (!string.IsNullOrEmpty(searchBy))
                 {
@@ -165,14 +165,14 @@ namespace Etax_Api.Controllers
                     return StatusCode(400, new { message = "กรุณาตั้งรหัสผ่านให้มีสัญลักษณ์พิเศษอย่างน้อย 1 ตัวอักษร", });
                 }
 
-                var checkMemberUser = _context.member_users
+                var checkMemberUser = await _context.member_users
                     .Where(x => x.username == bodyMemberUser.username)
-                    .FirstOrDefault();
+                    .FirstOrDefaultAsync();
 
                 if (checkMemberUser != null)
                     return StatusCode(400, new { message = "ชื่อเข้าใช้งานนี้มีในระบบแล้ว", });
 
-                using (var transaction = _context.Database.BeginTransaction())
+                using (var transaction = await _context.Database.BeginTransactionAsync())
                 {
                     try
                     {
@@ -245,11 +245,11 @@ namespace Etax_Api.Controllers
                         };
                         _context.Add(logMemberUser);
                         await _context.SaveChangesAsync();
-                        transaction.Commit();
+                        await transaction.CommitAsync();
                     }
                     catch (Exception ex)
                     {
-                        transaction.Rollback();
+                        await transaction.RollbackAsync();
                         return StatusCode(400, new { message = ex.Message });
                     }
                 }
@@ -264,7 +264,7 @@ namespace Etax_Api.Controllers
                 return StatusCode(400, new { message = ex.Message });
             }
         }
-   
+
         [HttpPost]
         [Route("delete_mamber_user/{id}")]
         public async Task<IActionResult> DeleteMemberUser(int id)
@@ -301,7 +301,7 @@ namespace Etax_Api.Controllers
 
                         _context.Update(member_user);
                         await _context.SaveChangesAsync();
-                        transaction.Commit();
+                        await transaction.CommitAsync();
 
                         return StatusCode(200, new
                         {
@@ -310,7 +310,7 @@ namespace Etax_Api.Controllers
                     }
                     catch (Exception ex)
                     {
-                        transaction.Rollback();
+                        await transaction.RollbackAsync();
                         return StatusCode(400, new { message = ex.Message });
                     }
                 }

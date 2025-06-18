@@ -29,5 +29,7 @@ namespace Etax_Api
         public string view_branch_only { get; set; }
         public DateTime? update_date { get; set; }
         public DateTime? create_date { get; set; }
+
+        public string job_order { get; set; }
     }
 }
