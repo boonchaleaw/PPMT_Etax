@@ -436,25 +436,37 @@ namespace Etax_Api.Class.Controllers
                         }
                     }
 
-                    string sendingMethod = "";
+                    //string sendingMethod = "";
+                    //if (data.add_email_status != "no")
+                    //{
+                    //    sendingMethod = "Email";
+                    //}
+                    //if (data.add_sms_status != "no")
+                    //{
+                    //    if (sendingMethod != "")
+                    //        sendingMethod += "/";
+
+                    //    sendingMethod = "Sms";
+                    //}
+                    //if (data.webhook != 0)
+                    //{
+                    //    if (sendingMethod != "")
+                    //        sendingMethod += "/";
+
+                    //    sendingMethod = "Webhook";
+                    //}
+                    var methods = new List<string>();
+
                     if (data.add_email_status != "no")
-                    {
-                        sendingMethod = "Email";
-                    }
+                        methods.Add("Email");
+
                     if (data.add_sms_status != "no")
-                    {
-                        if (sendingMethod != "")
-                            sendingMethod += "/";
+                        methods.Add("Sms");
 
-                        sendingMethod = "Sms";
-                    }
                     if (data.webhook != 0)
-                    {
-                        if (sendingMethod != "")
-                            sendingMethod += "/";
+                        methods.Add("Webhook");
 
-                        sendingMethod = "Webhook";
-                    }
+                    string sendingMethod = string.Join("/", methods);
 
                     // เขียนข้อมูลลงไฟล์
                     outputFile.WriteLine(
