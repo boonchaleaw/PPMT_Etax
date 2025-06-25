@@ -74,7 +74,7 @@ namespace Etax_Api.Class.Controllers.JobOrder
                 }
 
 
-                return Ok("Upload file successfully");
+                return Ok(new { message = "Upload file successfully" });
             }
             catch (Exception ex)
             {
@@ -145,11 +145,15 @@ namespace Etax_Api.Class.Controllers.JobOrder
                 if (!Directory.Exists(folderPath))
                     return NotFound("Folder not found");
 
-                var fileNames = Directory.GetFiles(folderPath)
-                                         .Select(Path.GetFileName)
-                                         .ToList();
+                var files = Directory.GetFiles(folderPath)
+     .Select(filePath => new {
+         FileName = Path.GetFileName(filePath),
+         Size = new FileInfo(filePath).Length,
+         Modified = System.IO.File.GetLastWriteTime(filePath)
+     })
+     .ToList();
 
-                return Ok(fileNames);
+                return Ok(files);
             }
             catch (Exception ex)
             {

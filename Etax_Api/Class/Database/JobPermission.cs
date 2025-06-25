@@ -1,4 +1,6 @@
-﻿namespace Etax_Api.Class.Database
+﻿using System.ComponentModel.DataAnnotations.Schema;
+
+namespace Etax_Api.Class.Database
 {
     public class JobPermission
     {
@@ -9,6 +11,7 @@
         public int? UserMemberId { get; set; }
 
         // Optional Navigation
+        [ForeignKey(nameof(JobId))]
         public JobName? JobName { get; set; }
     }
 }

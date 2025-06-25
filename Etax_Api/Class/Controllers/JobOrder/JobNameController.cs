@@ -91,6 +91,7 @@ namespace Etax_Api.Class.Controllers.JobOrder
                     .Take(request.Length)
                      .Select(j => new Dictionary<string, object>
                 {
+                    { "Id",j.Id},
                     { "ThaiName", j.ThaiName },
                     { "EngName", j.EngName },
                     { "JobCode", j.JobCode }
@@ -105,34 +106,50 @@ namespace Etax_Api.Class.Controllers.JobOrder
                     data = data
                 });
 
-                //            string token = Request.Headers[HeaderNames.Authorization].ToString();
 
-                //            if (string.IsNullOrEmpty(token))
-                //                return Unauthorized("Missing token");
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "Failed to load job names " + ex.Message });
+            }
+        }
 
-                //            if (token.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase))
-                //                token = token.Substring("Bearer ".Length).Trim();
+        [HttpGet("joborder/jobnames")]
+        public async Task<IActionResult> GetJobNames()
+        {
+            try
+            {
 
-                //            JwtStatus jwtStatus = _jwtService.ValidateJwtTokenMember(token);
+                string token = Request.Headers[HeaderNames.Authorization].ToString();
 
-                //            if (!jwtStatus.status)
-                //                return Unauthorized(jwtStatus.message);
+                if (string.IsNullOrEmpty(token))
+                    return Unauthorized("Missing token");
+
+                if (token.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase))
+                    token = token.Substring("Bearer ".Length).Trim();
+
+                JwtStatus jwtStatus = _jwtService.ValidateJwtTokenMember(token);
+
+                if (!jwtStatus.status)
+                    return Unauthorized(jwtStatus.message);
 
 
-                //            var jobNames = await _context.job_name.Where(j => j.MemberId == jwtStatus.member_id)
-                //               .Select(j => new Dictionary<string, object>
-                //{
-                //    { "ThaiName", j.ThaiName },
-                //    { "EngName", j.EngName },
-                //    { "JobCode", j.JobCode }
-                //})
-                //                .ToListAsync();
+                var jobNames = await _context.job_name.Where(p => p.MemberId == jwtStatus.member_id)
+                .Select(j => new Dictionary<string, object>
+             {
+                    { "Id",j.Id},
+                    { "ThaiName", j.ThaiName },
+                    { "EngName", j.EngName },
+                    { "JobCode", j.JobCode }
+             })
+                             .ToListAsync();
 
-                //            return StatusCode(200, new
-                //            {
-                //                message = "เรียกดูข้อมูลสำเร็จ",
-                //                data = jobNames,
-                //            });
+
+
+                return Ok(new
+                {
+                    jobNames = jobNames,
+                });
             }
             catch (Exception ex)
             {
@@ -160,18 +177,21 @@ namespace Etax_Api.Class.Controllers.JobOrder
                     return Unauthorized(jwtStatus.message);
 
 
-                var jobNames = await _context.job_permission.Where(p => p.UserMemberId == jwtStatus.user_id)
-                    .Include(j => j.JobName)
-                   .Select(j => new
-                   {
-                       j.JobName.Id,
-                       j.JobName.ThaiName,
-                       j.JobName.EngName,
-                       j.JobName.JobCode,
-                   })
-                    .ToListAsync();
 
-                return Ok(jobNames);
+
+                var jobNamesSelect = await _context.job_permission
+        .Where(p => p.UserMemberId == jwtStatus.user_id && p.JobName != null)
+        .Include(j => j.JobName)
+        .Select(j => new Dictionary<string, object>
+        {
+                      { "Id",j.JobId},
+                { "ThaiName", j.JobName.ThaiName },
+                { "EngName", j.JobName.EngName },
+                { "JobCode", j.JobName.JobCode }
+        })
+        .ToListAsync();
+
+                return Ok(jobNamesSelect);
             }
             catch (Exception ex)
             {

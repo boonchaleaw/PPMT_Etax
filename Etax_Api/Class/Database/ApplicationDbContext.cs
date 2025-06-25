@@ -27,6 +27,8 @@ namespace Etax_Api
             {
                 optionsBuilder.UseSqlServer(_connectionString);
             }
+
+
         }
 
         public DbSet<Province> province { get; set; }
@@ -111,6 +113,9 @@ namespace Etax_Api
         public DbSet<JobFile> job_files { get; set; }
         public DbSet<JobActivity> job_activities { get; set; }
         public DbSet<JobPermission> job_permission { get; set; }
+
+
+
 
     }
 }

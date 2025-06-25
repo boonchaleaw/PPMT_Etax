@@ -26,6 +26,74 @@ namespace Etax_Api.Class.Controllers.JobOrder
             _exceptionLogger = exceptionLogger;
             _jwtService = jwtService;
         }
+        [HttpGet("joborders")]
+        public async Task<IActionResult> GetJobOrders([FromBody] BodyDtParameters bodyDtParameters)
+        {
+            try
+            {
+
+                // ✅ ตรวจสอบ JWT
+                string token = Request.Headers[HeaderNames.Authorization].ToString();
+                if (string.IsNullOrEmpty(token))
+                    return Unauthorized("Missing token.");
+
+                if (token.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase))
+                    token = token.Substring("Bearer ".Length).Trim();
+
+                var jwtStatus = _jwtService.ValidateJwtTokenMember(token);
+                if (!jwtStatus.status)
+                    return Unauthorized(jwtStatus.message);
+
+
+                var job_permissions = await _context.job_permission
+                    .Where(jp => jp.UserMemberId == jwtStatus.user_id)
+                    .Select(jp => jp.JobId)
+                    .ToListAsync();
+
+
+
+
+
+                var jobs = await _context.job_order
+                   .Where(j => job_permissions.Contains(j.JobId))  // ✅ Join by JobId
+                   .OrderByDescending(j => j.DateCreate)
+                   .Select(j => new
+                   {
+                       j.Id,
+                       j.JobId,
+                       j.JobNo,
+                       j.JobName,
+                       j.Status,
+                       j.StatusSendEmail,
+                       j.WorkOrder,
+                       j.SpecialOrders,
+                       j.RevisedReason,
+                       j.Cycle,
+                       j.Total,
+                       j.TotaPost,
+                       j.TotalEmail,
+                       j.TotalByHand,
+                       j.TotalEmailSuccess,
+                       j.TotalEmailReject,
+                       j.DateCreate,
+                       j.CreateBy,
+                       j.ApproveBy
+                   })
+                   .ToListAsync();
+
+                return Ok(jobs);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new
+                {
+                    success = false,
+                    message = "Failed to retrieve job orders.",
+                    error = ex.Message
+                });
+            }
+        }
+
         [HttpGet("prepare_joborder")]
         public async Task<IActionResult> PrepareJobNo()
         {
@@ -45,12 +113,7 @@ namespace Etax_Api.Class.Controllers.JobOrder
                     return Unauthorized(jwtStatus.message);
 
                 var jobNo = await GenerateJobNoAtomicAsync(); // ใช้เมธอดเดิมที่ปลอดภัย
-                return StatusCode(200, new
-                {
-                    message = "Prepare successfully",
-                    jobNo
-                });
-
+                return Ok(new { jobNo = jobNo });
             }
             catch (Exception ex)
             {
@@ -141,6 +204,12 @@ namespace Etax_Api.Class.Controllers.JobOrder
                     .Where(u => u.id == jwtStatus.user_id)
                     .FirstOrDefaultAsync();
 
+                int jobId = Convert.ToInt32(request.JobName); // ใช้ user_id จาก JWT เป็น jobId
+
+                JobName jobName = await _context.job_name
+                    .Where(j => j.Id == jobId && j.MemberId == user.member_id)
+                    .FirstOrDefaultAsync();
+
                 string policy = "Customer"; // กำหนด policy เป็น Customer ตามที่ระบุในคำถาม
 
                 if (user.member_id.Equals(1))
@@ -151,7 +220,7 @@ namespace Etax_Api.Class.Controllers.JobOrder
                     if (string.IsNullOrEmpty(request.JobNo))
                         return BadRequest("JobNo is required.");
 
-                    folderPath = Path.Combine(_config["Path:FilesJob"], request.JobNo);
+     
 
                     var fileInfos = Directory.Exists(folderPath)
                         ? Directory.GetFiles(folderPath).Select(path => new FileInfo(path)).ToList()
@@ -161,7 +230,9 @@ namespace Etax_Api.Class.Controllers.JobOrder
                     var order = new Database.JobOrder
                     {
                         JobNo = request.JobNo,
-                        JobName = request.JobName,
+                        JobName = jobName.ThaiName +$" ({jobName.JobCode})",
+                        JobId = jobId,
+                        JobCode = Guid.NewGuid().ToString() + Guid.NewGuid().ToString(),
                         WorkOrder = request.WorkOrder,
                         Cycle = request.Cycle,
                         Total = request.Total,
@@ -169,7 +240,11 @@ namespace Etax_Api.Class.Controllers.JobOrder
                         TotalEmail = request.TotalEmail,
                         TotalByHand = request.TotalByHand,
                         DateCreate = DateTime.Now,
-                        PathReportLocal = Directory.Exists(folderPath) ? folderPath : null
+                        CreateBy= user.first_name + " " + user.last_name, // หรือใช้ชื่อ user ปัจจุบัน
+                        PathReportLocal = Directory.Exists(folderPath) ? folderPath : null,
+                        Archive = "N", // ค่าเริ่มต้น
+                        Status = "Send", // ค่าเริ่มต้น
+                        IsDelete = 0, // ค่าเริ่มต้น
                     };
 
 
@@ -188,7 +263,8 @@ namespace Etax_Api.Class.Controllers.JobOrder
                             Policy = policy,
                             DateModify = file.LastWriteTime,
                             Size = file.Length,
-                            LocalPath = folderPath
+                            LocalPath = folderPath,
+                            
                         };
 
                         _context.job_files.Add(jobFile);
@@ -213,7 +289,10 @@ namespace Etax_Api.Class.Controllers.JobOrder
                     // ✅ commit ทั้งชุด
                     await transaction.CommitAsync();
 
-                    return Ok("Save Success");
+                    return Ok(new
+                    {
+                        message = "บันข้อมูลสำเร็จ",
+                    });
                 }
                 catch (Exception ex)
                 {
@@ -280,6 +359,7 @@ namespace Etax_Api.Class.Controllers.JobOrder
                 string policy = "Customer";
                 string staus = "Send"; // ค่าเริ่มต้น
 
+                //papermate user มี member_id = 1
                 if (user.member_id.Equals(1))
                 {
                     policy = "PPMT";

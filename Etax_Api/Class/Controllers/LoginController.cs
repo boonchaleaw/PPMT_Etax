@@ -269,6 +269,8 @@ namespace Etax_Api.Controllers
                     x.per_email_import,
                     x.view_self_only,
                     x.view_branch_only,
+                    //x.job_order,
+                    //x.job_order_name
                 })
                 .FirstOrDefaultAsync();
 
@@ -318,6 +320,8 @@ namespace Etax_Api.Controllers
                             per_email_import = (memberUserPermission.per_email_import == "Y") ? true : false,
                             view_self_only = (memberUserPermission.view_self_only == "Y") ? true : false,
                             view_branch_only = (memberUserPermission.view_branch_only == "Y") ? true : false,
+                            //job_order = (memberUserPermission.job_order == "Y") ? true : false,
+                            //job_order_name = (memberUserPermission.job_order_name == "Y") ? true : false,
                             branchs = memberUserBranch,
                             per_outsource_view = outsource,
                         }

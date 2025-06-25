@@ -6,6 +6,7 @@ namespace Etax_Api.Class.Database
     {
         public int Id { get; set; }
         public string JobNo { get; set; }
+        public int JobId { get; set; }
         public string JobName { get; set; }
         public string Status { get; set; }
         public string? StatusSendEmail { get; set; }
@@ -45,5 +46,7 @@ namespace Etax_Api.Class.Database
         public string? control_file_name { get; set; }
         public DateTime? DeliveryDate { get; set; }
         public int? IsDelete { get; set; }
+
+        
     }
 }

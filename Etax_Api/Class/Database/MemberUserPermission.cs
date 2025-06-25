@@ -31,5 +31,7 @@ namespace Etax_Api
         public DateTime? create_date { get; set; }
 
         public string job_order { get; set; }
+
+        public string job_order_name { get; set; }
     }
 }
