@@ -147,21 +147,21 @@ namespace Etax_Api.Controllers
                 if (member == null)
                     return StatusCode(400, new { error_code = "1008", message = "ไม่พบผู้ขายที่ต้องการ" });
 
-                var view_member_document_type = _context.view_member_document_type
+                var view_member_document_type =await _context.view_member_document_type
                     .Where(x => x.member_id == member.id && x.document_type_id == int.Parse(bodyApiCreateEtax.document_type_code))
-                    .FirstOrDefault();
+                    .FirstOrDefaultAsync();
 
                 if (view_member_document_type == null)
                     return StatusCode(400, new { error_code = "1002", message = "ลูกค้าไม่สามารถสร้างเอกสารประเภทนี้ได้" });
 
-                using (var transaction = _context.Database.BeginTransaction())
+                using (var transaction =await _context.Database.BeginTransactionAsync())
                 {
                     try
                     {
                         int branch_id = 0;
-                        Branch branch = _context.branchs
+                        Branch branch = await _context.branchs
                         .Where(x => x.member_id == member.id && x.branch_code == bodyApiCreateEtax.seller.branch_code)
-                        .FirstOrDefault();
+                        .FirstOrDefaultAsync();
 
                         if (branch == null)
                         {
@@ -194,7 +194,7 @@ namespace Etax_Api.Controllers
                             bodyApiCreateEtax.seller.amphoe_name_th = bodyApiCreateEtax.seller.amphoe_name_th.Replace("เขต", "").Replace("อำเภอ", "").Replace("อ.", "").Trim();
                             bodyApiCreateEtax.seller.district_name_th = bodyApiCreateEtax.seller.district_name_th.Replace("แขวง", "").Replace("ตำบล", "").Replace("ต.", "").Trim();
 
-                            List<Province> provinces = _context.province.Where(x => x.province_th.Contains(bodyApiCreateEtax.seller.province_name_th.Trim())).ToList();
+                            List<Province> provinces = await _context.province.Where(x => x.province_th.Contains(bodyApiCreateEtax.seller.province_name_th.Trim())).ToListAsync();
                             if (provinces.Count == 1)
                                 province = provinces.First();
                             else
@@ -202,7 +202,7 @@ namespace Etax_Api.Controllers
 
 
 
-                            List<Amphoe> amphoes = _context.amphoe.Where(x => x.province_code == province.province_code && x.amphoe_th.Contains(bodyApiCreateEtax.seller.amphoe_name_th.Trim())).ToList();
+                            List<Amphoe> amphoes = await _context.amphoe.Where(x => x.province_code == province.province_code && x.amphoe_th.Contains(bodyApiCreateEtax.seller.amphoe_name_th.Trim())).ToListAsync();
                             if (amphoes.Count > 1)
                             {
                                 foreach (Amphoe a in amphoes)
@@ -225,7 +225,7 @@ namespace Etax_Api.Controllers
                                 return StatusCode(400, new { error_code = "2023", message = "ชื่ออำเภอ/เขตไม่ถูกต้อง", });
 
 
-                            List<District> districts = _context.district.Where(x => x.zipcode == bodyApiCreateEtax.seller.zipcode && x.district_th.Contains(bodyApiCreateEtax.seller.district_name_th.Trim())).ToList();
+                            List<District> districts = await _context.district.Where(x => x.zipcode == bodyApiCreateEtax.seller.zipcode && x.district_th.Contains(bodyApiCreateEtax.seller.district_name_th.Trim())).ToListAsync();
                             if (districts.Count > 1)
                             {
                                 foreach (District d in districts)
@@ -300,15 +300,15 @@ namespace Etax_Api.Controllers
                             branch_id = branch.id;
 
 
-                        var etax_file = _context.etax_files
+                        var etax_file = await _context.etax_files
                        .Where(x => x.member_id == member.id && x.branch_id == branch_id && x.etax_id == bodyApiCreateEtax.etax_id && x.delete_status == 0)
-                       .FirstOrDefault();
+                       .FirstOrDefaultAsync();
 
                         if (etax_file != null)
                         {
 
-                            LogToFile($"Error code 400 : 1003 ข้อมูลซ้ำในระบบ | Etax id: {bodyApiCreateEtax.etax_id} | MsgErrorID: {MsgErrorId}");
-                            LogToDb($"Error code 400: 1003 ข้อมูลซ้ำในระบบ", jsonData, bodyApiCreateEtax.etax_id, member.id, MsgErrorId);
+                            //LogToFile($"Error code 400 : 1003 ข้อมูลซ้ำในระบบ | Etax id: {bodyApiCreateEtax.etax_id} | MsgErrorID: {MsgErrorId}");
+                            //LogToDb($"Error code 400: 1003 ข้อมูลซ้ำในระบบ", jsonData, bodyApiCreateEtax.etax_id, member.id, MsgErrorId);
 
                             return StatusCode(400, new { error_code = "1003", message = "ข้อมูลซ้ำในระบบ", });
                         }
@@ -325,8 +325,8 @@ namespace Etax_Api.Controllers
                             if (String.IsNullOrEmpty(bodyApiCreateEtax.pdf_base64))
                             {
 
-                                LogToFile($"Error code 400 : 3001 ไม่พบข้อมูลไฟล์ PDF | Etax id: {bodyApiCreateEtax.etax_id}| MsgErrorID: {MsgErrorId}");
-                                LogToDb($"Error code 400: 3001 ไม่พบข้อมูลไฟล์ PDF", jsonData, bodyApiCreateEtax.etax_id, member.id, MsgErrorId);
+                                //LogToFile($"Error code 400 : 3001 ไม่พบข้อมูลไฟล์ PDF | Etax id: {bodyApiCreateEtax.etax_id}| MsgErrorID: {MsgErrorId}");
+                                //LogToDb($"Error code 400: 3001 ไม่พบข้อมูลไฟล์ PDF", jsonData, bodyApiCreateEtax.etax_id, member.id, MsgErrorId);
 
                                 return StatusCode(400, new { error_code = "3001", message = "ไม่พบข้อมูลไฟล์ PDF", });
                             }
@@ -460,8 +460,8 @@ namespace Etax_Api.Controllers
                                 if (document_type == null)
                                 {
 
-                                    LogToFile($"Error code 400 : 1009 ไม่พบเลขที่อ้างอิงเอกสารที่ต้องการ | Etax id: {bodyApiCreateEtax.etax_id} | MsgErrorID: {MsgErrorId}");
-                                    LogToDb($"Error code 400: 1009 ไม่พบเลขที่อ้างอิงเอกสารที่ต้องการ", jsonData, bodyApiCreateEtax.etax_id, member.id, MsgErrorId);
+                                    //LogToFile($"Error code 400 : 1009 ไม่พบเลขที่อ้างอิงเอกสารที่ต้องการ | Etax id: {bodyApiCreateEtax.etax_id} | MsgErrorID: {MsgErrorId}");
+                                    //LogToDb($"Error code 400: 1009 ไม่พบเลขที่อ้างอิงเอกสารที่ต้องการ", jsonData, bodyApiCreateEtax.etax_id, member.id, MsgErrorId);
 
                                     return StatusCode(400, new { error_code = "1009", message = "ไม่พบเลขที่อ้างอิงเอกสารที่ต้องการ", });
                                 }
@@ -507,9 +507,9 @@ namespace Etax_Api.Controllers
                             };
                             _context.Add(logEtaxFile);
                             await _context.SaveChangesAsync();
-                            transaction.Commit();
+                            await transaction.CommitAsync();
 
-                            LogToFile($"Sucess code 200: อัพโหลดไฟล์ข้อมูลสำเร็จ | Etax id: {bodyApiCreateEtax.etax_id}");
+                            //LogToFile($"Sucess code 200: อัพโหลดไฟล์ข้อมูลสำเร็จ | Etax id: {bodyApiCreateEtax.etax_id}");
 
 
 
@@ -526,53 +526,53 @@ namespace Etax_Api.Controllers
                         }
                         else
                         {
-                            LogToFile($"Error code 400: 3002 อัพโหลดไฟล์ PDF ไม่สำเร็จ | Etax id: {bodyApiCreateEtax.etax_id}  | MsgErrorID: {MsgErrorId}");
+                            //    LogToFile($"Error code 400: 3002 อัพโหลดไฟล์ PDF ไม่สำเร็จ | Etax id: {bodyApiCreateEtax.etax_id}  | MsgErrorID: {MsgErrorId}");
 
-                            LogToDb($"Error code 400: 3002 อัพโหลดไฟล์ PDF ไม่สำเร็จ", jsonData, bodyApiCreateEtax.etax_id, member.id, MsgErrorId);
+                            //    LogToDb($"Error code 400: 3002 อัพโหลดไฟล์ PDF ไม่สำเร็จ", jsonData, bodyApiCreateEtax.etax_id, member.id, MsgErrorId);
 
                             return StatusCode(400, new { error_code = "3002", error_message = "อัพโหลดไฟล์ PDF ไม่สำเร็จ" });
                         }
                     }
                     catch (Exception ex)
                     {
-                        transaction.Rollback();
-                        LogToFile($"Error code 400 / 9000 เกิดข้อผิดพลาดจากระบบ: {ex.Message}| Exception Details: {ex.InnerException} | Etax id: {bodyApiCreateEtax.etax_id} | MsgErrorID: {MsgErrorId}");
-                        return StatusCode(400, new { error_code = "9000", error_message = "MsgErrorID: " + MsgErrorId +" | เกิดข้อผิดพลาดจากระบบ : " + ex.Message + ex.InnerException  });
+                       await transaction.RollbackAsync();
+                        //LogToFile($"Error code 400 / 9000 เกิดข้อผิดพลาดจากระบบ: {ex.Message}| Exception Details: {ex.InnerException} | Etax id: {bodyApiCreateEtax.etax_id} | MsgErrorID: {MsgErrorId}");
+                        return StatusCode(400, new { error_code = "9000", error_message = "MsgErrorID: " + MsgErrorId + " | เกิดข้อผิดพลาดจากระบบ : " + ex.Message + ex.InnerException });
                     }
                 }
-               
+
             }
             catch (Exception ex)
             {
 
                 string jsonData = JsonConvert.SerializeObject(bodyApiCreateEtax);
                 String MsgErrorId = $"<Msg-{Guid.NewGuid():N}-{DateTime.Now:yyyyMMddHHmmssffff}>";
-                LogToFile($"Error code 400 / 9000 เกิดข้อผิดพลาดจากระบบ: {ex.Message}| Exception Details: {ex.InnerException} | Etax id: {bodyApiCreateEtax.etax_id} | MsgErrorID: {MsgErrorId}");
-                LogToDb($"Error code 400 / 9000 เกิดข้อผิดพลาดจากระบบ: {ex.Message}| Exception Details: {ex.InnerException} ",jsonData, bodyApiCreateEtax.etax_id,0, MsgErrorId);
+                //LogToFile($"Error code 400 / 9000 เกิดข้อผิดพลาดจากระบบ: {ex.Message}| Exception Details: {ex.InnerException} | Etax id: {bodyApiCreateEtax.etax_id} | MsgErrorID: {MsgErrorId}");
+                //LogToDb($"Error code 400 / 9000 เกิดข้อผิดพลาดจากระบบ: {ex.Message}| Exception Details: {ex.InnerException} ",jsonData, bodyApiCreateEtax.etax_id,0, MsgErrorId);
 
                 return StatusCode(400, new { error_code = "9000", error_message = "MsgErrorID: " + MsgErrorId + " | เกิดข้อผิดพลาดจากระบบ : " + ex.Message + ex.InnerException });
             }
         }
 
-        public void LogToDb(string message,string jsonData,string etax_id,int member_id,string MsgErrorId)
+        public void LogToDb(string message, string jsonData, string etax_id, int member_id, string MsgErrorId)
         {
-                ErrorLog error_Log = new ErrorLog
-                {
-                    member_id = member_id,
-                    etax_id = etax_id,
-                    error = message,
-                    error_time = DateTime.Now,
-                    method_name = "tripetch/create_etax",
-                    input_data = jsonData,
-                    class_name = "ApiTripetchController",
-                    service = "Etax_Api",
-                    admin_email_status = "Pending",
-                    error_id = MsgErrorId
-                };
+            ErrorLog error_Log = new ErrorLog
+            {
+                member_id = member_id,
+                etax_id = etax_id,
+                error = message,
+                error_time = DateTime.Now,
+                method_name = "tripetch/create_etax",
+                input_data = jsonData,
+                class_name = "ApiTripetchController",
+                service = "Etax_Api",
+                admin_email_status = "Pending",
+                error_id = MsgErrorId
+            };
 
-                _context.Add(error_Log);
-                _context.SaveChanges();
-               
+            _context.Add(error_Log);
+            _context.SaveChanges();
+
         }
 
         public void LogToFile(string message)
@@ -591,7 +591,7 @@ namespace Etax_Api.Controllers
             string logFileName = $"Tripech_ErrorLog_{DateTime.Now:yyyyMMdd}.txt";
             string logFilePath = Path.Combine(logDirectory, logFileName);
 
-            using (StreamWriter writer = new StreamWriter(logFilePath, true)) 
+            using (StreamWriter writer = new StreamWriter(logFilePath, true))
             {
                 writer.WriteLine($"{DateTime.Now:yyyy-MM-dd HH:mm:ss} : {message}");
             }
@@ -767,9 +767,9 @@ namespace Etax_Api.Controllers
                                        where m.group_name == "Isuzu"
                                        select m.id).ToListAsync();
 
-                var etaxFile = _context.etax_files
+                var etaxFile =await _context.etax_files
                .Where(x => x.etax_id == id && membersId.Contains(x.member_id) && x.delete_status == 0)
-               .FirstOrDefault();
+               .FirstOrDefaultAsync();
 
                 if (etaxFile == null)
                     return StatusCode(400, new { message = "ไม่พบข้อมูลในระบบ", });
@@ -875,22 +875,22 @@ namespace Etax_Api.Controllers
                                        where m.group_name == "Isuzu"
                                        select m.id).ToListAsync();
 
-                var etaxFile = _context.etax_files
+                var etaxFile =await _context.etax_files
                .Where(x => x.etax_id == id && membersId.Contains(x.member_id) && x.delete_status == 0)
-               .FirstOrDefault();
+               .FirstOrDefaultAsync();
 
                 if (etaxFile == null)
                     return StatusCode(400, new { error_code = "1002", message = "ไม่พบข้อมูลในระบบ", });
 
-                var branch = _context.branchs
+                var branch =await _context.branchs
                .Where(x => x.id == etaxFile.branch_id)
-               .FirstOrDefault();
+               .FirstOrDefaultAsync();
 
-                var documentType = _context.document_type
+                var documentType =await _context.document_type
                .Where(x => x.id == etaxFile.document_type_id)
-               .FirstOrDefault();
+               .FirstOrDefaultAsync();
 
-                var listEtaxFileItems = _context.etax_file_items
+                var listEtaxFileItems =await _context.etax_file_items
                .Where(x => x.etax_file_id == etaxFile.id)
                .Select(x => new
                {
@@ -903,7 +903,7 @@ namespace Etax_Api.Controllers
                    tax = x.tax,
                    total = x.total,
                })
-               .ToList();
+               .ToListAsync();
 
                 string[] otherArray = etaxFile.other.Split("|");
 
@@ -984,7 +984,7 @@ namespace Etax_Api.Controllers
                         return StatusCode(401, new { error_code = "1001", message = "token ไม่ถูกต้อง", });
                 }
 
-                using (var transaction = _context.Database.BeginTransaction())
+                using (var transaction =await _context.Database.BeginTransactionAsync())
                 {
                     try
                     {
@@ -1007,11 +1007,11 @@ namespace Etax_Api.Controllers
                             etax.delete_status = 1;
                         }
                         await _context.SaveChangesAsync();
-                        transaction.Commit();
+                     await   transaction.CommitAsync();
                     }
                     catch (Exception ex)
                     {
-                        transaction.Rollback();
+                      await  transaction.RollbackAsync();
                         return StatusCode(400, new { message = ex.Message });
                     }
                 }
@@ -1051,9 +1051,9 @@ namespace Etax_Api.Controllers
                                        where m.group_name == "Isuzu"
                                        select m.id).ToListAsync();
 
-                var etaxFile = _context.etax_files
+                var etaxFile =await _context.etax_files
                .Where(x => x.etax_id == id && membersId.Contains(x.member_id) && x.delete_status == 0)
-               .FirstOrDefault();
+               .FirstOrDefaultAsync();
 
                 if (etaxFile == null)
                     return StatusCode(400, new { error_code = "1002", message = "ไม่พบข้อมูลในระบบ", });
@@ -1064,21 +1064,21 @@ namespace Etax_Api.Controllers
                 if (etaxFile.add_email_status == "pending")
                     return StatusCode(400, new { error_code = "1004", message = "ระบบกำลังดำเนินการส่ง email", });
 
-                var send_email = _context.send_email
+                var send_email =await _context.send_email
                .Where(x => x.etax_file_id == etaxFile.id)
-               .FirstOrDefault();
+               .FirstOrDefaultAsync();
 
                 if (send_email == null)
                     return StatusCode(400, new { error_code = "1002", message = "ไม่พบข้อมูลในระบบ", });
 
-                var response_email = _context.response_email
+                var response_email =await _context.response_email
                .Where(x => x.send_email_id == send_email.id)
                .Select(x => new
                {
                    email = x.email,
                    status = x.email_status,
                })
-               .ToList();
+               .ToListAsync();
 
                 if (send_email == null)
                     return StatusCode(400, new { error_code = "1002", message = "ไม่พบข้อมูลในระบบ", });
