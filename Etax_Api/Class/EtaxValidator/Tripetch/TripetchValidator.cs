@@ -49,9 +49,9 @@ namespace Etax_Api.Class.EtaxValidator.Tripetch
 
 
             if (string.IsNullOrEmpty(body.basisamount.ToString()))
-                return TripetchEtaxResponseHelper.BadRequest("2013", "กรุณากำหนดจำนวนเงินส่วนลด" , msgId);
+                return TripetchEtaxResponseHelper.BadRequest("2027", "กรุณากำหนดจำนวนเงินส่วนลด", msgId);
             if (string.IsNullOrEmpty(body.taxbasis_totalamount.ToString()))
-                return TripetchEtaxResponseHelper.BadRequest("2014", "กรุณากำหนดภาษีส่วนลด", msgId);
+                return TripetchEtaxResponseHelper.BadRequest("2028", "กรุณากำหนดภาษีส่วนลด", msgId);
 
 
             int i = 1;
@@ -70,7 +70,10 @@ namespace Etax_Api.Class.EtaxValidator.Tripetch
                     return TripetchEtaxResponseHelper.BadRequest("2014", $"กรุณากำหนดภาษี รายการสินค้าที่ {i}" + item, msgId);
 
                 if (string.IsNullOrEmpty(item.basisamount.ToString()))
-                    return TripetchEtaxResponseHelper.BadRequest("2014", $"กรุณากำหนดภาษีส่วนลด รายการสินค้าที่ {i}" + item, msgId);
+                    return TripetchEtaxResponseHelper.BadRequest("2029", $"กรุณากำหนดภาษีส่วนลด รายการสินค้าที่ {i}" + item, msgId);
+
+                if (string.IsNullOrEmpty(item.netline_totalamount.ToString()))
+                    return TripetchEtaxResponseHelper.BadRequest("2030", $"กรุณากำหนดจำนวนเงินทั้งหมด รายการสินค้าที่ {i}" + item, msgId);
 
 
                 i++;

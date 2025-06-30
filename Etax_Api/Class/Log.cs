@@ -5,6 +5,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Tokens;
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IdentityModel.Tokens.Jwt;
 using System.IO;
 using System.Linq;
@@ -52,7 +53,19 @@ namespace Etax_Api
             Dictionary<string, string> data = JsonSerializer.Deserialize<Dictionary<string, string>>(text);
             foreach (var item in data)
             {
-                DateTime date = DateTime.Parse(item.Value);
+                //DateTime date = DateTime.Parse(item.Value);
+
+
+                DateTime date;
+
+                bool success = DateTime.TryParseExact(
+                    item.Value,
+                    new[] { "dd/MM/yyyy HH:mm:ss", "MM/dd/yyyy HH:mm:ss" }, // รองรับหลายรูปแบบ
+                    CultureInfo.InvariantCulture,
+                    DateTimeStyles.None,
+                    out date);
+
+
                 DateTime dateEx = now.AddMinutes(-1);
                 if (date < dateEx)
                 {
@@ -99,7 +112,19 @@ namespace Etax_Api
             Dictionary<string, string> data = JsonSerializer.Deserialize<Dictionary<string, string>>(text);
             foreach (var item in data)
             {
-                DateTime date = DateTime.Parse(item.Value);
+                //DateTime date = DateTime.Parse(item.Value);
+
+
+                DateTime date;
+
+                bool success = DateTime.TryParseExact(
+                    item.Value,
+                    new[] { "dd/MM/yyyy HH:mm:ss", "MM/dd/yyyy HH:mm:ss" }, // รองรับหลายรูปแบบ
+                    CultureInfo.InvariantCulture,
+                    DateTimeStyles.None,
+                    out date);
+
+
                 DateTime dateEx = now.AddMinutes(-1);
                 if (date < dateEx)
                 {
