@@ -99,7 +99,10 @@ namespace Etax_Api.Controllers
                 }
 
                 //validate request body
-                TripetchValidator.ValidateInput(bodyApiCreateEtax, MsgErrorId);
+             var IsValid =   TripetchValidator.ValidateInput(bodyApiCreateEtax, MsgErrorId);
+
+                if (IsValid != null)
+                    return IsValid ;
 
 
                 if (bodyApiCreateEtax.buyer.branch_code.Length != 5)

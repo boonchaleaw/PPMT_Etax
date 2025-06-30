@@ -67,13 +67,13 @@ namespace Etax_Api.Class.EtaxValidator.Tripetch
                     return TripetchEtaxResponseHelper.BadRequest("2013", $"กรุณากำหนดจำนวนเงิน รายการสินค้าที่ {i}", msgId);
 
                 if (string.IsNullOrEmpty(item.total.ToString()))
-                    return TripetchEtaxResponseHelper.BadRequest("2014", $"กรุณากำหนดภาษี รายการสินค้าที่ {i}" + item, msgId);
+                    return TripetchEtaxResponseHelper.BadRequest("2014", $"กรุณากำหนดภาษี รายการสินค้าที่ {i}" , msgId);
 
                 if (string.IsNullOrEmpty(item.basisamount.ToString()))
-                    return TripetchEtaxResponseHelper.BadRequest("2029", $"กรุณากำหนดภาษีส่วนลด รายการสินค้าที่ {i}" + item, msgId);
+                    return TripetchEtaxResponseHelper.BadRequest("2029", $"กรุณากำหนดภาษีส่วนลด รายการสินค้าที่ {i}" , msgId);
 
                 if (string.IsNullOrEmpty(item.netline_totalamount.ToString()))
-                    return TripetchEtaxResponseHelper.BadRequest("2030", $"กรุณากำหนดจำนวนเงินทั้งหมด รายการสินค้าที่ {i}" + item, msgId);
+                    return TripetchEtaxResponseHelper.BadRequest("2030", $"กรุณากำหนดจำนวนเงินทั้งหมด รายการสินค้าที่ {i}" , msgId);
 
 
                 i++;
