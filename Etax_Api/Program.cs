@@ -17,7 +17,7 @@ namespace Etax_Api
         {
             Serilog.Log.Logger = new LoggerConfiguration()
            .MinimumLevel.Debug()
-           .WriteTo.File("logs/log-.txt", rollingInterval: RollingInterval.Day)
+           .WriteTo.File(@"D:\\etax_logs\logs\log-.txt", rollingInterval: RollingInterval.Day)
            .CreateLogger();
 
             try

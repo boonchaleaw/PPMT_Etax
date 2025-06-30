@@ -40,10 +40,17 @@ namespace Etax_Api
                 c.SwaggerDoc("v1", new OpenApiInfo { Title = "Etax_Api", Version = "v1" });
             });
 
+            services.AddDbContextFactory<ApplicationDbContext>(options =>
+   options.UseSqlServer(Configuration.GetConnectionString("Default"))
+   .EnableSensitiveDataLogging()
+   );
+
             services.AddDbContext<ApplicationDbContext>(options =>
        options.UseSqlServer(Configuration.GetConnectionString("Default"))
               .EnableSensitiveDataLogging()
             );
+
+           
 
             services.AddScoped<IExceptionLogger, ExceptionLogger>();
 

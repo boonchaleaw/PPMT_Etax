@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using Microsoft.EntityFrameworkCore.Internal;
 
 namespace Etax_Api
 {
@@ -12,11 +13,11 @@ namespace Etax_Api
 
     public class ExceptionLogger : IExceptionLogger
     {
-        private readonly ApplicationDbContext _context;
+        private readonly IDbContextFactory<ApplicationDbContext> _factory;
         private readonly ILogger<ExceptionLogger> _logger;
-        public ExceptionLogger(ApplicationDbContext context, ILogger<ExceptionLogger> logger)
+        public ExceptionLogger(IDbContextFactory<ApplicationDbContext> factory, ILogger<ExceptionLogger> logger)
         {
-            _context = context;
+              _factory = factory;
             _logger = logger;
         }
         public async Task LogErrorAsync(ErrorLog errorLog, Exception exception)
@@ -45,10 +46,9 @@ namespace Etax_Api
             // 3. บันทึกลงฐานข้อมูลเอง (ไม่ผ่าน Serilog sink ก็ได้)
             try
             {
-                
-                    await _context.error_log.AddAsync(errorLog);
-                    await _context.SaveChangesAsync();
-                
+                using var context = _factory.CreateDbContext();
+                await context.error_log.AddAsync(errorLog);
+                await context.SaveChangesAsync();
             }
             catch (Exception innerEx)
             {
