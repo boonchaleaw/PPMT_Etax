@@ -51,11 +51,11 @@ namespace Etax_Api
                 app.UseSwaggerUI(c => c.SwaggerEndpoint("/swagger/v1/swagger.json", "Etax_Api v1"));
             }
 
-            app.UseCors("MyPolicy");
-
             app.UseHttpsRedirection();
 
             app.UseRouting();
+
+            app.UseCors("MyPolicy");
 
             app.UseAuthorization();
 
