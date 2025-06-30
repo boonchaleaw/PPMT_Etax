@@ -47,17 +47,13 @@ namespace Etax_Api.Class.EtaxValidator.Tripetch
             if (body.items == null || !body.items.Any())
                 return TripetchEtaxResponseHelper.BadRequest("2026", "กรุณากำหนดรายการสินค้า", msgId);
 
-            if (!string.IsNullOrEmpty(body.basisamount.ToString()) || !string.IsNullOrEmpty(body.taxbasis_totalamount.ToString()))
-            {
-                foreach (var item in body.items)
-                {
-                    if (string.IsNullOrEmpty(body.basisamount.ToString()))
-                        return TripetchEtaxResponseHelper.BadRequest("2013", "กรุณากำหนดจำนวนเงินส่วนลด รายการสินค้าที่" + item,msgId);
-                    if (string.IsNullOrEmpty(body.taxbasis_totalamount.ToString()))
-                        return TripetchEtaxResponseHelper.BadRequest("2014", "กรุณากำหนดภาษีส่วนลด รายการสินค้าที่" + item, msgId);
-                }
-            }
-                
+
+            if (string.IsNullOrEmpty(body.basisamount.ToString()))
+                return TripetchEtaxResponseHelper.BadRequest("2013", "กรุณากำหนดจำนวนเงินส่วนลด" , msgId);
+            if (string.IsNullOrEmpty(body.taxbasis_totalamount.ToString()))
+                return TripetchEtaxResponseHelper.BadRequest("2014", "กรุณากำหนดภาษีส่วนลด", msgId);
+
+
             int i = 1;
             foreach (var item in body.items)
             {
@@ -73,6 +69,9 @@ namespace Etax_Api.Class.EtaxValidator.Tripetch
                 if (string.IsNullOrEmpty(item.total.ToString()))
                     return TripetchEtaxResponseHelper.BadRequest("2014", $"กรุณากำหนดภาษี รายการสินค้าที่ {i}" + item, msgId);
 
+                if (string.IsNullOrEmpty(item.basisamount.ToString()))
+                    return TripetchEtaxResponseHelper.BadRequest("2014", $"กรุณากำหนดภาษีส่วนลด รายการสินค้าที่ {i}" + item, msgId);
+
 
                 i++;
             }
@@ -80,8 +79,8 @@ namespace Etax_Api.Class.EtaxValidator.Tripetch
             return null; // ผ่านการตรวจสอบ
         }
 
-    
-      
+
+
     }
 
 
