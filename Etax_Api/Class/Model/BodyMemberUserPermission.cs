@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Etax_Api.Class.Model;
+using System;
 using System.Collections.Generic;
 
 
@@ -24,8 +25,11 @@ namespace Etax_Api
         public bool per_report_view { get; set; }
         public bool view_self_only { get; set; }
         public bool view_branch_only { get; set; }
+        public bool job_order { get; set; }
+        public bool job_order_name { get; set; }
 
         public List<BodyPermissionBranch> branchs { get; set; }
+        public List<BodyPermissionJobName> jobNamesSelect { get; set; }
 
     }
 }

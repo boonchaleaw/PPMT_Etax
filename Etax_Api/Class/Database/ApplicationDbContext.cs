@@ -1,4 +1,5 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using Etax_Api.Class.Database;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using System;
 using System.Collections.Generic;
@@ -26,6 +27,8 @@ namespace Etax_Api
             {
                 optionsBuilder.UseSqlServer(_connectionString);
             }
+
+
         }
 
         public DbSet<Province> province { get; set; }
@@ -103,5 +106,16 @@ namespace Etax_Api
 
         public DbSet<ViewEtaxFileNew> view_etax_files_new { get; set; }
         public DbSet<ViewSendEmailNew> view_send_email_new { get; set; }
+
+        public DbSet<JobName> job_name { get; set; }
+        public DbSet<JobNoRunning> job_no_running { get; set; }
+        public DbSet<JobOrder> job_order { get; set; }
+        public DbSet<JobFile> job_files { get; set; }
+        public DbSet<JobActivity> job_activities { get; set; }
+        public DbSet<JobPermission> job_permission { get; set; }
+
+
+
+
     }
 }

@@ -1,4 +1,6 @@
 ﻿
+using Etax_Api.Class.Database;
+using Etax_Api.Class.Model;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -58,7 +60,7 @@ namespace Etax_Api.Controllers
                     orderAscendingDirection = bodyDtParameters.Order[0].Dir.ToString().ToLower() == "asc";
                 }
 
-                var result = _context.view_member_users.Where(x => x.member_id == jwtStatus.member_id && x.type != "admin" && x.delete_status==0).AsQueryable();
+                var result = _context.view_member_users.Where(x => x.member_id == jwtStatus.member_id && x.type != "admin" && x.delete_status == 0).AsQueryable();
 
                 if (!string.IsNullOrEmpty(searchBy))
                 {
@@ -165,14 +167,14 @@ namespace Etax_Api.Controllers
                     return StatusCode(400, new { message = "กรุณาตั้งรหัสผ่านให้มีสัญลักษณ์พิเศษอย่างน้อย 1 ตัวอักษร", });
                 }
 
-                var checkMemberUser = _context.member_users
+                var checkMemberUser = await _context.member_users
                     .Where(x => x.username == bodyMemberUser.username)
-                    .FirstOrDefault();
+                    .FirstOrDefaultAsync();
 
                 if (checkMemberUser != null)
                     return StatusCode(400, new { message = "ชื่อเข้าใช้งานนี้มีในระบบแล้ว", });
 
-                using (var transaction = _context.Database.BeginTransaction())
+                using (var transaction = await _context.Database.BeginTransactionAsync())
                 {
                     try
                     {
@@ -245,11 +247,11 @@ namespace Etax_Api.Controllers
                         };
                         _context.Add(logMemberUser);
                         await _context.SaveChangesAsync();
-                        transaction.Commit();
+                        await transaction.CommitAsync();
                     }
                     catch (Exception ex)
                     {
-                        transaction.Rollback();
+                        await transaction.RollbackAsync();
                         return StatusCode(400, new { message = ex.Message });
                     }
                 }
@@ -264,7 +266,7 @@ namespace Etax_Api.Controllers
                 return StatusCode(400, new { message = ex.Message });
             }
         }
-   
+
         [HttpPost]
         [Route("delete_mamber_user/{id}")]
         public async Task<IActionResult> DeleteMemberUser(int id)
@@ -301,7 +303,7 @@ namespace Etax_Api.Controllers
 
                         _context.Update(member_user);
                         await _context.SaveChangesAsync();
-                        transaction.Commit();
+                        await transaction.CommitAsync();
 
                         return StatusCode(200, new
                         {
@@ -310,7 +312,7 @@ namespace Etax_Api.Controllers
                     }
                     catch (Exception ex)
                     {
-                        transaction.Rollback();
+                        await transaction.RollbackAsync();
                         return StatusCode(400, new { message = ex.Message });
                     }
                 }
@@ -375,6 +377,8 @@ namespace Etax_Api.Controllers
                     x.per_report_view,
                     x.view_self_only,
                     x.view_branch_only,
+                    x.job_order,
+                    x.job_order_name,
                 })
                 .FirstOrDefaultAsync();
 
@@ -383,6 +387,18 @@ namespace Etax_Api.Controllers
                 var memberUserBranch = await _context.member_user_branch
                 .Where(x => x.member_user_id == id)
                 .ToListAsync();
+
+                var jobNamesSelect = await _context.job_permission
+.Where(p => p.UserMemberId == jwtStatus.user_id && p.JobName != null)
+.Include(j => j.JobName)
+.Select(j => new Dictionary<string, object>
+{
+              { "Id",j.JobId},
+        { "ThaiName", j.JobName.ThaiName },
+        { "EngName", j.JobName.EngName },
+        { "JobCode", j.JobName.JobCode }
+})
+.ToListAsync();
 
                 if (memberUser != null && memberUserPermission != null)
                 {
@@ -419,6 +435,9 @@ namespace Etax_Api.Controllers
                                 view_self_only = (memberUserPermission.view_self_only == "Y") ? true : false,
                                 view_branch_only = (memberUserPermission.view_branch_only == "Y") ? true : false,
                                 branchs = memberUserBranch,
+                                job_order = (memberUserPermission.job_order == "Y") ? true : false,
+                                job_order_name = (memberUserPermission.job_order_name == "Y") ? true : false,
+                                jobNamesSelect = jobNamesSelect,
                             }
                         },
                     });
@@ -464,19 +483,19 @@ namespace Etax_Api.Controllers
                 if (String.IsNullOrEmpty(bodyMemberUser.last_name))
                     return StatusCode(400, new { message = "กรุณากำหนดนามสกุลผู้ใช้งาน", });
 
-                var memberUser = _context.member_users
+                var memberUser = await _context.member_users
                     .Where(x => x.id == bodyMemberUser.id)
-                    .FirstOrDefault();
+                    .FirstOrDefaultAsync();
 
-                var memberUserPermission = _context.member_user_permission
+                var memberUserPermission = await _context.member_user_permission
                    .Where(x => x.member_user_id == bodyMemberUser.id)
-                   .FirstOrDefault();
+                   .FirstOrDefaultAsync();
 
                 if (memberUser == null || memberUserPermission == null)
                     return StatusCode(400, new { message = "ไม่พบข้อมูลที่ต้องการ", });
 
 
-                using (var transaction = _context.Database.BeginTransaction())
+                using (var transaction = await _context.Database.BeginTransactionAsync())
                 {
                     try
                     {
@@ -537,6 +556,30 @@ namespace Etax_Api.Controllers
                             }
                         }
 
+
+                        var jobPermissionCheck = await _context.job_permission
+                              .Where(x => x.UserMemberId == memberUser.id)
+                              .ToListAsync();
+
+                        if (jobPermissionCheck != null)
+                        {
+                            _context.RemoveRange(jobPermissionCheck);
+                        }
+
+                        foreach (BodyPermissionJobName jobname in bodyMemberUser.permission.jobNamesSelect)
+                        {
+
+                            JobPermission jobPermission = new JobPermission()
+                            {
+                                UserMemberId = memberUser.id,
+                                JobId = jobname.Id,
+                                JobName = await _context.job_name.FindAsync(jobname.Id),
+                            };
+                            _context.Add(jobPermission);
+
+                        }
+
+
                         LogMemberUser logMemberUser = new LogMemberUser()
                         {
                             member_id = jwtStatus.member_id,
@@ -548,7 +591,7 @@ namespace Etax_Api.Controllers
                         _context.Add(logMemberUser);
                         await _context.SaveChangesAsync();
 
-                        transaction.Commit();
+                        await transaction.CommitAsync();
 
                         return StatusCode(200, new
                         {
@@ -557,7 +600,7 @@ namespace Etax_Api.Controllers
                     }
                     catch (Exception ex)
                     {
-                        transaction.Rollback();
+                        await transaction.RollbackAsync();
                         return StatusCode(400, new { message = ex.Message });
                     }
                 }

@@ -450,14 +450,22 @@ namespace Etax_Api.Class.Controllers
                     //    if (sendingMethod != "")
                     //        sendingMethod += "/";
 
+<<<<<<< HEAD
                     //    sendingMethod = "Sms";
+=======
+                    //    sendingMethod += "Sms";
+>>>>>>> feature/API_JobOrder
                     //}
                     //if (data.webhook != 0)
                     //{
                     //    if (sendingMethod != "")
                     //        sendingMethod += "/";
 
+<<<<<<< HEAD
                     //    sendingMethod = "Webhook";
+=======
+                    //    sendingMethod += "Webhook";
+>>>>>>> feature/API_JobOrder
                     //}
                     var methods = new List<string>();
 
