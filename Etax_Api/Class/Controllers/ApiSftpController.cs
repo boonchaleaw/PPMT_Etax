@@ -257,7 +257,7 @@ namespace Etax_Api.Controllers
         {
             try
             {
-
+				//Check API Key
                 if (bodyApiCreateEtaxFile.APIKey != "l60leBwJDveYgG5Ar67HXLgUhJL6ANS9G756Cccz0c0fvIAWmNRSgQyb4o4NjhBl640ivaONHQGHr8Ad5p4eiyE0Xob6gp5LHVvm2OVdUpIlYHV5hKqpJSeen6Bg4ARA")
                     return StatusCode(400, new
                     {
@@ -265,7 +265,8 @@ namespace Etax_Api.Controllers
                         errorCode = "E001",
                         errorMessage = "APIKey ไม่ถูกต้อง",
                     });
-
+				
+				//Check fixed username - password
                 if (bodyApiCreateEtaxFile.UserCode != "mk" || bodyApiCreateEtaxFile.AccessKey != "P@ssw0rd")
                     return StatusCode(400, new
                     {
@@ -274,6 +275,7 @@ namespace Etax_Api.Controllers
                         errorMessage = "ชื่อผู้ใช้งานหรือรหัสผ่านไม่ถูกต้อง",
                     });
 
+				//Check fixed Tax ID
                 if (bodyApiCreateEtaxFile.SellerTaxId != "0115561013130")
                     return StatusCode(400, new
                     {
@@ -282,6 +284,7 @@ namespace Etax_Api.Controllers
                         errorMessage = "ไม่พบ Tax ID ในระบบ",
                     });
 
+				//Check Branch ID
                 if (bodyApiCreateEtaxFile.SellerBranchId != "00000")
                     return StatusCode(400, new
                     {
@@ -290,6 +293,7 @@ namespace Etax_Api.Controllers
                         errorMessage = "ไม่พบสาขาที่ต้องการ",
                     });
 
+				//Check contents
                 if (bodyApiCreateEtaxFile.TextContent == null)
                     return StatusCode(400, new
                     {
@@ -300,6 +304,7 @@ namespace Etax_Api.Controllers
 
                 TextContentDataJson data;
 
+				//Extract JSON content into MkDataJson
                 try
                 {
                     string text = "";
@@ -324,22 +329,24 @@ namespace Etax_Api.Controllers
                     return StatusCode(400, new { message = "รูปแบบไฟล์ไม่ถูกต้อง" });
                 }
 
-
+				//If the data is from ERP
                 if (bodyApiCreateEtaxFile.PdfTemplateId == "Erp")
                 {
+					//Check tax_id if matched in the DB
                     var member = await (from m in _context.members
                                         where m.tax_id == bodyApiCreateEtaxFile.SellerTaxId
                                         select m).FirstOrDefaultAsync();
                     if (member == null)
                         return StatusCode(400, new { message = "ไม่พบผู้ขายที่ต้องการ" });
 
-
+					//Check if branch code is valid
                     var branch = await (from b in _context.branchs
                                         where b.member_id == member.id && b.branch_code == data.C02_SELLER_BRANCH_ID
                                         select b).FirstOrDefaultAsync();
                     if (branch == null)
                         return StatusCode(400, new { message = "ไม่พบผู้สาขาที่ต้องการ" });
 
+					//Check if found any etax_id with that same H03_DOCUMENT_ID, repeated data if founded
                     var etax_file = await (from ef in _context.etax_files
                                            where ef.etax_id == data.H03_DOCUMENT_ID.Trim() && ef.delete_status == 0
                                            select ef).FirstOrDefaultAsync();
@@ -348,7 +355,8 @@ namespace Etax_Api.Controllers
 
 
                     DateTime now = DateTime.Now;
-
+					
+					//Define document type
                     int document_type_id = 0;
                     if (data.H01_DOCUMENT_TYPE_CODE == "T03")
                         document_type_id = 7;
@@ -359,8 +367,9 @@ namespace Etax_Api.Controllers
                     else if (data.H01_DOCUMENT_TYPE_CODE == "81")
                         document_type_id = 3;
                     else
-                        return StatusCode(400, new { message = "ไม่รอบรับประเภทไฟล์นี้" });
-
+                        return StatusCode(400, new { message = "ไม่รองรับประเภทไฟล์นี้" });
+					
+					//Check if DOCUMENT_ID is empty
                     if (data.H03_DOCUMENT_ID.Trim() == "")
                         return StatusCode(400, new { message = "ไม่พบหมายเลขเอกสาร" });
 
@@ -376,7 +385,8 @@ namespace Etax_Api.Controllers
                             etaxFile.create_type = "api";
                             etaxFile.gen_xml_status = "pending";
                             etaxFile.gen_pdf_status = "pending";
-                            etaxFile.add_email_status = "no";
+							etaxFile.add_email_status = "pending";
+                            //etaxFile.add_email_status = "no"; //Old condition, not sent any E-mail
                             etaxFile.add_sms_status = "no";
                             etaxFile.add_ebxml_status = "no";
                             etaxFile.send_xml_status = "N";
@@ -396,6 +406,9 @@ namespace Etax_Api.Controllers
                             etaxFile.buyer_fax = "";
                             etaxFile.buyer_country_code = data.B25_BUYER_COUNTRY_ID.Trim();
                             etaxFile.buyer_email = data.B08_BUYER_URIID.Trim();
+							//If email not specify, use default
+							if(etaxFile.buyer_email == "")
+								etaxFile.buyer_email = "issara.ru@markone.co.th";
                             etaxFile.price = Convert.ToDouble(data.F46_TAX_BASIS_TOTAL_AMOUNT.Trim());
                             etaxFile.discount = Convert.ToDouble(data.F29_ALLOWANCE_ACTUAL_AMOUNT.Trim());
                             etaxFile.tax_rate = (int)Convert.ToDouble(data.F05_TAX_CAL_RATE1.Trim());
