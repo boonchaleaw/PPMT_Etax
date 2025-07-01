@@ -29,6 +29,7 @@ namespace Etax_Api
 
             errorLog.error = errorMessage;
             errorLog.error_time = now;
+            errorLog.admin_email_status = "Pending"; 
 
             string errorId = $"<Msg-{Guid.NewGuid}-{now.ToString("yyyyMMddHHmmssffff")}>";
             if (string.IsNullOrEmpty(errorLog.error_id))
