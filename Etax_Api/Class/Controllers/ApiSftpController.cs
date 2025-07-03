@@ -417,11 +417,11 @@ namespace Etax_Api.Controllers
                             etaxFile.remark = "";
                             etaxFile.other = "";
 
-                            //add password pdf
-                            if (document_type_id != 7)
-                            {
-                                etaxFile.password = etaxFile.buyer_tax_id.Substring(etaxFile.buyer_tax_id.Length - 5);
-                            }
+                            //Request 02/07/2025, remove PDF password
+                            //if (document_type_id != 7)
+                            //{
+                            //    etaxFile.password = etaxFile.buyer_tax_id.Substring(etaxFile.buyer_tax_id.Length - 5);
+                            //}
 
                             if (document_type_id == 8)
                             {

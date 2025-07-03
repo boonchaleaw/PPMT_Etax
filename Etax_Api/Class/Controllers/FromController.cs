@@ -1365,7 +1365,7 @@ namespace Etax_Api.Controllers
                             item_name = item.name,
                             rd = rd,
                             cancel = cancel,
-                            totalText = Function.ThBahtText(bodyKkData.totalAmount),
+                            totalText = Function.ThBahtText(bodyKkData.totalBeforeRounding),
                         },
                     });
                 }
@@ -1392,6 +1392,7 @@ namespace Etax_Api.Controllers
                 DateTime now = DateTime.Now;
                 try
                 {
+                    //Check redundant request
                     if (!Log.CheckLogMk(bodyUserform.dataQr.billID, now))
                     {
                         return StatusCode(400, new { message = "มีข้อมูลซ้ำเข้ามาในเวลาเดียวกัน กรุณาทำรายการใหม่ในภายหลัง", });
@@ -1399,10 +1400,11 @@ namespace Etax_Api.Controllers
                 }
                 catch { }
 
+                //Check redundant request
                 if (double.Parse(bodyUserform.dataQr.totalAmount) == 0)
                     return StatusCode(404, new { message = "ไม่พบข้อมูลยอดชำระเงิน กรุณาลองใหม่ภายหลังหรือติดต่อเจ้าหน้าที่", });
 
-                //Check Email
+                //Check basic Email format
                 MatchCollection matchEmail = rxEmail.Matches(bodyUserform.email);
                 if (matchEmail.Count > 0)
                 {
@@ -1414,13 +1416,14 @@ namespace Etax_Api.Controllers
                     bodyUserform.email = email;
                 }
 
+                //Check branch code format
                 MatchCollection matchBranch = rxBranchCode.Matches(bodyUserform.branch_code);
                 if (matchBranch.Count > 0)
                     bodyUserform.branch_code = matchBranch[0].Value;
                 else
                     bodyUserform.branch_code = "00000";
 
-
+                //Get data from etax_files
                 EtaxFile etaxFile = await _context.etax_files
                 .Where(x =>
                 x.member_id == bodyUserform.member_id &&
@@ -1429,17 +1432,17 @@ namespace Etax_Api.Controllers
                 ).FirstOrDefaultAsync();
 
 
-                if (bodyUserform.lang == "EN")
+                if (bodyUserform.lang == "EN") //If Language is EN
                 {
-                    if (etaxFile == null)
+                    if (etaxFile == null) //If this invoice is new, not found in etax_file
                     {
-
                         DateTime ref_issue_date = DateTime.ParseExact(bodyUserform.dataQr.bilIDate, "yyyyMMdd", CultureInfo.InvariantCulture);
                         string running_name = "etax_id_" + ref_issue_date.ToString("MM_yyyy");
 
                         if (running_name == "etax_id_12_2024")
                             running_name = "etax_id";
 
+                        //Check and count running_number
                         RunningNumber runningNumber = await _context.running_number
                         .Where(x => x.member_id == bodyUserform.member_id && x.type == running_name)
                         .FirstOrDefaultAsync();
@@ -1469,14 +1472,16 @@ namespace Etax_Api.Controllers
                             _context.SaveChanges();
                         }
 
-
+                        //Calculate vat value
                         double amountNoVat = double.Parse(bodyUserform.dataQr.amount) * 100 / 107;
                         double discountNoVat = double.Parse(bodyUserform.dataQr.discount) * 100 / 107;
 
+                        //Create etax_id
                         string etax_id = bodyUserform.dataQr.branchCode +
                             ref_issue_date.ToString("yyyyMMdd", new CultureInfo("th-TH")) + "-" +
                             running_number.ToString().PadLeft(5, '0');
 
+                        //Insert data into etax_files
                         using (var transaction = _context.Database.BeginTransaction())
                         {
                             try
@@ -1605,10 +1610,9 @@ namespace Etax_Api.Controllers
                             }
                         }
                     }
-                    else
+                    else //If this invoice has a record data in etax_file
                     {
-
-                        string itemName = "";
+                        //If Option define as food, rewrite the item name
                         if (bodyUserform.dataQr.option == "food")
                         {
                             EtaxFileItem item = _context.etax_file_items
