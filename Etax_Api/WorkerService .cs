@@ -19,9 +19,9 @@ namespace Etax_Api
 
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
-            var builder = new ConfigurationBuilder()
-            .AddJsonFile($"appsettings.json");
-            _config = builder.Build();
+            //var builder = new ConfigurationBuilder()
+            //.AddJsonFile($"appsettings.json");
+            //_config = builder.Build();
 
             //_context = new ApplicationDbContext(_config);
             //_context.Database.SetCommandTimeout(180);

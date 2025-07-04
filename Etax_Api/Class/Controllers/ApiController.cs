@@ -1,5 +1,6 @@
 ﻿
 using Etax_Api.Class.Model;
+using Etax_Api.Middleware;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion.Internal;

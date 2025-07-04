@@ -4,7 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Microsoft.EntityFrameworkCore.Internal;
 
-namespace Etax_Api
+namespace Etax_Api.Middleware
 {
     public interface IExceptionLogger
     {
@@ -30,6 +30,7 @@ namespace Etax_Api
             errorLog.error = errorMessage;
             errorLog.error_time = now;
             errorLog.admin_email_status = "Pending"; 
+            errorLog.service = "Etax_Api"; // กำหนดชื่อบริการที่เกิดข้อผิดพลาด
 
             string errorId = $"<Msg-{Guid.NewGuid}-{now.ToString("yyyyMMddHHmmssffff")}>";
             if (string.IsNullOrEmpty(errorLog.error_id))
@@ -44,9 +45,10 @@ namespace Etax_Api
 
 
 
-            // 3. บันทึกลงฐานข้อมูลเอง (ไม่ผ่าน Serilog sink ก็ได้)
+            // 2. บันทึกลงฐานข้อมูลเอง 
             try
             {
+             
                 using var context = _factory.CreateDbContext();
                 await context.error_log.AddAsync(errorLog);
                 await context.SaveChangesAsync();

@@ -15,10 +15,21 @@ namespace Etax_Api
     {
         public static void Main(string[] args)
         {
+            // Serilog.Log.Logger = new LoggerConfiguration()
+            //.MinimumLevel.Information()
+            //.WriteTo.File(@"D:\\etax_logs\logs\log-.txt", rollingInterval: RollingInterval.Day)
+            //.CreateLogger();
+
+
+            var config = new ConfigurationBuilder()
+               .AddJsonFile("appsettings.json")
+               .Build();
+
             Serilog.Log.Logger = new LoggerConfiguration()
-           .MinimumLevel.Debug()
-           .WriteTo.File(@"D:\\etax_logs\logs\log-.txt", rollingInterval: RollingInterval.Day)
-           .CreateLogger();
+                .ReadFrom.Configuration(config)
+                .CreateLogger();
+
+
 
             try
             {

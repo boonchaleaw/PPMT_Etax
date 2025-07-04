@@ -1,3 +1,4 @@
+using Etax_Api.Middleware;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.HttpsPolicy;
@@ -41,14 +42,14 @@ namespace Etax_Api
             });
 
             services.AddDbContextFactory<ApplicationDbContext>(options =>
-   options.UseSqlServer(Configuration.GetConnectionString("Default"))
-   .EnableSensitiveDataLogging()
-   );
+                   options.UseSqlServer(Configuration.GetConnectionString("Default"))
+                   .EnableSensitiveDataLogging()
+                   );
 
             services.AddDbContext<ApplicationDbContext>(options =>
-       options.UseSqlServer(Configuration.GetConnectionString("Default"))
-              .EnableSensitiveDataLogging()
-            );
+                   options.UseSqlServer(Configuration.GetConnectionString("Default"))
+                          .EnableSensitiveDataLogging()
+                        );
 
            
 
@@ -73,6 +74,8 @@ namespace Etax_Api
             app.UseHttpsRedirection();
 
             app.UseRouting();
+
+            app.UseMiddleware<HttpLoggingMiddleware>();
 
             app.UseAuthorization();
 

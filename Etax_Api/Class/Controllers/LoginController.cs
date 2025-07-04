@@ -9,6 +9,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Diagnostics.Eventing.Reader;
+using Etax_Api.Middleware;
 
 namespace Etax_Api.Controllers
 {
@@ -91,9 +92,9 @@ namespace Etax_Api.Controllers
 
 
 
-            var checkLoginFail_5 = (from mlf in _context.member_login_fail
+            var checkLoginFail_5 =await (from mlf in _context.member_login_fail
                                     where mlf.member_user_id == checkUser.id && mlf.login_count >= 5
-                                    select mlf).FirstOrDefault();
+                                    select mlf).FirstOrDefaultAsync();
 
             if (checkLoginFail_5 != null)
             {
@@ -101,7 +102,7 @@ namespace Etax_Api.Controllers
                 if (checkDate > checkLoginFail_5.login_date)
                 {
                     _context.member_login_fail.Remove(checkLoginFail_5);
-                    _context.SaveChanges();
+                  await  _context.SaveChangesAsync();
                 }
                 else
                 {
@@ -109,7 +110,7 @@ namespace Etax_Api.Controllers
                 }
             }
 
-            var user = _context.view_member_users
+            var user =await _context.view_member_users
             .Select(x => new
             {
                 x.id,
@@ -121,7 +122,7 @@ namespace Etax_Api.Controllers
                 x.delete_status,
             })
             .Where(x => x.username == bodyLogin.username && x.password == Encryption.SHA256(bodyLogin.password) && x.delete_status == 0)
-            .FirstOrDefault();
+            .FirstOrDefaultAsync();
 
             if (user != null)
             {
@@ -152,7 +153,7 @@ namespace Etax_Api.Controllers
                     session_key = session_key,
                     create_date = now,
                 });
-                _context.SaveChanges();
+              await  _context.SaveChangesAsync();
 
 
                 return StatusCode(200, new
@@ -170,9 +171,9 @@ namespace Etax_Api.Controllers
             }
             else
             {
-                var checkLogin = (from mlf in _context.member_login_fail
+                var checkLogin =await (from mlf in _context.member_login_fail
                                   where mlf.member_user_id == checkUser.id
-                                  select mlf).FirstOrDefault();
+                                  select mlf).FirstOrDefaultAsync();
 
 
                 if (checkLogin == null)
@@ -184,7 +185,7 @@ namespace Etax_Api.Controllers
                         login_date = now,
                         create_date = now,
                     });
-                    _context.SaveChanges();
+                   await _context.SaveChangesAsync();
                     return StatusCode(400, new { message = "กรอกรหัสผ่านผิดครั่งที่ 1", });
                 }
                 else
@@ -192,7 +193,7 @@ namespace Etax_Api.Controllers
                     int login_count = checkLogin.login_count + 1;
                     checkLogin.login_count = login_count;
                     checkLogin.login_date = now;
-                    _context.SaveChanges();
+                   await _context.SaveChangesAsync();
 
 
                     if (login_count >= 5)
@@ -214,16 +215,16 @@ namespace Etax_Api.Controllers
             if (!jwtStatus.status)
                 return StatusCode(401, new { message = "token ไม่ถูกต้องหรือหมดอายุ", });
 
-            var session = (from ms in _context.member_session
+            var session =await (from ms in _context.member_session
                            where ms.member_id == jwtStatus.member_id &&
                            ms.member_user_id == jwtStatus.user_id &&
                            ms.session_key == jwtStatus.session_key
-                           select ms).FirstOrDefault();
+                           select ms).FirstOrDefaultAsync();
 
             if (session != null)
             {
                 _context.Remove(session);
-                _context.SaveChanges();
+              await  _context.SaveChangesAsync();
             }
 
             return StatusCode(200, new

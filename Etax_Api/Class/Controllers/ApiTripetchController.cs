@@ -1,6 +1,7 @@
 ﻿
 using Etax_Api.Class.EtaxValidator.Tripetch;
 using Etax_Api.Class.Model;
+using Etax_Api.Middleware;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -368,11 +369,14 @@ namespace Etax_Api.Controllers
                 string output = _config["Path:Output"];
 
 
+                bool fileUploadSuccess = ApiFileTransfer.UploadFile(_config["Path:FileTransfer"], file_path, bodyApiCreateEtax.pdf_base64, _config["Path:Mode"]);
+
+
                 using (var transaction = await _context.Database.BeginTransactionAsync())
                 {
                     try
                     {
-                        if (ApiFileTransfer.UploadFile(_config["Path:FileTransfer"], file_path, bodyApiCreateEtax.pdf_base64, _config["Path:Mode"]))
+                        if (fileUploadSuccess)
                         {
 
                             EtaxFile etaxFile = new EtaxFile();
@@ -507,12 +511,8 @@ namespace Etax_Api.Controllers
 
                             //throw new Exception("Test exception for error logging"); // For testing error logging
 
-                            await transaction.CommitAsync();
+                            await transaction.CommitAsync().ConfigureAwait(false);
 
-                          
-
-
-                           
 
                             return StatusCode(200, new
                             {
@@ -543,7 +543,15 @@ namespace Etax_Api.Controllers
                     }
                     catch (Exception ex)
                     {
-                        await transaction.RollbackAsync();
+                        try
+                        {
+                            await transaction.RollbackAsync();
+                        }
+                        catch (Exception rollbackEx)
+                        {
+                            // Log rollback exception but don't throw it
+                            Serilog.Log.Error("Transaction rollback failed: {Error}", rollbackEx.Message);
+                        }
 
                         await _exceptionLogger.LogErrorAsync(new ErrorLog
                         {
@@ -556,8 +564,6 @@ namespace Etax_Api.Controllers
                         }, ex);
 
                         string errorMessage = ex.InnerException != null ? ex.InnerException.Message : ex.Message;
-
-                       
 
                         return StatusCode(400, new { error_code = "9000", error_message = "MsgErrorID: " + MsgErrorId + " | เกิดข้อผิดพลาดจากระบบ : " + errorMessage });
 
