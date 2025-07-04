@@ -80,6 +80,7 @@ namespace Etax_Api.Controllers
                     count = x.count,
                     price = x.price,
                 })
+                .OrderByPropertyDescending("count")
                 .ToListAsync();
 
                 List<ReturnPrice> listPriceSms = await _context.member_price_sms
@@ -142,8 +143,11 @@ namespace Etax_Api.Controllers
                 double priceTotalEmail = 0;
                 if (price_type != null && price_type.email_price_type == "tran")
                 {
-                    var email_tran = await _context.view_send_email_list
-                    .Where(x => x.member_id == jwtStatus.member_id && x.send_email_status == "success" && x.create_date >= bodyDateFilter.dateStart && x.create_date <= bodyDateFilter.dateEnd)
+					var email_tran = await _context.view_send_email_list
+                    .Where(x => x.member_id == jwtStatus.member_id && 
+								x.send_email_status == "success" && 
+								x.create_date >= bodyDateFilter.dateStart && 
+								x.create_date <= bodyDateFilter.dateEnd)
                     .GroupBy(x => x.etax_file_id)
                     .Select(x => new
                     {
@@ -152,19 +156,16 @@ namespace Etax_Api.Controllers
                     })
                     .ToListAsync();
 
+                    int listLength = listPriceEmail.Count;
                     foreach (var et in email_tran)
                     {
-                        int email_count = et.count;
-                        for (int i = (listPriceEmail.Count - 1); i >= 0; i--)
+                        for (int i = 0; i < listLength; i++)
                         {
-                            if (email_count > listPriceEmail[i].count)
+                            if (et.count > listPriceEmail[i].count)
                             {
-                                int count_use = (email_count - listPriceEmail[i].count);
-                                double price_use = count_use * listPriceEmail[i].price;
-                                listPriceEmail[i].count_use += count_use;
-                                listPriceEmail[i].price_use += price_use;
-                                priceTotalEmail += price_use;
-                                email_count = listPriceEmail[i].count;
+                                listPriceEmail[i].count_use++;
+                                listPriceEmail[i].price_use += listPriceEmail[i].price;
+                                continue;
                             }
                         }
                     }
