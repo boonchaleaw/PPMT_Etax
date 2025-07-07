@@ -165,6 +165,7 @@ namespace Etax_Api.Controllers
                             {
                                 listPriceEmail[i].count_use++;
                                 listPriceEmail[i].price_use += listPriceEmail[i].price;
+                                priceTotalEmail += listPriceEmail[i].price;
                                 continue;
                             }
                         }
