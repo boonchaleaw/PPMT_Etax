@@ -658,7 +658,7 @@ namespace Etax_Api.Controllers
                     already = true;
 
                     DateTime ref_issue_date = (DateTime)etaxFile.ref_issue_date;
-                    DateTime expiryDate = DateTime.ParseExact(ref_issue_date.AddMonths(1).ToString("yyyy-MM") + "-11", "yyyy-MM-dd", CultureInfo.InvariantCulture);
+                    DateTime expiryDate = DateTime.ParseExact(ref_issue_date.AddDays(7).ToString("yyyy-MM-dd"), "yyyy-MM-dd", CultureInfo.InvariantCulture);
 
                     if (bodyMkData.option != "over" && now >= expiryDate)
                         expire_edit = true;
@@ -706,7 +706,7 @@ namespace Etax_Api.Controllers
                 else
                 {
                     DateTime bilIDate = DateTime.ParseExact(bodyMkData.bilIDate, "yyyyMMdd", CultureInfo.InvariantCulture);
-                    DateTime expiryDate = DateTime.ParseExact(bilIDate.AddMonths(1).ToString("yyyy-MM") + "-11", "yyyy-MM-dd", CultureInfo.InvariantCulture);
+                    DateTime expiryDate = DateTime.ParseExact(bilIDate.AddDays(7).ToString("yyyy-MM-dd"), "yyyy-MM-dd", CultureInfo.InvariantCulture);
 
                     if (bodyMkData.option != "over" && now >= expiryDate)
                         return StatusCode(404, new { message = "รายการซื้อขายเกิน 7 วัน ไม่สามารถออกใบกำกับภาษีอิเล็กทรอนิคได้", });
@@ -956,7 +956,7 @@ namespace Etax_Api.Controllers
                     else
                     {
                         DateTime bilIDate = DateTime.ParseExact(bodyMkData.bilIDate, "yyyyMMdd", CultureInfo.InvariantCulture);
-                        DateTime expiryDate = DateTime.ParseExact(bilIDate.AddMonths(1).ToString("yyyy-MM") + "-11", "yyyy-MM-dd", CultureInfo.InvariantCulture);
+                        DateTime expiryDate = DateTime.ParseExact(bilIDate.AddDays(14).ToString("yyyy-MM-dd"), "yyyy-MM-dd", CultureInfo.InvariantCulture);
 
                         if (bodyMkData.option != "over" && now >= expiryDate)
                             return StatusCode(404, new { message = "รายการซื้อขายเกิน 14 วัน ไม่สามารถออกใบกำกับภาษีอิเล็กทรอนิคได้", });
@@ -1266,7 +1266,7 @@ namespace Etax_Api.Controllers
                     already = true;
 
                     DateTime ref_issue_date = (DateTime)etaxFile.ref_issue_date;
-                    DateTime expiryDate = DateTime.ParseExact(ref_issue_date.AddMonths(1).ToString("yyyy-MM") + "-11", "yyyy-MM-dd", CultureInfo.InvariantCulture);
+                    DateTime expiryDate = DateTime.ParseExact(ref_issue_date.AddDays(7).ToString("yyyy-MM-dd"), "yyyy-MM-dd", CultureInfo.InvariantCulture);
 
                     //*Invoice will expired at the 11th day of the follow month after created
                     if (bodyKkData.option != "over" && now >= expiryDate)
@@ -1309,7 +1309,7 @@ namespace Etax_Api.Controllers
                 else
                 {
                     DateTime bilIDate = DateTime.ParseExact(bodyKkData.billDate, "yyyyMMdd", CultureInfo.InvariantCulture);
-                    DateTime expiryDate = DateTime.ParseExact(bilIDate.AddMonths(1).ToString("yyyy-MM") + "-11", "yyyy-MM-dd", CultureInfo.InvariantCulture);
+                    DateTime expiryDate = DateTime.ParseExact(bilIDate.AddDays(7).ToString("yyyy-MM-dd"), "yyyy-MM-dd", CultureInfo.InvariantCulture);
 
                     if (bodyKkData.option != "over" && now >= expiryDate)
                         return StatusCode(404, new { message = "รายการซื้อขายเกิน 7 วัน ไม่สามารถออกใบกำกับภาษีอิเล็กทรอนิคได้", });
