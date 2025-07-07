@@ -73,11 +73,11 @@ namespace Etax_Api
 
             app.UseRouting();
 
-<<<<<<< HEAD
+
             app.UseMiddleware<HttpLoggingMiddleware>();
-=======
+
             app.UseCors("MyPolicy");
->>>>>>> feature/Koomkoom
+
 
             app.UseAuthorization();
 
