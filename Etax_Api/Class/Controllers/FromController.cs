@@ -527,7 +527,7 @@ namespace Etax_Api.Controllers
                     if (checksum != bodyMkData.checkSum)
                         return StatusCode(404, new
                         {
-                            message = "รูปแบบบข้อมูลไม่ถูกต้อง",
+                            message = "รูปแบบข้อมูลไม่ถูกต้อง",
                         });
                 }
                 else
@@ -562,7 +562,7 @@ namespace Etax_Api.Controllers
                     if (checksum != bodyMkData.checkSum)
                         return StatusCode(404, new
                         {
-                            message = "รูปแบบบข้อมูลไม่ถูกต้อง",
+                            message = "รูปแบบข้อมูลไม่ถูกต้อง",
                         });
 
                 }
@@ -663,7 +663,7 @@ namespace Etax_Api.Controllers
                     already = true;
 
                     DateTime ref_issue_date = (DateTime)etaxFile.ref_issue_date;
-                    DateTime expiryDate = DateTime.ParseExact(ref_issue_date.AddMonths(1).ToString("yyyy-MM") + "-11", "yyyy-MM-dd", CultureInfo.InvariantCulture);
+                    DateTime expiryDate = DateTime.ParseExact(ref_issue_date.AddDays(7).ToString("yyyy-MM-dd"), "yyyy-MM-dd", CultureInfo.InvariantCulture);
 
                     if (bodyMkData.option != "over" && now >= expiryDate)
                         expire_edit = true;
@@ -711,13 +711,12 @@ namespace Etax_Api.Controllers
                 else
                 {
                     DateTime bilIDate = DateTime.ParseExact(bodyMkData.bilIDate, "yyyyMMdd", CultureInfo.InvariantCulture);
-                    DateTime expiryDate = DateTime.ParseExact(bilIDate.AddMonths(1).ToString("yyyy-MM") + "-11", "yyyy-MM-dd", CultureInfo.InvariantCulture);
+                    DateTime expiryDate = DateTime.ParseExact(bilIDate.AddDays(7).ToString("yyyy-MM-dd"), "yyyy-MM-dd", CultureInfo.InvariantCulture);
 
                     if (bodyMkData.option != "over" && now >= expiryDate)
                         return StatusCode(404, new { message = "รายการซื้อขายเกิน 7 วัน ไม่สามารถออกใบกำกับภาษีอิเล็กทรอนิคได้", });
 
                 }
-
 
                 if (member != null && branch != null && etaxFile_tir == null )
                 {
@@ -874,7 +873,7 @@ namespace Etax_Api.Controllers
                 if (checksum != bodyMkData.checkSum)
                     return StatusCode(404, new
                     {
-                        message = "รูปแบบบข้อมูลไม่ถูกต้อง",
+                        message = "รูปแบบข้อมูลไม่ถูกต้อง",
                     });
 
 
@@ -962,7 +961,7 @@ namespace Etax_Api.Controllers
                     else
                     {
                         DateTime bilIDate = DateTime.ParseExact(bodyMkData.bilIDate, "yyyyMMdd", CultureInfo.InvariantCulture);
-                        DateTime expiryDate = DateTime.ParseExact(bilIDate.AddMonths(1).ToString("yyyy-MM") + "-11", "yyyy-MM-dd", CultureInfo.InvariantCulture);
+                        DateTime expiryDate = DateTime.ParseExact(bilIDate.AddDays(14).ToString("yyyy-MM-dd"), "yyyy-MM-dd", CultureInfo.InvariantCulture);
 
                         if (bodyMkData.option != "over" && now >= expiryDate)
                             return StatusCode(404, new { message = "รายการซื้อขายเกิน 14 วัน ไม่สามารถออกใบกำกับภาษีอิเล็กทรอนิคได้", });
@@ -1100,6 +1099,294 @@ namespace Etax_Api.Controllers
             }
         }
 
+		//*New for Koomkoom
+        [HttpPost]
+        [Route("get_data_form_kk")]
+        public async Task<IActionResult> GetDataForm_Koomkoom([FromBody] BodyMkKoomkoomData bodyKkData)
+        {
+            try
+            {
+                DateTime now = DateTime.Now;
+                var branchs = await (from b in _context.branchs
+                                     where b.name.Contains(bodyKkData.branchID)
+                                     select new
+                                     {
+                                         b.id,
+                                         b.member_id,
+                                         b.name,
+                                         b.branch_code,
+                                         b.building_number,
+                                         b.building_name,
+                                         b.street_name,
+                                         b.district_code,
+                                         b.district_name,
+                                         b.amphoe_code,
+                                         b.amphoe_name,
+                                         b.province_code,
+                                         b.province_name,
+                                         b.zipcode,
+                                     }).ToListAsync();
+
+                if (branchs.Count != 1)
+                    return StatusCode(404, new { message = "ไม่พบข้อมูลที่ต้องการ", });
+
+                var branch = branchs.First();
+
+                var member = await (from m in _context.members
+                                    where m.group_name == "Mk" && m.id == branch.member_id
+                                    select new
+                                    {
+                                        m.id,
+                                        m.name,
+                                        m.tax_id,
+                                    }).FirstOrDefaultAsync();
+
+				//Checksum Function
+				string TextChecksum_X = bodyKkData.branchID + bodyKkData.billID.Split('-').Last() + bodyKkData.amount + bodyKkData.noDiscount + bodyKkData.fAndB + bodyKkData.service + bodyKkData.totalBeforeRounding + bodyKkData.rounding;
+				string TextChecksum_Y = bodyKkData.billDate + bodyKkData.billID.Split('-').Last() + bodyKkData.discount + bodyKkData.totalAmount + bodyKkData.vat + bodyKkData.baseAmount + bodyKkData.billIDRef.Split('-').Last();
+				string dataX = "";
+				string dataY = "";
+				MatchCollection matchX = rg.Matches(TextChecksum_X);
+				if (matchX.Count > 0)
+				{
+					List<int> listData = new List<int>();
+					foreach (Match match in matchX)
+					{
+						dataX += match.Value;
+					}
+				}
+
+				MatchCollection matchY = rg.Matches(TextChecksum_Y);
+				if (matchX.Count > 0)
+				{
+					List<int> listData = new List<int>();
+					foreach (Match match in matchY)
+					{
+						dataY += match.Value;
+					}
+
+				}
+
+                string checksum = Verhoeff_checksum.generateVerhoeff(dataX) + Verhoeff_checksum.generateVerhoeff(dataY);
+                
+				// Console.WriteLine("dataX: " + dataX);
+                // Console.WriteLine("dataY: " + dataY);
+				// Console.WriteLine("checksum: " + checksum);
+                // Console.WriteLine("bodyKkData.checkSum: " + bodyKkData.checkSum);
+				
+                if (checksum != bodyKkData.checkSum)
+					return StatusCode(404, new
+					{
+						message = "รูปแบบข้อมูลไม่ถูกต้อง",
+					});
+
+                //Read data form etax_files to show company details
+                var etaxFile = await
+                    (from ef in _context.etax_files
+                     where ef.member_id == branch.member_id &&
+                     ef.ref_etax_id == bodyKkData.billID &&
+                     ef.other.Contains(bodyKkData.branchID + "|")
+                     select new
+                     {
+                         ef.id,
+                         ef.etax_id,
+                         ef.buyer_branch_code,
+                         ef.buyer_name,
+                         ef.buyer_tax_id,
+                         ef.buyer_address,
+                         ef.buyer_zipcode,
+                         ef.buyer_tel,
+                         ef.buyer_email,
+                         ef.issue_date,
+                         ef.ref_issue_date,
+                         ef.add_ebxml_status,
+                         ef.create_date,
+                         ef.delete_status,
+                         ef.update_count,
+                         ef.other,
+                     }).FirstOrDefaultAsync();
+
+
+                //If TIR reciept
+                EtaxFile etaxFile_tir = null;
+                if (bodyKkData.option.ToUpper() == "TIR")
+                {
+                    //หารายการที่มีการทำใบแทน
+                    etaxFile_tir = await _context.etax_files
+                                           .Where(x =>
+                                           x.member_id == branch.member_id &&
+                                           x.etax_id.StartsWith(etaxFile.etax_id) &&
+                                           x.document_type_id == 9 &&
+                                           x.delete_status == 0
+                                           ).OrderByDescending(x => x.etax_id)
+                                           .FirstOrDefaultAsync();
+                }
+                bool already = false;
+                bool expire_edit = false;
+                bool expire_cancel = false;
+                bool food_edit = false;
+                bool rd = false;
+                bool cancel = false;
+                string lang = "";
+                string type = "";
+
+                if (bodyKkData.option.ToUpper() == "TIR")
+                {
+                    if (etaxFile_tir != null)
+                    {
+                        string[] otherArray = etaxFile_tir.other.Split('|');
+                        if (otherArray.Length >= 4)
+                        {
+                            lang = otherArray[1];
+                            type = otherArray[2];
+                        }
+
+                        if (etaxFile_tir.add_ebxml_status == "success")
+                        {
+                            rd = true;
+                        }
+
+                        if (etaxFile_tir.delete_status == 1)
+                            cancel = true;
+                    }
+                }
+
+                //Check menu item name
+                var item = new { name = "อาหารและเครื่องดื่ม" };
+                if (bodyKkData.option == "food")
+                {
+                    food_edit = true;
+                }
+
+                //Check invoice expiration
+                if (etaxFile != null) //If etax_files is available in the database
+                {
+                    string[] otherArray = etaxFile.other.Split('|');
+                    if (otherArray.Length >= 4)
+                    {
+                        lang = otherArray[1];
+                        type = otherArray[2];
+                    }
+
+                    already = true;
+
+                    DateTime ref_issue_date = (DateTime)etaxFile.ref_issue_date;
+                    DateTime expiryDate = DateTime.ParseExact(ref_issue_date.AddDays(7).ToString("yyyy-MM-dd"), "yyyy-MM-dd", CultureInfo.InvariantCulture);
+
+                    //*Invoice will expired at the 11th day of the follow month after created
+                    if (bodyKkData.option != "over" && now >= expiryDate)
+                        expire_edit = true;
+
+                    if (bodyKkData.branchID == "D201") //If from member card(?)
+                    {
+                        expiryDate = DateTime.ParseExact(now.ToString("yyyy-MM") + "-01", "yyyy-MM-dd", CultureInfo.InvariantCulture);
+                        ref_issue_date = DateTime.ParseExact(((DateTime)etaxFile.ref_issue_date).ToString("yyyy-MM") + "-01", "yyyy-MM-dd", CultureInfo.InvariantCulture);
+
+                        if (expiryDate > ref_issue_date)
+                            expire_cancel = true;
+                    }
+                    else
+                    {
+                        expiryDate = now.AddDays(-1).Date;
+                        ref_issue_date = (DateTime)etaxFile.ref_issue_date;
+
+                        if (bodyKkData.option != "over" && expiryDate >= ref_issue_date)
+                            expire_cancel = true;
+                    }
+
+
+                    //Check delete_status if this invoice is canceled
+                    if (etaxFile.delete_status == 1)
+                        cancel = true;
+
+                    //Check add_ebxml_status if this invoice is send to RD
+                    if (etaxFile.add_ebxml_status == "success")
+                        rd = true;
+
+                    //Get item detail
+                    item = _context.etax_file_items
+                                   .Where(i => i.etax_file_id == etaxFile.id)
+                                   .AsEnumerable()
+                                   .Where(i => i.name != "ค่าบริการ")
+                                   .Select(i => new { i.name })
+                                   .FirstOrDefault();
+                }
+                else
+                {
+                    DateTime bilIDate = DateTime.ParseExact(bodyKkData.billDate, "yyyyMMdd", CultureInfo.InvariantCulture);
+                    DateTime expiryDate = DateTime.ParseExact(bilIDate.AddDays(7).ToString("yyyy-MM-dd"), "yyyy-MM-dd", CultureInfo.InvariantCulture);
+
+                    if (bodyKkData.option != "over" && now >= expiryDate)
+                        return StatusCode(404, new { message = "รายการซื้อขายเกิน 7 วัน ไม่สามารถออกใบกำกับภาษีอิเล็กทรอนิคได้", });
+
+                }
+
+
+                //if(etaxFile_tir != null) //If this is TIR - may have additional logic but nothing special for now
+
+                if (member != null && branch != null)//If member and branch is found
+                {
+                    string branch_name = "";
+                    string[] branchNameArray = branch.name.Split('|');
+                    foreach (string branchName in branchNameArray)
+                    {
+                        if (branchName.Contains(bodyKkData.branchID))
+                        {
+                            branch_name = branchName;
+                            break;
+                        }
+                    }
+
+                    return StatusCode(200, new
+                    {
+                        message = "เรียกดูข้อมูลสำเร็จ",
+                        data = new
+                        {
+                            lang = lang,
+                            type = type,
+                            member = member,
+                            branch = new
+                            {
+                                branch.id,
+                                branch.member_id,
+                                name = branch_name,
+                                branch.branch_code,
+                                branch.building_number,
+                                branch.building_name,
+                                branch.street_name,
+                                branch.district_code,
+                                branch.district_name,
+                                branch.amphoe_code,
+                                branch.amphoe_name,
+                                branch.province_code,
+                                branch.province_name,
+                                branch.zipcode,
+                            },
+                            etaxFile = etaxFile,
+                            already = already,
+                            expire_edit = expire_edit,
+                            expire_cancel = expire_cancel,
+                            food_edit = food_edit,
+                            item_name = item.name,
+                            rd = rd,
+                            cancel = cancel,
+                            totalText = Function.ThBahtText(bodyKkData.totalBeforeRounding),
+                        },
+                    });
+                }
+                else
+                {
+                    return StatusCode(404, new
+                    {
+                        message = "ไม่พบข้อมูลที่ต้องการ",
+                    });
+                }
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(400, new { message = ex.Message });
+            }
+        }
 
         [HttpPost]
         [Route("save_form_mk")]
@@ -1110,6 +1397,7 @@ namespace Etax_Api.Controllers
                 DateTime now = DateTime.Now;
                 try
                 {
+                    //Check redundant request
                     if (!Log.CheckLogMk(bodyUserform.dataQr.billID, now))
                     {
                         return StatusCode(400, new { message = "มีข้อมูลซ้ำเข้ามาในเวลาเดียวกัน กรุณาทำรายการใหม่ในภายหลัง", });
@@ -1117,10 +1405,11 @@ namespace Etax_Api.Controllers
                 }
                 catch { }
 
+                //Check redundant request
                 if (double.Parse(bodyUserform.dataQr.totalAmount) == 0)
                     return StatusCode(404, new { message = "ไม่พบข้อมูลยอดชำระเงิน กรุณาลองใหม่ภายหลังหรือติดต่อเจ้าหน้าที่", });
 
-                //Check Email
+                //Check basic Email format
                 MatchCollection matchEmail = rxEmail.Matches(bodyUserform.email);
                 if (matchEmail.Count > 0)
                 {
@@ -1132,13 +1421,14 @@ namespace Etax_Api.Controllers
                     bodyUserform.email = email;
                 }
 
+                //Check branch code format
                 MatchCollection matchBranch = rxBranchCode.Matches(bodyUserform.branch_code);
                 if (matchBranch.Count > 0)
                     bodyUserform.branch_code = matchBranch[0].Value;
                 else
                     bodyUserform.branch_code = "00000";
 
-
+                //Get data from etax_files
                 EtaxFile etaxFile = await _context.etax_files
                 .Where(x =>
                 x.member_id == bodyUserform.member_id &&
@@ -1147,17 +1437,17 @@ namespace Etax_Api.Controllers
                 ).FirstOrDefaultAsync();
 
 
-                if (bodyUserform.lang == "EN")
+                if (bodyUserform.lang == "EN") //If Language is EN
                 {
-                    if (etaxFile == null)
+                    if (etaxFile == null) //If this invoice is new, not found in etax_file
                     {
-
                         DateTime ref_issue_date = DateTime.ParseExact(bodyUserform.dataQr.bilIDate, "yyyyMMdd", CultureInfo.InvariantCulture);
                         string running_name = "etax_id_" + ref_issue_date.ToString("MM_yyyy");
 
                         if (running_name == "etax_id_12_2024")
                             running_name = "etax_id";
 
+                        //Check and count running_number
                         RunningNumber runningNumber = await _context.running_number
                         .Where(x => x.member_id == bodyUserform.member_id && x.type == running_name)
                         .FirstOrDefaultAsync();
@@ -1187,14 +1477,16 @@ namespace Etax_Api.Controllers
                             _context.SaveChanges();
                         }
 
-
+                        //Calculate vat value
                         double amountNoVat = double.Parse(bodyUserform.dataQr.amount) * 100 / 107;
                         double discountNoVat = double.Parse(bodyUserform.dataQr.discount) * 100 / 107;
 
+                        //Create etax_id
                         string etax_id = bodyUserform.dataQr.branchCode +
                             ref_issue_date.ToString("yyyyMMdd", new CultureInfo("th-TH")) + "-" +
                             running_number.ToString().PadLeft(5, '0');
 
+                        //Insert data into etax_files
                         using (var transaction = _context.Database.BeginTransaction())
                         {
                             try
@@ -1323,10 +1615,9 @@ namespace Etax_Api.Controllers
                             }
                         }
                     }
-                    else
+                    else //If this invoice has a record data in etax_file
                     {
-
-                        string itemName = "";
+                        //If Option define as food, rewrite the item name
                         if (bodyUserform.dataQr.option == "food")
                         {
                             EtaxFileItem item = _context.etax_file_items
